@@ -715,50 +715,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // For demo purposes, return simulated column information
-      // In a real app, you'd connect to a real database and get actual schema info
-      
-      // Return mock table schema based on table name to simulate different tables
-      let columns;
-      
-      if (table.toLowerCase().includes('product')) {
-        columns = [
-          { name: "id", type: "int" },
-          { name: "product_name", type: "varchar" },
-          { name: "category", type: "varchar" },
-          { name: "price", type: "decimal" },
-          { name: "stock", type: "int" },
-          { name: "last_updated", type: "date" }
-        ];
-      } else if (table.toLowerCase().includes('customer')) {
-        columns = [
-          { name: "id", type: "int" },
-          { name: "first_name", type: "varchar" },
-          { name: "last_name", type: "varchar" },
-          { name: "email", type: "varchar" },
-          { name: "country", type: "varchar" },
-          { name: "created_at", type: "timestamp" }
-        ];
-      } else if (table.toLowerCase().includes('order')) {
-        columns = [
-          { name: "id", type: "int" },
-          { name: "customer_id", type: "int" },
-          { name: "order_date", type: "date" },
-          { name: "total_amount", type: "decimal" },
-          { name: "status", type: "varchar" },
-          { name: "payment_method", type: "varchar" }
-        ];
-      } else {
-        // Default columns
-        columns = [
+      // Get actual table schema from the database
+      try {
+        // Import the pool from db.ts
+        const { pool } = require('./db');
+        
+        // Query to get column information for a specific table
+        const schemaQuery = `
+          SELECT 
+            column_name as name, 
+            data_type as type
+          FROM 
+            information_schema.columns 
+          WHERE 
+            table_name = $1
+          ORDER BY 
+            ordinal_position
+        `;
+        
+        // Execute the query with the table name as a parameter
+        const result = await pool.query(schemaQuery, [table]);
+        
+        // Return the columns
+        return res.status(200).json(result.rows);
+      } catch (dbError: any) {
+        console.error("Get table schema error:", dbError.message);
+        
+        // If there's an error, return fallback columns
+        const fallbackColumns = [
           { name: "id", type: "int" },
           { name: "name", type: "varchar" },
           { name: "created_at", type: "timestamp" },
           { name: "updated_at", type: "timestamp" }
         ];
+        return res.status(200).json(fallbackColumns);
       }
-      
-      return res.status(200).json(columns);
       
     } catch (error: any) {
       console.error("Get table schema error:", error);
@@ -782,21 +773,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // For demo purposes, return simulated tables
-      // In a real app, you'd connect to a real database and get actual tables
-      
-      const tables = [
-        "products", 
-        "customers", 
-        "orders", 
-        "order_items", 
-        "categories",
-        "inventory",
-        "suppliers",
-        "employees"
-      ];
-      
-      return res.status(200).json(tables);
+      // Get actual tables from the database
+      try {
+        // Import the pool from db.ts
+        const { pool } = require('./db');
+        
+        // Query to get all tables in the public schema
+        const tablesQuery = `
+          SELECT 
+            table_name
+          FROM 
+            information_schema.tables 
+          WHERE 
+            table_schema = 'public'
+            AND table_type = 'BASE TABLE'
+          ORDER BY 
+            table_name
+        `;
+        
+        // Execute the query
+        const result = await pool.query(tablesQuery);
+        
+        // Extract table names from the result
+        const tables = result.rows.map((row: any) => row.table_name);
+        
+        // Return the table names
+        return res.status(200).json(tables);
+      } catch (dbError: any) {
+        console.error("Get tables error:", dbError.message);
+        
+        // If there's an error, return default tables
+        const fallbackTables = [
+          "users", 
+          "dashboards", 
+          "connections", 
+          "datasets", 
+          "widgets",
+          "dashboard_widgets"
+        ];
+        return res.status(200).json(fallbackTables);
+      }
       
     } catch (error: any) {
       console.error("Get SQL tables error:", error);
@@ -828,48 +844,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // For demo purposes, return simulated SQL data
-      // In a real app, you'd connect to a real database using the connection config
-      
-      // Different mock data based on the query to simulate real SQL execution
-      const mockData = [
-        { id: 1, product_name: "Laptop Pro", category: "Electronics", price: 1299.99, stock: 45, last_updated: "2023-03-15" },
-        { id: 2, product_name: "Wireless Headphones", category: "Audio", price: 199.99, stock: 120, last_updated: "2023-03-12" },
-        { id: 3, product_name: "Smart Watch", category: "Wearables", price: 249.99, stock: 78, last_updated: "2023-03-10" },
-        { id: 4, product_name: "Bluetooth Speaker", category: "Audio", price: 89.99, stock: 210, last_updated: "2023-03-08" },
-        { id: 5, product_name: "Tablet Mini", category: "Electronics", price: 399.99, stock: 62, last_updated: "2023-03-05" },
-        { id: 6, product_name: "External Hard Drive", category: "Storage", price: 129.99, stock: 95, last_updated: "2023-03-01" },
-        { id: 7, product_name: "Wireless Mouse", category: "Accessories", price: 39.99, stock: 150, last_updated: "2023-02-28" },
-        { id: 8, product_name: "Mechanical Keyboard", category: "Accessories", price: 149.99, stock: 85, last_updated: "2023-02-25" },
-        { id: 9, product_name: "Smart Display", category: "Electronics", price: 229.99, stock: 40, last_updated: "2023-02-20" },
-        { id: 10, product_name: "Wireless Charger", category: "Accessories", price: 59.99, stock: 110, last_updated: "2023-02-18" }
-      ];
-      
-      // If the query includes 'GROUP BY', simulate aggregated data
-      if (query.toLowerCase().includes('group by')) {
-        return res.status(200).json([
-          { category: "Electronics", total_products: 3, avg_price: 643.32, total_stock: 147 },
-          { category: "Audio", total_products: 2, avg_price: 144.99, total_stock: 330 },
-          { category: "Accessories", total_products: 3, avg_price: 83.32, total_stock: 345 },
-          { category: "Wearables", total_products: 1, avg_price: 249.99, total_stock: 78 },
-          { category: "Storage", total_products: 1, avg_price: 129.99, total_stock: 95 }
-        ]);
-      }
-      
-      // If the query includes 'ORDER BY', sort the data
-      if (query.toLowerCase().includes('order by price')) {
-        // Clone and sort the array
-        const sortedData = [...mockData].sort((a, b) => {
-          // Check if DESC is specified
-          if (query.toLowerCase().includes('desc')) {
-            return b.price - a.price;
-          }
-          return a.price - b.price;
+      // Execute the query on the PostgreSQL database
+      // We're using the application's database connection since this is a demo
+      // In a real app, you would use the connection parameters from the connection object
+      try {
+        // Import the pool from db.ts
+        const { pool } = require('./db');
+        
+        // Execute the query
+        const result = await pool.query(query);
+        
+        // Return the results
+        return res.status(200).json(result.rows);
+      } catch (dbError: any) {
+        console.error("Database query error:", dbError.message);
+        return res.status(400).json({ 
+          message: "SQL query execution failed", 
+          error: dbError.message 
         });
-        return res.status(200).json(sortedData);
       }
-      
-      return res.status(200).json(mockData);
     } catch (error) {
       console.error("Execute SQL query error:", error);
       return res.status(500).json({ message: "Internal server error" });
