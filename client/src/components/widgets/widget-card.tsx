@@ -88,6 +88,29 @@ export default function WidgetCard({
         chartConfig.yAxis = "y1";
         chartConfig.y2Axis = "y2";
         break;
+      case "counter":
+        chartConfig.valueField = "value";
+        chartConfig.format = config.format || "number";
+        chartConfig.prefix = config.prefix || "";
+        chartConfig.suffix = config.suffix || "";
+        chartConfig.decimals = config.decimals || 0;
+        chartConfig.showIcon = config.showIcon !== false;
+        chartConfig.colorCode = config.colorCode !== false;
+        chartConfig.chartTitle = config.chartTitle || "Counter";
+        break;
+      case "stat-card":
+        chartConfig.primaryValueField = "current";
+        chartConfig.secondaryValueField = "previous";
+        chartConfig.compareField = "period";
+        chartConfig.format = config.format || "number";
+        chartConfig.prefix = config.prefix || "";
+        chartConfig.suffix = config.suffix || "";
+        chartConfig.decimals = config.decimals || 0;
+        chartConfig.showIcon = config.showIcon !== false;
+        chartConfig.showChange = config.showChange !== false;
+        chartConfig.colorCodeChange = config.colorCodeChange !== false;
+        chartConfig.chartTitle = config.chartTitle || "Stats";
+        break;
     }
     
     return (
@@ -149,6 +172,14 @@ export default function WidgetCard({
           { x: "Mar", y1: 150, y2: 8 },
           { x: "Apr", y1: 300, y2: 15 },
           { x: "May", y1: 250, y2: 12 },
+        ];
+      case "counter":
+        return [
+          { value: 1250, label: "Total Sales" }
+        ];
+      case "stat-card":
+        return [
+          { current: 8400, previous: 7200, period: "Q1", label: "Revenue" }
         ];
       default:
         return [];

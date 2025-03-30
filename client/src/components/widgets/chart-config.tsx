@@ -182,6 +182,214 @@ export default function ChartConfig({
           </div>
         </div>
       )}
+
+      {chartType === "counter" && (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Counter Widget Options</h3>
+          <div className="space-y-2">
+            <div>
+              <Label htmlFor="valueField" className="text-xs">Value Field</Label>
+              <input
+                type="text"
+                id="valueField"
+                value={config.valueField || ""}
+                onChange={(e) => updateConfig("valueField", e.target.value)}
+                placeholder="Column name for value"
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div>
+              <Label htmlFor="format" className="text-xs">Value Format</Label>
+              <select
+                id="format"
+                value={config.format || "number"}
+                onChange={(e) => updateConfig("format", e.target.value)}
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              >
+                <option value="number">Number</option>
+                <option value="currency">Currency</option>
+                <option value="percentage">Percentage</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label htmlFor="prefix" className="text-xs">Prefix</Label>
+                <input
+                  type="text"
+                  id="prefix"
+                  value={config.prefix || ""}
+                  onChange={(e) => updateConfig("prefix", e.target.value)}
+                  placeholder="e.g. $"
+                  className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="suffix" className="text-xs">Suffix</Label>
+                <input
+                  type="text"
+                  id="suffix"
+                  value={config.suffix || ""}
+                  onChange={(e) => updateConfig("suffix", e.target.value)}
+                  placeholder="e.g. kg"
+                  className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="decimals" className="text-xs">Decimal Places</Label>
+              <input
+                type="number"
+                id="decimals"
+                min="0"
+                max="10"
+                value={config.decimals || 0}
+                onChange={(e) => updateConfig("decimals", parseInt(e.target.value, 10))}
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showIcon"
+                checked={config.showIcon !== false}
+                onChange={(e) => updateConfig("showIcon", e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="showIcon">Show Icon</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="colorCode"
+                checked={config.colorCode !== false}
+                onChange={(e) => updateConfig("colorCode", e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="colorCode">Color Based on Value</Label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chartType === "stat-card" && (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Stat Card Widget Options</h3>
+          <div className="space-y-2">
+            <div>
+              <Label htmlFor="primaryValueField" className="text-xs">Primary Value Field</Label>
+              <input
+                type="text"
+                id="primaryValueField"
+                value={config.primaryValueField || ""}
+                onChange={(e) => updateConfig("primaryValueField", e.target.value)}
+                placeholder="Column name for primary value"
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div>
+              <Label htmlFor="secondaryValueField" className="text-xs">Secondary Value Field (Optional)</Label>
+              <input
+                type="text"
+                id="secondaryValueField"
+                value={config.secondaryValueField || ""}
+                onChange={(e) => updateConfig("secondaryValueField", e.target.value)}
+                placeholder="Column name for comparison"
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div>
+              <Label htmlFor="compareField" className="text-xs">Compare Field (e.g. date)</Label>
+              <input
+                type="text"
+                id="compareField"
+                value={config.compareField || ""}
+                onChange={(e) => updateConfig("compareField", e.target.value)}
+                placeholder="Field for trend comparison"
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div>
+              <Label htmlFor="format" className="text-xs">Value Format</Label>
+              <select
+                id="format"
+                value={config.format || "number"}
+                onChange={(e) => updateConfig("format", e.target.value)}
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              >
+                <option value="number">Number</option>
+                <option value="currency">Currency</option>
+                <option value="percentage">Percentage</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label htmlFor="prefix" className="text-xs">Prefix</Label>
+                <input
+                  type="text"
+                  id="prefix"
+                  value={config.prefix || ""}
+                  onChange={(e) => updateConfig("prefix", e.target.value)}
+                  placeholder="e.g. $"
+                  className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="suffix" className="text-xs">Suffix</Label>
+                <input
+                  type="text"
+                  id="suffix"
+                  value={config.suffix || ""}
+                  onChange={(e) => updateConfig("suffix", e.target.value)}
+                  placeholder="e.g. kg"
+                  className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="decimals" className="text-xs">Decimal Places</Label>
+              <input
+                type="number"
+                id="decimals"
+                min="0"
+                max="10"
+                value={config.decimals || 0}
+                onChange={(e) => updateConfig("decimals", parseInt(e.target.value, 10))}
+                className="w-full mt-1 px-2 py-1 text-sm rounded border border-input"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showIcon"
+                checked={config.showIcon !== false}
+                onChange={(e) => updateConfig("showIcon", e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="showIcon">Show Icon</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showChange"
+                checked={config.showChange !== false}
+                onChange={(e) => updateConfig("showChange", e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="showChange">Show Change Indicator</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="colorCodeChange"
+                checked={config.colorCodeChange !== false}
+                onChange={(e) => updateConfig("colorCodeChange", e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="colorCodeChange">Color Code Change</Label>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Common chart options */}
       <div>

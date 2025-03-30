@@ -83,7 +83,7 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
 });
 
 // Widget types
-export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes"] as const;
+export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card"] as const;
 export const chartTypeSchema = z.enum(chartTypes);
 
 // Widgets schema

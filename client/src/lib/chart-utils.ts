@@ -30,6 +30,23 @@ export interface ChartConfig {
   xAxisLabel?: string;
   yAxisLabel?: string;
   filters?: ChartFilter[];
+  // Counter widget fields
+  valueField?: string;
+  format?: 'number' | 'currency' | 'percentage';
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  showIcon?: boolean;
+  icon?: string;
+  colorCode?: boolean;
+  // Stat card fields
+  primaryValueField?: string;
+  secondaryValueField?: string;
+  compareField?: string;
+  showChange?: boolean;
+  colorCodeChange?: boolean;
+  trend?: 'up' | 'down' | 'neutral';
+  connectNulls?: boolean;
 }
 
 export interface ChartFilter {
@@ -84,6 +101,33 @@ export function getDefaultChartConfig(chartType: ChartType): ChartConfig {
         ...baseConfig,
         leftAxisType: 'bar',
         rightAxisType: 'line',
+      };
+    case 'counter':
+      return {
+        ...baseConfig,
+        valueField: '',
+        format: 'number',
+        prefix: '',
+        suffix: '',
+        decimals: 0,
+        showIcon: true,
+        icon: 'trending-up',
+        colorCode: true,
+      };
+    case 'stat-card':
+      return {
+        ...baseConfig,
+        primaryValueField: '',
+        secondaryValueField: '',
+        compareField: '',
+        format: 'number',
+        prefix: '',
+        suffix: '',
+        decimals: 0,
+        showIcon: true,
+        showChange: true,
+        colorCodeChange: true,
+        trend: 'neutral',
       };
     default:
       return baseConfig;
@@ -204,6 +248,28 @@ export function suggestChartType(data: Record<string, any>[]): ChartType {
       categoricalCount++;
     }
   });
+
+  // If there's only a single row with a single numeric value, suggest counter widget
+  if (data.length === 1 && numericCount === 1 && categoricalCount <= 1) {
+    return 'counter';
+  }
+  
+  // If there are only a few rows (1-3) with a primary metric and possibly a comparison value, suggest stat card
+  if (data.length <= 3 && numericCount >= 1 && numericCount <= 3) {
+    // Check if there might be a time field for comparison
+    const timeFields = fields.filter(field => {
+      const lowerField = field.toLowerCase();
+      return lowerField.includes('date') || 
+             lowerField.includes('time') || 
+             lowerField.includes('year') || 
+             lowerField.includes('month') || 
+             lowerField.includes('day');
+    });
+    
+    if (timeFields.length > 0 || (numericCount === 2 && categoricalCount <= 1)) {
+      return 'stat-card';
+    }
+  }
   
   // If there are multiple numeric fields and at least one categorical
   if (numericCount >= 2 && categoricalCount >= 1) {
@@ -345,6 +411,22 @@ export function suggestAxisMappings(
       const y2Axis = numericFields[1] || numericFields[0] || fields[2] || fields[1];
       
       return { xAxis, yAxis, y2Axis };
+    }
+    
+    case 'counter': {
+      // For counter widgets, use the first numeric field as the value field
+      const valueField = numericFields[0] || fields[0];
+      return { valueField } as any;
+    }
+    
+    case 'stat-card': {
+      // For stat cards, use the first numeric field as primary and second as secondary
+      const primaryValueField = numericFields[0] || fields[0];
+      const secondaryValueField = numericFields[1] || numericFields[0] || fields[1] || fields[0];
+      // Use a time field as the compare field if available (for trend comparison)
+      const compareField = timeFields[0] || categoricalFields[0];
+      
+      return { primaryValueField, secondaryValueField, compareField } as any;
     }
     
     default:
