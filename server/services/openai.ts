@@ -5,17 +5,27 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+interface WidgetContext {
+  id: number;
+  name: string;
+  type: string;
+  config: any;
+}
+
 /**
  * Generate a response from the AI Copilot
  * @param prompt User's prompt
  * @param context Previous conversation context
  * @param datasetId Optional dataset ID to reference
+ * @param chartType Optional chart type
+ * @param widgetContext Optional widget context information
  */
 export async function generateAIResponse(
   prompt: string,
   context: { role: "user" | "assistant"; content: string }[] = [],
   datasetId?: number,
-  chartType?: string
+  chartType?: string,
+  widgetContext?: WidgetContext
 ): Promise<string> {
   try {
     // System message that defines the AI's behavior
@@ -24,6 +34,8 @@ Your role is to help users create, manage, and optimize their data dashboards.
 
 ${datasetId ? `You are currently working with dataset ID: ${datasetId}. The user wants insights about this data.` : ''}
 ${chartType ? `The user is working with a ${chartType} chart.` : ''}
+${widgetContext ? `The user is specifically asking about widget "${widgetContext.name}" (ID: ${widgetContext.id}) which is a ${widgetContext.type} chart.
+Configuration details for this widget: ${JSON.stringify(widgetContext.config, null, 2)}` : ''}
 
 Provide concise, helpful responses about:
 - Data visualization recommendations

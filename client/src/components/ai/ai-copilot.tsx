@@ -21,13 +21,21 @@ interface Message {
   };
 }
 
+interface WidgetContextType {
+  id: number;
+  name: string;
+  type: string;
+  config: any;
+}
+
 interface AICopilotProps {
   onClose: () => void;
   activeDatasetId?: number;
   activeChartType?: string;
+  widgetContext?: WidgetContextType;
 }
 
-export default function AICopilot({ onClose, activeDatasetId, activeChartType }: AICopilotProps) {
+export default function AICopilot({ onClose, activeDatasetId, activeChartType, widgetContext }: AICopilotProps) {
   const [prompt, setPrompt] = useState("");
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | undefined>(activeDatasetId);
   const [selectedChartType, setSelectedChartType] = useState<string | undefined>(activeChartType);
@@ -36,8 +44,14 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType }:
     {
       id: "welcome",
       role: "assistant",
-      content: "Hello! I'm your AI Copilot. How can I help you with your dashboard today?",
+      content: widgetContext 
+        ? `Hello! I'm your AI Copilot. I see you're working with the "${widgetContext.name}" ${widgetContext.type} widget. How can I help you with this visualization today?`
+        : "Hello! I'm your AI Copilot. How can I help you with your dashboard today?",
       timestamp: new Date(),
+      context: widgetContext ? {
+        datasetId: activeDatasetId,
+        chartType: widgetContext.type,
+      } : undefined
     },
   ]);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -65,6 +79,12 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType }:
           context: messages.slice(-5).map(m => ({ role: m.role, content: m.content })),
           datasetId: selectedDatasetId,
           chartType: selectedChartType,
+          widgetContext: widgetContext ? {
+            id: widgetContext.id,
+            name: widgetContext.name,
+            type: widgetContext.type,
+            config: widgetContext.config
+          } : undefined,
         });
         
         // Type guard to check if we have a proper response object

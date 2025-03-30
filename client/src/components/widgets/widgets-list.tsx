@@ -9,6 +9,7 @@ interface WidgetsListProps {
   onSaveAsTemplate: (widget: Widget) => void;
   onAddToDashboard: (widget: Widget) => void;
   onShareWidget?: (widget: Widget) => void;
+  onOpenCopilot?: (widget: Widget) => void;
   isTemplate?: boolean;
 }
 
@@ -19,6 +20,7 @@ export default function WidgetsList({
   onSaveAsTemplate,
   onAddToDashboard,
   onShareWidget,
+  onOpenCopilot,
   isTemplate = false,
 }: WidgetsListProps) {
   if (!widgets.length) {
@@ -44,6 +46,7 @@ export default function WidgetsList({
           onSaveAsTemplate={() => onSaveAsTemplate(widget)}
           onAddToDashboard={() => onAddToDashboard(widget)}
           onShareWidget={onShareWidget ? () => onShareWidget(widget) : undefined}
+          onOpenCopilot={onOpenCopilot ? () => onOpenCopilot(widget) : undefined}
           showControls={true}
           isTemplate={isTemplate}
         />

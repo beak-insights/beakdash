@@ -16,6 +16,7 @@ interface WidgetGridProps {
   isLoading: boolean;
   isError: boolean;
   onEditWidget: (widget: Widget) => void;
+  onOpenCopilot?: (widget: Widget) => void;
 }
 
 export default function WidgetGrid({
@@ -23,6 +24,7 @@ export default function WidgetGrid({
   isLoading,
   isError,
   onEditWidget,
+  onOpenCopilot,
 }: WidgetGridProps) {
   const [layout, setLayout] = useState<any[]>([]);
   
@@ -119,6 +121,10 @@ export default function WidgetGrid({
           <WidgetCard
             widget={widget}
             onEdit={() => onEditWidget(widget)}
+            onDelete={() => {}}
+            onSaveAsTemplate={() => {}}
+            onAddToDashboard={() => {}}
+            onOpenCopilot={onOpenCopilot ? () => onOpenCopilot(widget) : undefined}
           />
         </div>
       ))}

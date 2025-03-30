@@ -15,7 +15,8 @@ import {
   Save,
   Plus,
   Copy,
-  Share2
+  Share2,
+  Bot
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ interface WidgetCardProps {
   onSaveAsTemplate: () => void;
   onAddToDashboard: () => void;
   onShareWidget?: () => void;  // New prop for sharing/attaching widgets
+  onOpenCopilot?: () => void;  // New prop for opening the AI Copilot with widget context
   isTemplate?: boolean;
   showControls?: boolean;
 }
@@ -44,6 +46,7 @@ export default function WidgetCard({
   onSaveAsTemplate,
   onAddToDashboard,
   onShareWidget,
+  onOpenCopilot,
   isTemplate = false,
   showControls = true
 }: WidgetCardProps) {
@@ -175,7 +178,10 @@ export default function WidgetCard({
         ];
       case "counter":
         return [
-          { value: 1250, label: "Total Sales" }
+          { value: 1250, label: "Total Sales", trend: 'up', change: '+15%', previous: 1087, icon: 'dollar-sign' },
+          { value: 532, label: "New Users", trend: 'up', change: '+24%', previous: 429, icon: 'users' },
+          { value: 8759, label: "Page Views", trend: 'down', change: '-8%', previous: 9520, icon: 'eye' },
+          { value: 93.5, label: "Conversion Rate", trend: 'up', change: '+2.1%', previous: 91.6, icon: 'percent', format: 'percentage' }
         ];
       case "stat-card":
         return [
@@ -212,6 +218,14 @@ export default function WidgetCard({
                   <DropdownMenuItem onClick={onShareWidget}>
                     <Share2 className="mr-2 h-4 w-4" />
                     <span>Share/Attach</span>
+                  </DropdownMenuItem>
+                )}
+                
+                {/* AI Copilot option for all widgets */}
+                {onOpenCopilot && (
+                  <DropdownMenuItem onClick={onOpenCopilot}>
+                    <Bot className="mr-2 h-4 w-4" />
+                    <span>Ask AI Copilot</span>
                   </DropdownMenuItem>
                 )}
                 

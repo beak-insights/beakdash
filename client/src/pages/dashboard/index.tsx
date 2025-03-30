@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [isWidgetEditorOpen, setIsWidgetEditorOpen] = useState(false);
   const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
+  const [copilotWidget, setCopilotWidget] = useState<Widget | null>(null);
   const [, setLocation] = useLocation();
   
   // Get dashboard ID from URL params or default to 1
@@ -56,7 +57,13 @@ export default function Dashboard() {
   };
 
   const handleToggleAICopilot = () => {
+    setCopilotWidget(null); // Reset the widget context
     setIsAICopilotOpen(!isAICopilotOpen);
+  };
+  
+  const handleOpenCopilotWithWidget = (widget: Widget) => {
+    setCopilotWidget(widget);
+    setIsAICopilotOpen(true);
   };
 
   return (
@@ -95,6 +102,7 @@ export default function Dashboard() {
               isLoading={isLoadingWidgets}
               isError={isErrorWidgets}
               onEditWidget={handleEditWidget}
+              onOpenCopilot={handleOpenCopilotWithWidget}
             />
           </div>
         </main>
@@ -113,8 +121,15 @@ export default function Dashboard() {
       {isAICopilotOpen && (
         <AICopilot 
           onClose={() => setIsAICopilotOpen(false)} 
-          activeDatasetId={editingWidget?.datasetId || undefined}
-          activeChartType={editingWidget?.type}
+          activeDatasetId={copilotWidget?.datasetId || editingWidget?.datasetId || undefined}
+          activeChartType={copilotWidget?.type || editingWidget?.type}
+          widgetContext={copilotWidget ? 
+            {
+              id: copilotWidget.id,
+              name: copilotWidget.name,
+              type: copilotWidget.type,
+              config: copilotWidget.config
+            } : undefined}
         />
       )}
     </div>

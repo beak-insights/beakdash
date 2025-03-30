@@ -584,7 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Copilot route
   app.post(`${apiPrefix}/ai/copilot`, async (req, res) => {
     try {
-      const { prompt, context, datasetId, chartType } = req.body;
+      const { prompt, context, datasetId, chartType, widgetContext } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: "Prompt is required" });
@@ -598,7 +598,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         prompt, 
         context || [], 
         datasetId, 
-        chartType
+        chartType,
+        widgetContext
       );
       
       return res.status(200).json({ 
