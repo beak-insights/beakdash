@@ -72,7 +72,7 @@ export default function WidgetEditor({
   const [config, setConfig] = useState<Record<string, any>>(widget?.config || {});
   const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
   const [currentTab, setCurrentTab] = useState("chart-type");
-  const [customQuery, setCustomQuery] = useState<string>(widget?.customQuery || "");
+  const [customQuery, setCustomQuery] = useState<string>(widget?.customQuery || "SELECT * FROM table_name LIMIT 10");
   const [useCustomQuery, setUseCustomQuery] = useState<boolean>(!!widget?.customQuery);
   const [showDataPreview, setShowDataPreview] = useState<boolean>(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(dashboardId || null);
@@ -652,7 +652,7 @@ export default function WidgetEditor({
           {/* Right Panel - SQL Editor and Preview */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* SQL Editor section - only shows for SQL dataset connections */}
-            {useCustomQuery && selectedConnectionId && (
+            {useCustomQuery && (
               <div className="p-3 border-b border-border">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium">SQL Query</h3>
