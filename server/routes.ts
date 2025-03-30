@@ -691,6 +691,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get SQL Table Schema route (to retrieve column information)
+  app.post(`${apiPrefix}/connections/table-schema`, async (req, res) => {
+    try {
+      const { connectionId, table } = req.body;
+      
+      if (!connectionId) {
+        return res.status(400).json({ message: "Connection ID is required" });
+      }
+      
+      if (!table || typeof table !== 'string') {
+        return res.status(400).json({ message: "Table name is required" });
+      }
+      
+      // Check if the connection exists
+      const connection = await storage.getConnection(connectionId);
+      if (!connection) {
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      // Ensure it's a SQL connection
+      if (connection.type !== 'sql') {
+        return res.status(400).json({ message: "Connection must be of type 'sql'" });
+      }
+      
+      // For demo purposes, return simulated column information
+      // In a real app, you'd connect to a real database and get actual schema info
+      
+      // Return mock table schema based on table name to simulate different tables
+      let columns;
+      
+      if (table.toLowerCase().includes('product')) {
+        columns = [
+          { name: "id", type: "int" },
+          { name: "product_name", type: "varchar" },
+          { name: "category", type: "varchar" },
+          { name: "price", type: "decimal" },
+          { name: "stock", type: "int" },
+          { name: "last_updated", type: "date" }
+        ];
+      } else if (table.toLowerCase().includes('customer')) {
+        columns = [
+          { name: "id", type: "int" },
+          { name: "first_name", type: "varchar" },
+          { name: "last_name", type: "varchar" },
+          { name: "email", type: "varchar" },
+          { name: "country", type: "varchar" },
+          { name: "created_at", type: "timestamp" }
+        ];
+      } else if (table.toLowerCase().includes('order')) {
+        columns = [
+          { name: "id", type: "int" },
+          { name: "customer_id", type: "int" },
+          { name: "order_date", type: "date" },
+          { name: "total_amount", type: "decimal" },
+          { name: "status", type: "varchar" },
+          { name: "payment_method", type: "varchar" }
+        ];
+      } else {
+        // Default columns
+        columns = [
+          { name: "id", type: "int" },
+          { name: "name", type: "varchar" },
+          { name: "created_at", type: "timestamp" },
+          { name: "updated_at", type: "timestamp" }
+        ];
+      }
+      
+      return res.status(200).json(columns);
+      
+    } catch (error: any) {
+      console.error("Get table schema error:", error);
+      return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
+  // Get SQL Tables route (to retrieve available tables)
+  app.get(`${apiPrefix}/connections/:id/tables`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      
+      // Check if the connection exists
+      const connection = await storage.getConnection(id);
+      if (!connection) {
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      // Ensure it's a SQL connection
+      if (connection.type !== 'sql') {
+        return res.status(400).json({ message: "Connection must be of type 'sql'" });
+      }
+      
+      // For demo purposes, return simulated tables
+      // In a real app, you'd connect to a real database and get actual tables
+      
+      const tables = [
+        "products", 
+        "customers", 
+        "orders", 
+        "order_items", 
+        "categories",
+        "inventory",
+        "suppliers",
+        "employees"
+      ];
+      
+      return res.status(200).json(tables);
+      
+    } catch (error: any) {
+      console.error("Get SQL tables error:", error);
+      return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
   // Execute Custom SQL Query route
   app.post(`${apiPrefix}/connections/execute-query`, async (req, res) => {
     try {

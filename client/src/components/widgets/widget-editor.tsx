@@ -73,6 +73,8 @@ export default function WidgetEditor({
   const [useCustomQuery, setUseCustomQuery] = useState<boolean>(!!widget?.customQuery);
   const [showDataPreview, setShowDataPreview] = useState<boolean>(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(dashboardId || null);
+  const [sqlTables, setSqlTables] = useState<string[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string>("");
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -98,6 +100,70 @@ export default function WidgetEditor({
   
   // Fetch dashboards for this widget if editing
   const { data: widgetDashboards = [] } = useWidgetDashboards(widget?.id);
+
+  // Fetch SQL tables for selected SQL connection
+  const { data: sqlTablesData } = useQuery({
+    queryKey: ['/api/connections', selectedConnectionId, 'tables'],
+    queryFn: async ({ queryKey }) => {
+      if (!selectedConnectionId) return [];
+      
+      try {
+        const response = await fetch(`${queryKey[0]}/${queryKey[1]}/tables`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch SQL tables');
+        }
+        return response.json();
+      } catch (error: any) {
+        toast({
+          title: "Error loading SQL tables",
+          description: error.message || "Failed to load tables from SQL connection",
+          variant: "destructive",
+        });
+        return [];
+      }
+    },
+    enabled: !!selectedConnectionId && useCustomQuery,
+  });
+
+  // Fetch SQL table schema when a table is selected
+  const tableSchemaQuery = useMutation({
+    mutationFn: async (data: { connectionId: number; table: string }) => {
+      return apiRequest('POST', '/api/connections/table-schema', data);
+    },
+    onSuccess: (data: any) => {
+      if (Array.isArray(data) && data.length > 0) {
+        // Extract column names from the schema
+        const columns = data.map(col => col.name);
+        setDataColumns(columns);
+        
+        // Generate a sample SELECT query
+        const tableQuery = `SELECT * FROM ${selectedTable} LIMIT 10`;
+        setCustomQuery(tableQuery);
+        
+        // Execute the query to get the actual data
+        if (selectedConnectionId) {
+          executeCustomQueryMutation.mutate({
+            connectionId: selectedConnectionId,
+            query: tableQuery
+          });
+        }
+      } else {
+        toast({
+          title: "Schema information",
+          description: "No columns found for the selected table",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Schema error",
+        description: `Failed to load schema: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Fetch dataset data when selected
   const { data: datasetData, isLoading: isLoadingData } = useQuery({
@@ -141,6 +207,28 @@ export default function WidgetEditor({
       }
     }
   }, [datasetData, chartType]);
+  
+  // Update tables dropdown when SQL connection changes
+  useEffect(() => {
+    if (sqlTablesData && Array.isArray(sqlTablesData)) {
+      setSqlTables(sqlTablesData);
+      
+      // If there are tables, select the first one by default
+      if (sqlTablesData.length > 0 && !selectedTable) {
+        setSelectedTable(sqlTablesData[0]);
+      }
+    }
+  }, [sqlTablesData]);
+  
+  // Get schema when a table is selected
+  useEffect(() => {
+    if (selectedConnectionId && selectedTable && useCustomQuery) {
+      tableSchemaQuery.mutate({
+        connectionId: selectedConnectionId,
+        table: selectedTable
+      });
+    }
+  }, [selectedTable, selectedConnectionId, useCustomQuery]);
 
   // Generate sample data based on chart type
   const getSampleData = (chartType: ChartType) => {
@@ -425,6 +513,36 @@ export default function WidgetEditor({
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {selectedConnectionId && sqlTables.length > 0 && (
+                    <div>
+                      <Label htmlFor="sql-table" className="mb-1 block">Table</Label>
+                      <Select 
+                        value={selectedTable || ""} 
+                        onValueChange={(value) => setSelectedTable(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a table" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sqlTables.map((table) => (
+                            <SelectItem key={table} value={table}>
+                              {table}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {tableSchemaQuery.isPending 
+                            ? "Loading table schema..." 
+                            : dataColumns.length > 0 
+                              ? `${dataColumns.length} columns loaded` 
+                              : "Select a table to load columns"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   
                   <div>
                     <div className="flex items-center justify-between mb-1">
