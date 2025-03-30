@@ -211,24 +211,14 @@ export default function WidgetCard({
       <CardContent className="p-3 flex-1 flex flex-col">
         {getChartPreview()}
         
-        <div className="mt-2 text-xs text-muted-foreground">
-          <div className="flex justify-between">
-            <span>Type: {widget.type}</span>
-            {widget.isTemplate && (
-              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
-                Template
-              </span>
-            )}
+        {/* Widget type and dataset info removed as requested */}
+        {widget.isTemplate && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
+              Template
+            </span>
           </div>
-          
-          {widget.datasetId && (
-            <p>Dataset ID: {widget.datasetId}</p>
-          )}
-          
-          {widget.customQuery && (
-            <p className="truncate">Custom SQL Query</p>
-          )}
-        </div>
+        )}
       </CardContent>
       
       {showControls && (
