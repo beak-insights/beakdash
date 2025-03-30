@@ -18,8 +18,10 @@ import {
   SelectTrigger, 
   SelectValue,
 } from "@/components/ui/select";
+import { PlayIcon } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useWidgets } from "@/hooks/use-widgets";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Tabs,
   TabsContent,
@@ -663,12 +665,66 @@ export default function WidgetEditor({
             </Tabs>
           </div>
 
-          {/* Right Panel - Preview */}
+          {/* Right Panel - SQL Editor and Preview */}
           <div className="flex-1 overflow-hidden flex flex-col">
+            {/* SQL Editor section - only shows for SQL dataset connections */}
+            {useCustomQuery && selectedConnectionId && (
+              <div className="p-3 border-b border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">SQL Query</h3>
+                  <div className="flex space-x-2 items-center">
+                    {sqlTables.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-muted-foreground">Table:</span>
+                        <Select 
+                          value={selectedTable || ""} 
+                          onValueChange={(value) => setSelectedTable(value)}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-[120px]">
+                            <SelectValue placeholder="Select table" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sqlTables.map((table) => (
+                              <SelectItem key={table} value={table}>
+                                {table}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 px-3 text-xs"
+                      onClick={handleExecuteQuery}
+                      disabled={executeCustomQueryMutation.isPending || !customQuery.trim()}
+                    >
+                      {executeCustomQueryMutation.isPending ? (
+                        <Spinner size="sm" className="mr-1" />
+                      ) : (
+                        <PlayIcon className="w-3 h-3 mr-1" />
+                      )}
+                      Run Query
+                    </Button>
+                  </div>
+                </div>
+                
+                <MonacoSQLEditor
+                  value={customQuery}
+                  onChange={setCustomQuery}
+                  height="120px"
+                  loading={executeCustomQueryMutation.isPending}
+                  showExecuteButton={false}
+                />
+              </div>
+            )}
+
+            {/* Preview section */}
             <div className="p-3 bg-muted border-b border-border flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <h3 className="text-sm font-medium">Preview</h3>
-                {useCustomQuery && previewData.length > 0 && (
+                {previewData.length > 0 && (
                   <div className="flex space-x-2">
                     <Button
                       size="sm"
@@ -692,6 +748,7 @@ export default function WidgetEditor({
               {isLoadingData && <p className="text-xs text-muted-foreground">Loading data...</p>}
               {executeCustomQueryMutation.isPending && <p className="text-xs text-muted-foreground">Executing query...</p>}
             </div>
+            
             <div className="p-4 flex-1 overflow-hidden">
               {previewData.length > 0 ? (
                 showDataPreview ? (
