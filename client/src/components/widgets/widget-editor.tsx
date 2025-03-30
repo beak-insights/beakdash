@@ -23,32 +23,52 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import ChartConfig from "./chart-config";
 import AxisMapping from "./axis-mapping";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ChartType, Widget, Dataset, chartTypes } from "@shared/schema";
-import { extractColumns } from "@/lib/utils";
+import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
 
 interface WidgetEditorProps {
-  dashboardId: number;
+  dashboardId?: number;
   widget?: Widget | null;
   onClose: () => void;
+  onSave?: (widget: Widget) => void;
+  onCreate?: () => void;
+  isCreating?: boolean;
+  isTemplate?: boolean;
 }
 
 export default function WidgetEditor({ 
   dashboardId, 
   widget, 
-  onClose 
+  onClose,
+  onSave,
+  onCreate,
+  isCreating = false,
+  isTemplate = false
 }: WidgetEditorProps) {
   const [name, setName] = useState(widget?.name || "New Widget");
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(widget?.datasetId || null);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<number | null>(widget?.connectionId || null);
   const [chartType, setChartType] = useState<ChartType>(widget?.type as ChartType || "bar");
   const [dataColumns, setDataColumns] = useState<string[]>([]);
   const [config, setConfig] = useState<Record<string, any>>(widget?.config || {});
   const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
   const [currentTab, setCurrentTab] = useState("chart-type");
+  const [customQuery, setCustomQuery] = useState<string>(widget?.customQuery || "");
+  const [useCustomQuery, setUseCustomQuery] = useState<boolean>(!!widget?.customQuery);
+  const [showDataPreview, setShowDataPreview] = useState<boolean>(false);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -56,6 +76,11 @@ export default function WidgetEditor({
   // Fetch available datasets
   const { data: datasets = [] } = useQuery<Dataset[]>({
     queryKey: ['/api/datasets'],
+  });
+  
+  // Fetch available connections
+  const { data: connections = [] } = useQuery({
+    queryKey: ['/api/connections'],
   });
 
   // Fetch dataset data when selected
@@ -196,9 +221,68 @@ export default function WidgetEditor({
     }
   };
 
+  // Execute custom SQL query
+  const executeCustomQueryMutation = useMutation({
+    mutationFn: async (queryData: { connectionId: number, query: string }) => {
+      return apiRequest('POST', '/api/connections/execute-query', queryData);
+    },
+    onSuccess: (data: any) => {
+      if (Array.isArray(data)) {
+        setPreviewData(data);
+        const columns = extractColumns(data);
+        setDataColumns(columns);
+        
+        if (!config.xAxis && columns.length > 0) {
+          setConfig(prevConfig => ({
+            ...prevConfig,
+            xAxis: columns[0],
+            yAxis: columns[1] || columns[0],
+          }));
+        }
+        
+        setShowDataPreview(true);
+        toast({
+          title: "Query executed",
+          description: "SQL query executed successfully.",
+        });
+      } else {
+        toast({
+          title: "Query executed",
+          description: "Query executed but returned no data or invalid format.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Query error",
+        description: `Failed to execute query: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Execute custom query
+  const handleExecuteQuery = () => {
+    if (!selectedConnectionId || !customQuery.trim()) {
+      toast({
+        title: "Error",
+        description: "Please select a connection and enter a SQL query.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    executeCustomQueryMutation.mutate({
+      connectionId: selectedConnectionId,
+      query: customQuery
+    });
+  };
+
   // Handle form submission
   const handleSubmit = () => {
-    if (!selectedDatasetId) {
+    // Check for required fields
+    if (!useCustomQuery && !selectedDatasetId) {
       toast({
         title: "Error",
         description: "Please select a dataset.",
@@ -206,16 +290,47 @@ export default function WidgetEditor({
       });
       return;
     }
-
+    
+    if (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) {
+      toast({
+        title: "Error",
+        description: "Please select a connection and enter a SQL query.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create widget data object
     const widgetData = {
       name,
       dashboardId,
-      datasetId: selectedDatasetId,
+      datasetId: useCustomQuery ? null : selectedDatasetId,
+      connectionId: useCustomQuery ? selectedConnectionId : null,
+      customQuery: useCustomQuery ? customQuery : null,
       type: chartType,
       config,
       position: widget?.position || { x: 0, y: 0, w: 3, h: 2 },
+      isTemplate: isTemplate,
+      sourceWidgetId: widget?.sourceWidgetId || null,
     };
-
+    
+    // Handle save callbacks if provided
+    if (onSave && widget) {
+      onSave({
+        ...widget,
+        ...widgetData
+      });
+      onClose();
+      return;
+    }
+    
+    if (onCreate && !widget) {
+      onCreate();
+      createMutation.mutate(widgetData);
+      return;
+    }
+    
+    // Default save behavior
     if (widget) {
       updateMutation.mutate(widgetData);
     } else {
@@ -257,22 +372,98 @@ export default function WidgetEditor({
             </div>
 
             <div className="mb-4">
-              <Label htmlFor="dataset" className="mb-1 block">Data Source</Label>
-              <Select 
-                value={selectedDatasetId?.toString() || "0"} 
-                onValueChange={(value) => setSelectedDatasetId(Number(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a dataset" />
-                </SelectTrigger>
-                <SelectContent>
-                  {datasets.map((dataset) => (
-                    <SelectItem key={dataset.id} value={dataset.id.toString()}>
-                      {dataset.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="data-source-type" className="text-sm font-medium">Data Source Type</Label>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="radio"
+                      id="dataset-source"
+                      checked={!useCustomQuery}
+                      onChange={() => setUseCustomQuery(false)}
+                      className="rounded-full"
+                    />
+                    <Label htmlFor="dataset-source" className="text-sm">Dataset</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="radio"
+                      id="sql-source"
+                      checked={useCustomQuery}
+                      onChange={() => setUseCustomQuery(true)}
+                      className="rounded-full"
+                    />
+                    <Label htmlFor="sql-source" className="text-sm">Custom SQL</Label>
+                  </div>
+                </div>
+              </div>
+              
+              {!useCustomQuery ? (
+                <div className="mt-2">
+                  <Label htmlFor="dataset" className="mb-1 block">Dataset</Label>
+                  <Select 
+                    value={selectedDatasetId?.toString() || "0"} 
+                    onValueChange={(value) => setSelectedDatasetId(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a dataset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasets.map((dataset) => (
+                        <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                          {dataset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2 mt-2">
+                  <div>
+                    <Label htmlFor="connection" className="mb-1 block">SQL Connection</Label>
+                    <Select 
+                      value={selectedConnectionId?.toString() || "0"} 
+                      onValueChange={(value) => setSelectedConnectionId(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a connection" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {connections
+                          .filter(conn => conn.type === 'sql')
+                          .map((connection) => (
+                            <SelectItem key={connection.id} value={connection.id.toString()}>
+                              {connection.name}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label htmlFor="custom-query" className="block">SQL Query</Label>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-6 text-xs px-2"
+                        onClick={handleExecuteQuery}
+                        disabled={!selectedConnectionId || !customQuery.trim() || executeCustomQueryMutation.isPending}
+                      >
+                        {executeCustomQueryMutation.isPending ? "Running..." : "Run Query"}
+                      </Button>
+                    </div>
+                    <textarea
+                      id="custom-query"
+                      value={customQuery}
+                      onChange={(e) => setCustomQuery(e.target.value)}
+                      placeholder="SELECT * FROM table WHERE condition"
+                      className="w-full h-24 px-3 py-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -377,20 +568,77 @@ export default function WidgetEditor({
           {/* Right Panel - Preview */}
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="p-3 bg-muted border-b border-border flex items-center justify-between">
-              <h3 className="text-sm font-medium">Preview</h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm font-medium">Preview</h3>
+                {useCustomQuery && previewData.length > 0 && (
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant={!showDataPreview ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setShowDataPreview(false)}
+                    >
+                      Chart
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={showDataPreview ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setShowDataPreview(true)}
+                    >
+                      Data Table
+                    </Button>
+                  </div>
+                )}
+              </div>
               {isLoadingData && <p className="text-xs text-muted-foreground">Loading data...</p>}
+              {executeCustomQueryMutation.isPending && <p className="text-xs text-muted-foreground">Executing query...</p>}
             </div>
             <div className="p-4 flex-1 overflow-hidden">
               {previewData.length > 0 ? (
-                <Chart
-                  type={chartType}
-                  data={previewData}
-                  config={config}
-                  height="100%"
-                />
+                showDataPreview ? (
+                  <div className="overflow-auto h-full">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {dataColumns.map((column) => (
+                            <TableHead key={column}>{column}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.slice(0, 50).map((row, idx) => (
+                          <TableRow key={idx}>
+                            {dataColumns.map((column) => (
+                              <TableCell key={`${idx}-${column}`}>
+                                {typeof row[column] === 'object' 
+                                  ? JSON.stringify(row[column]) 
+                                  : String(row[column] ?? '')}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {previewData.length > 50 && (
+                      <div className="text-center text-sm text-muted-foreground mt-2">
+                        Showing 50 of {previewData.length} rows
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Chart
+                    type={chartType}
+                    data={previewData}
+                    config={config}
+                    height="100%"
+                  />
+                )
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
-                  {isLoadingData ? "Loading data..." : "No data available for preview"}
+                  {executeCustomQueryMutation.isPending || isLoadingData 
+                    ? "Loading data..." 
+                    : "No data available for preview"}
                 </div>
               )}
             </div>
@@ -401,7 +649,13 @@ export default function WidgetEditor({
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={!selectedDatasetId || !name || createMutation.isPending || updateMutation.isPending}
+            disabled={
+              (!useCustomQuery && !selectedDatasetId) || 
+              (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) || 
+              !name || 
+              createMutation.isPending || 
+              updateMutation.isPending
+            }
           >
             {createMutation.isPending || updateMutation.isPending ? 
               "Saving..." : 

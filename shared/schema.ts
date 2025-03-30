@@ -91,10 +91,14 @@ export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
   dashboardId: integer("dashboard_id").references(() => dashboards.id),
   datasetId: integer("dataset_id").references(() => datasets.id),
+  connectionId: integer("connection_id").references(() => connections.id),
   name: text("name").notNull(),
   type: text("type").notNull(),
   position: jsonb("position").default({}),
   config: jsonb("config").default({}),
+  customQuery: text("custom_query"),
+  isTemplate: boolean("is_template").default(false),
+  sourceWidgetId: integer("source_widget_id").references(() => widgets.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -102,10 +106,14 @@ export const widgets = pgTable("widgets", {
 export const insertWidgetSchema = createInsertSchema(widgets).pick({
   dashboardId: true,
   datasetId: true,
+  connectionId: true,
   name: true,
   type: true,
   position: true,
   config: true,
+  customQuery: true,
+  isTemplate: true,
+  sourceWidgetId: true,
 });
 
 // Type exports
