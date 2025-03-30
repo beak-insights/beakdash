@@ -184,12 +184,7 @@ export default function WidgetCard({
                   </DropdownMenuItem>
                 )}
                 
-                {!isTemplate && (
-                  <DropdownMenuItem onClick={onSaveAsTemplate}>
-                    <Save className="mr-2 h-4 w-4" />
-                    <span>Save as Template</span>
-                  </DropdownMenuItem>
-                )}
+                {/* Removed "Save as Template" option as requested */}
                 
                 {isTemplate && (
                   <DropdownMenuItem onClick={onAddToDashboard}>
@@ -262,15 +257,7 @@ export default function WidgetCard({
                 </Button>
               ) : null}
               
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onSaveAsTemplate}
-                className="flex-1"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Template
-              </Button>
+              {/* Removed "Template" button as requested */}
             </>
           ) : (
             <Button 
