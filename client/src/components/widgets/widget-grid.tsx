@@ -117,7 +117,7 @@ export default function WidgetGrid({
       margin={[16, 16]}
     >
       {widgets.map((widget) => (
-        <div key={widget.id.toString()}>
+        <div key={widget.id.toString()} className="h-full w-full">
           <WidgetCard
             widget={widget}
             onEdit={() => onEditWidget(widget)}

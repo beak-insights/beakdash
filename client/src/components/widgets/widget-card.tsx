@@ -193,7 +193,7 @@ export default function WidgetCard({
   };
 
   return (
-    <Card className="overflow-hidden flex flex-col">
+    <Card className="overflow-hidden flex flex-col h-full">
       <CardHeader className="p-3 pb-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-md">{truncateString(widget.name, 30)}</CardTitle>
