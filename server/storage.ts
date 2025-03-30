@@ -259,13 +259,21 @@ export class DatabaseStorage implements IStorage {
 
 // Create a demo user if it doesn't exist
 async function setupDemoUser() {
-  const existingUser = await db.select().from(users).where(eq(users.username, "demo"));
-  if (existingUser.length === 0) {
-    await db.insert(users).values({
-      username: "demo",
-      password: "demo",
-      displayName: "Demo User"
-    });
+  try {
+    const existingUser = await db.select().from(users).where(eq(users.username, "demo"));
+    if (existingUser.length === 0) {
+      await db.insert(users).values({
+        username: "demo",
+        password: "demo",
+        displayName: "Demo User"
+      });
+      console.log("Demo user created successfully");
+    } else {
+      console.log("Demo user already exists");
+    }
+  } catch (err) {
+    const error = err as Error;
+    console.error("Error during demo user setup:", error.message || "Unknown error");
   }
 }
 
@@ -273,4 +281,4 @@ async function setupDemoUser() {
 export const storage = new DatabaseStorage();
 
 // Setup the demo user (will be executed when the module is imported)
-setupDemoUser().catch(err => console.error("Failed to setup demo user:", err));
+setupDemoUser();

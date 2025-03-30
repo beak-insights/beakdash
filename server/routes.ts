@@ -290,12 +290,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { parseCSV } = await import("@/lib/data-adapters");
         const config = connection.config as Record<string, any>;
         
-        if (!config || !config.csvData) {
+        // Check for data in either csvData or fileContent fields
+        const csvContent = config?.csvData || config?.fileContent;
+        if (!config || !csvContent) {
           return res.status(400).json({ message: "No CSV data found in connection" });
         }
         
         // Parse the CSV data
-        data = parseCSV(config.csvData, {
+        data = parseCSV(csvContent, {
           delimiter: config.delimiter || ',',
           hasHeaders: config.hasHeaders !== false,
           quoteChar: config.quoteChar || '"',
