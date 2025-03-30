@@ -4,8 +4,9 @@ import {
   PlusCircle, 
   AlertCircle, 
   Layers,
-  LayoutTemplate
+  LayoutTemplate as LayoutTemplateIcon
 } from "lucide-react";
+import LayoutTemplate from "@/components/layout/layout-template";
 import WidgetsList from "@/components/widgets/widgets-list";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import { Button } from "@/components/ui/button";
@@ -163,30 +164,31 @@ export default function WidgetsPage() {
   ) || [];
   
   return (
-    <div className="container py-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Widgets</h1>
-          <p className="text-muted-foreground">
-            Manage widgets and widget templates for your dashboards
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => setLocation("/")}
-          >
-            <Layers className="mr-2 h-4 w-4" />
-            Dashboards
-          </Button>
+    <LayoutTemplate>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Widgets</h1>
+            <p className="text-muted-foreground">
+              Manage widgets and widget templates for your dashboards
+            </p>
+          </div>
           
-          <Button onClick={() => setShowEditor(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Widget
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setLocation("/")}
+            >
+              <Layers className="mr-2 h-4 w-4" />
+              Dashboards
+            </Button>
+            
+            <Button onClick={() => setShowEditor(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Widget
+            </Button>
+          </div>
         </div>
-      </div>
       
       {isError && (
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center mb-6">
@@ -202,7 +204,7 @@ export default function WidgetsPage() {
             Dashboard Widgets
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center">
-            <LayoutTemplate className="mr-2 h-4 w-4" />
+            <LayoutTemplateIcon className="mr-2 h-4 w-4" />
             Widget Templates
           </TabsTrigger>
         </TabsList>
@@ -304,6 +306,7 @@ export default function WidgetsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </LayoutTemplate>
   );
 }
