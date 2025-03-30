@@ -7,7 +7,13 @@ import {
   dashboardWidgets, type DashboardWidget, type InsertDashboardWidget
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+
+// Extended interface for Widget with dashboard-related properties
+interface ExtendedWidget extends Widget {
+  dashboardId?: number;
+  position?: Record<string, any>;
+}
 
 export interface IStorage {
   // User operations
@@ -234,38 +240,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWidget(widget: InsertWidget): Promise<Widget> {
-    // Extract dashboardId from the widget data (if any)
-    const dashboardId = widget.dashboardId;
-    
-    // Create widget without dashboardId (since we're using many-to-many relationship now)
+    // Create widget
     const result = await db.insert(widgets).values({
       name: widget.name,
       type: widget.type,
       datasetId: widget.datasetId || null,
+      connectionId: widget.connectionId || null,
       config: widget.config || {},
       customQuery: widget.customQuery || null,
       isTemplate: widget.isTemplate || false,
       sourceWidgetId: widget.sourceWidgetId || null
     }).returning();
     
-    const createdWidget = result[0];
-    
-    // If dashboardId was provided, create the many-to-many relationship
-    if (dashboardId) {
-      await this.addWidgetToDashboard(dashboardId, createdWidget.id, widget.position || {});
-    }
-    
-    return createdWidget;
+    return result[0];
   }
 
   async updateWidget(id: number, widget: Partial<Widget>): Promise<Widget> {
-    // Extract the position and dashboardId from the update if they exist
-    const { position, dashboardId, ...widgetData } = widget;
-    
     // Update the widget properties
     const result = await db.update(widgets)
       .set({
-        ...widgetData,
+        ...widget,
         updatedAt: new Date()
       })
       .where(eq(widgets.id, id))
@@ -273,11 +267,6 @@ export class DatabaseStorage implements IStorage {
     
     if (result.length === 0) {
       throw new Error(`Widget with id ${id} not found`);
-    }
-    
-    // If position and dashboardId are provided, update the widget position in the dashboard
-    if (position && dashboardId) {
-      await this.updateWidgetPosition(dashboardId, id, position);
     }
     
     return result[0];
