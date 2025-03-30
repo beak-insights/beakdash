@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create a temporary connection to the target database
-        const pg = await import('pg');
+        const { Pool } = await import('pg');
         
         // Build connection string from config
         let connectionString = '';
@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create temporary connection pool
-        const tempPool = new pg.default.Pool({ connectionString });
+        const tempPool = new Pool({ connectionString });
         
         try {
           // If the dataset has a defined query, use it as a CTE (Common Table Expression)
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Create a temporary connection to the target database
-          const pg = await import('pg');
+          const { Pool } = await import('pg');
           
           // Build connection string from config
           let connectionString = '';
@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Create temporary connection pool
-          const tempPool = new pg.default.Pool({ connectionString });
+          const tempPool = new Pool({ connectionString });
           
           try {
             // Determine which query to execute
@@ -956,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create a temporary connection to the target database
-        const pg = await import('pg');
+        const { Pool } = await import('pg');
         
         // Build connection string from config
         let connectionString = '';
@@ -974,7 +974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create temporary connection pool
-        const tempPool = new pg.default.Pool({ connectionString });
+        const tempPool = new Pool({ connectionString });
         
         try {
           // Query to get column information for a specific table
@@ -1038,7 +1038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create a temporary connection to the target database
-        const pg = await import('pg');
+        const { Pool } = await import('pg');
         
         // Build connection string from config
         let connectionString = '';
@@ -1056,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create temporary connection pool
-        const tempPool = new pg.default.Pool({ connectionString });
+        const tempPool = new Pool({ connectionString });
         
         try {
           // Query to get all tables in the public schema
@@ -1131,7 +1131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create a temporary connection to the target database
-        const pg = await import('pg');
+        const { Pool } = await import('pg');
         
         // Build connection string from config
         let connectionString = '';
@@ -1149,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create temporary connection pool
-        const tempPool = new pg.default.Pool({ connectionString });
+        const tempPool = new Pool({ connectionString });
         
         try {
           console.log(`Executing SQL query on connection ${connectionId}: ${query}`);
