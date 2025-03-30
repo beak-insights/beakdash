@@ -1,0 +1,12 @@
+// Original:
+      try {
+        // Import the pool from db.ts
+        const { pool } = require('./db');
+        
+        // Query...
+
+// Fixed:
+      try {
+        // Use the already imported pool from the top of the file
+        
+        // Query...

@@ -718,7 +718,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get actual table schema from the database
       try {
-        // Use the already imported pool from the top of the file
+        // Import the pool from db.ts
+        const { pool } = require('./db');
         
         // Query to get column information for a specific table
         const schemaQuery = `
@@ -775,7 +776,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get actual tables from the database
       try {
-        // Use the already imported pool from the top of the file
+        // Import the pool from db.ts
+        const { pool } = require('./db');
         
         // Query to get all tables in the public schema
         const tablesQuery = `
@@ -847,7 +849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // We're using the application's database connection since this is a demo
       // In a real app, you would use the connection parameters from the connection object
       try {
-        // Use the already imported pool from the top of the file
+        // Import the pool from db.ts
+        const { pool } = require('./db');
         
         // Execute the query
         const result = await pool.query(query);
