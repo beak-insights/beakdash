@@ -22,7 +22,7 @@ export function useWidgets(dashboardId?: number) {
       if (!res.ok) throw new Error('Failed to fetch widgets');
       return res.json();
     },
-    enabled: !!dashboardId,
+    // We want to fetch widgets even when dashboardId is not provided (for the widgets page)
   });
 
   // Fetch a specific widget

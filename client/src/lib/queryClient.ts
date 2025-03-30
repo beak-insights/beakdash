@@ -7,18 +7,44 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+/**
+ * Makes an API request with flexible parameter handling
+ */
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
+  methodOrOptions: string | { method: string; url?: string; data?: unknown },
+  url?: string,
+  data?: unknown,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  let method: string;
+  let requestUrl: string = '';
+  let requestData: unknown;
 
+  // Handle object notation
+  if (typeof methodOrOptions === 'object') {
+    method = methodOrOptions.method;
+    requestUrl = methodOrOptions.url || '';
+    requestData = methodOrOptions.data;
+  } else {
+    // Handle standard parameters
+    method = methodOrOptions;
+    if (url !== undefined) {
+      requestUrl = url;
+    }
+    requestData = data;
+  }
+  
+  // Prepare fetch options
+  const options: RequestInit = {
+    method,
+    headers: requestData ? { "Content-Type": "application/json" } : {},
+    credentials: "include",
+  };
+  
+  if (requestData) {
+    options.body = JSON.stringify(requestData);
+  }
+  
+  const res = await fetch(requestUrl, options);
   await throwIfResNotOk(res);
   return res;
 }

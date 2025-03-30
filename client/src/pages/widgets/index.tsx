@@ -83,8 +83,9 @@ export default function WidgetsPage() {
         dashboardId: null, // Templates aren't associated with a dashboard
       };
       
-      await apiRequest("/api/widgets", {
+      await apiRequest({
         method: "POST",
+        url: "/api/widgets",
         data: templateWidget,
       });
       
@@ -122,8 +123,9 @@ export default function WidgetsPage() {
         sourceWidgetId: selectedWidget.id, // Reference the original template
       };
       
-      await apiRequest("/api/widgets", {
+      await apiRequest({
         method: "POST",
+        url: "/api/widgets",
         data: newWidget,
       });
       
@@ -154,7 +156,7 @@ export default function WidgetsPage() {
   };
   
   // Filter widgets based on current tab
-  const filteredWidgets = widgets?.filter(widget => 
+  const filteredWidgets = widgets?.filter((widget: Widget) => 
     currentTab === "all" 
       ? !widget.isTemplate
       : !!widget.isTemplate
@@ -275,11 +277,13 @@ export default function WidgetsPage() {
                 <SelectValue placeholder="Select a dashboard" />
               </SelectTrigger>
               <SelectContent>
-                {dashboards?.map(dashboard => (
+                {Array.isArray(dashboards) ? dashboards.map((dashboard: { id: number; name: string }) => (
                   <SelectItem key={dashboard.id} value={dashboard.id.toString()}>
                     {dashboard.name}
                   </SelectItem>
-                ))}
+                )) : (
+                  <SelectItem value="" disabled>No dashboards available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
