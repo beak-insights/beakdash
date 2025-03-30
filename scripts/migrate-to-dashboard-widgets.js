@@ -23,10 +23,13 @@ async function main() {
     // Create the dashboard_widgets table
     await client.query(`
       CREATE TABLE IF NOT EXISTS dashboard_widgets (
+        id SERIAL PRIMARY KEY,
         dashboard_id INTEGER NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
         widget_id INTEGER NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
         position JSONB DEFAULT '{}' NOT NULL,
-        PRIMARY KEY (dashboard_id, widget_id)
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (dashboard_id, widget_id)
       );
     `);
     

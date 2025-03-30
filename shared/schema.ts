@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -87,6 +87,9 @@ export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes
 export const chartTypeSchema = z.enum(chartTypes);
 
 // Widgets schema
+// Define a forward reference for widgets table
+const widgetsRef: any = {};
+
 export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
   datasetId: integer("dataset_id").references(() => datasets.id),
@@ -96,19 +99,20 @@ export const widgets = pgTable("widgets", {
   config: jsonb("config").default({}),
   customQuery: text("custom_query"),
   isTemplate: boolean("is_template").default(false),
-  sourceWidgetId: integer("source_widget_id").references(() => widgets.id),
+  sourceWidgetId: integer("source_widget_id").references((): any => widgets.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Dashboard Widgets join table for many-to-many relationship
 export const dashboardWidgets = pgTable("dashboard_widgets", {
-  id: serial("id").primaryKey(),
   dashboardId: integer("dashboard_id").notNull().references(() => dashboards.id),
   widgetId: integer("widget_id").notNull().references(() => widgets.id),
   position: jsonb("position").default({}),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.dashboardId, table.widgetId] }),
+  };
 });
 
 export const insertWidgetSchema = createInsertSchema(widgets).pick({
@@ -222,21 +226,23 @@ export const datasetsRelations = relations(datasets, ({ one, many }) => ({
 }));
 
 // Widget relations
-export const widgetsRelations = relations(widgets, ({ one, many }) => ({
-  dataset: one(datasets, {
-    fields: [widgets.datasetId],
-    references: [datasets.id],
-  }),
-  connection: one(connections, {
-    fields: [widgets.connectionId],
-    references: [connections.id],
-  }),
-  sourceWidget: one(widgets, {
-    fields: [widgets.sourceWidgetId],
-    references: [widgets.id],
-  }),
-  dashboardWidgets: many(dashboardWidgets),
-}));
+export const widgetsRelations = relations(widgets, ({ one, many }) => {
+  return {
+    dataset: one(datasets, {
+      fields: [widgets.datasetId],
+      references: [datasets.id],
+    }),
+    connection: one(connections, {
+      fields: [widgets.connectionId],
+      references: [connections.id],
+    }),
+    sourceWidget: one(widgets, {
+      fields: [widgets.sourceWidgetId],
+      references: [widgets.id],
+    }),
+    dashboardWidgets: many(dashboardWidgets),
+  };
+});
 
 // DashboardWidget relations
 export const dashboardWidgetsRelations = relations(dashboardWidgets, ({ one }) => ({

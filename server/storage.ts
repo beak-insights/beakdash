@@ -231,28 +231,42 @@ export class DatabaseStorage implements IStorage {
       return this.getDashboardWidgets(dashboardId);
     }
     // Get all widgets
-    return await db.select().from(widgets).orderBy(desc(widgets.createdAt));
+    const result = await db.select().from(widgets).orderBy(desc(widgets.createdAt));
+    return result as Widget[];
   }
 
   async getWidget(id: number): Promise<Widget | undefined> {
     const result = await db.select().from(widgets).where(eq(widgets.id, id));
-    return result[0];
+    return result[0] as Widget | undefined;
   }
 
   async createWidget(widget: InsertWidget): Promise<Widget> {
-    // Create widget
-    const result = await db.insert(widgets).values({
-      name: widget.name,
-      type: widget.type,
-      datasetId: widget.datasetId || null,
-      connectionId: widget.connectionId || null,
-      config: widget.config || {},
-      customQuery: widget.customQuery || null,
-      isTemplate: widget.isTemplate || false,
-      sourceWidgetId: widget.sourceWidgetId || null
-    }).returning();
+    // Create widget using the values from InsertWidget
+    if (!widget) {
+      throw new Error('Widget data is required');
+    }
     
-    return result[0];
+    // Cast the widget to the proper type using type assertion to avoid errors
+    const typedWidget = widget as any;
+    
+    const values = {
+      name: typedWidget.name,
+      type: typedWidget.type,
+      datasetId: typedWidget.datasetId || null,
+      connectionId: typedWidget.connectionId || null,
+      config: typedWidget.config || {},
+      customQuery: typedWidget.customQuery || null,
+      isTemplate: typedWidget.isTemplate || false,
+      sourceWidgetId: typedWidget.sourceWidgetId || null
+    };
+    
+    const result = await db.insert(widgets).values(values).returning();
+    
+    if ((result as any[]).length === 0) {
+      throw new Error('Failed to create widget');
+    }
+    
+    return (result as any[])[0] as Widget;
   }
 
   async updateWidget(id: number, widget: Partial<Widget>): Promise<Widget> {
@@ -265,11 +279,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(widgets.id, id))
       .returning();
     
-    if (result.length === 0) {
+    if ((result as any[]).length === 0) {
       throw new Error(`Widget with id ${id} not found`);
     }
     
-    return result[0];
+    return (result as any[])[0] as Widget;
   }
 
   async deleteWidget(id: number): Promise<boolean> {
@@ -278,7 +292,7 @@ export class DatabaseStorage implements IStorage {
     
     // Then delete the widget
     const result = await db.delete(widgets).where(eq(widgets.id, id)).returning();
-    return result.length > 0;
+    return (result as any[]).length > 0;
   }
   
   // Dashboard Widget operations (many-to-many relationship)
@@ -292,7 +306,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(dashboardWidgets.dashboardId, dashboardId))
       .orderBy(desc(widgets.createdAt));
     
-    return result.map(row => row.widget);
+    return result.map(row => row.widget) as Widget[];
   }
   
   async getWidgetDashboards(widgetId: number): Promise<Dashboard[]> {
@@ -305,7 +319,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(dashboardWidgets.widgetId, widgetId))
       .orderBy(desc(dashboards.createdAt));
     
-    return result.map(row => row.dashboard);
+    return result.map(row => row.dashboard) as Dashboard[];
   }
   
   async addWidgetToDashboard(dashboardId: number, widgetId: number, position: any = {}): Promise<DashboardWidget> {
@@ -320,13 +334,12 @@ export class DatabaseStorage implements IStorage {
         )
       );
     
-    if (existingRelation.length > 0) {
+    if ((existingRelation as any[]).length > 0) {
       // Update position if relation exists
       const result = await db
         .update(dashboardWidgets)
         .set({
-          position,
-          updatedAt: new Date()
+          position
         })
         .where(
           and(
@@ -336,7 +349,7 @@ export class DatabaseStorage implements IStorage {
         )
         .returning();
       
-      return result[0];
+      return result[0] as DashboardWidget;
     }
     
     // Create new relation
@@ -349,7 +362,7 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     
-    return result[0];
+    return result[0] as DashboardWidget;
   }
   
   async removeWidgetFromDashboard(dashboardId: number, widgetId: number): Promise<boolean> {
@@ -363,15 +376,14 @@ export class DatabaseStorage implements IStorage {
       )
       .returning();
     
-    return result.length > 0;
+    return (result as any[]).length > 0;
   }
   
   async updateWidgetPosition(dashboardId: number, widgetId: number, position: any): Promise<DashboardWidget> {
     const result = await db
       .update(dashboardWidgets)
       .set({
-        position,
-        updatedAt: new Date()
+        position
       })
       .where(
         and(
@@ -381,11 +393,11 @@ export class DatabaseStorage implements IStorage {
       )
       .returning();
     
-    if (result.length === 0) {
+    if ((result as any[]).length === 0) {
       throw new Error(`Widget position not found for dashboard ${dashboardId} and widget ${widgetId}`);
     }
     
-    return result[0];
+    return result[0] as DashboardWidget;
   }
 }
 
