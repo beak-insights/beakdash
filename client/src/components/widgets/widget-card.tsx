@@ -14,7 +14,8 @@ import {
   Trash2, 
   Save,
   Plus,
-  Copy
+  Copy,
+  Share2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ interface WidgetCardProps {
   onDelete: () => void;
   onSaveAsTemplate: () => void;
   onAddToDashboard: () => void;
+  onShareWidget?: () => void;  // New prop for sharing/attaching widgets
   isTemplate?: boolean;
   showControls?: boolean;
 }
@@ -41,6 +43,7 @@ export default function WidgetCard({
   onDelete,
   onSaveAsTemplate,
   onAddToDashboard,
+  onShareWidget,
   isTemplate = false,
   showControls = true
 }: WidgetCardProps) {
@@ -173,6 +176,14 @@ export default function WidgetCard({
                   <span>Edit</span>
                 </DropdownMenuItem>
                 
+                {/* Share/Attach option for regular widgets (not templates) */}
+                {!isTemplate && onShareWidget && (
+                  <DropdownMenuItem onClick={onShareWidget}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>Share/Attach</span>
+                  </DropdownMenuItem>
+                )}
+                
                 {!isTemplate && (
                   <DropdownMenuItem onClick={onSaveAsTemplate}>
                     <Save className="mr-2 h-4 w-4" />
@@ -238,15 +249,29 @@ export default function WidgetCard({
           </Button>
           
           {!isTemplate ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onSaveAsTemplate}
-              className="flex-1"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Template
-            </Button>
+            <>
+              {onShareWidget ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onShareWidget}
+                  className="flex-1 mr-2"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share
+                </Button>
+              ) : null}
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onSaveAsTemplate}
+                className="flex-1"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Template
+              </Button>
+            </>
           ) : (
             <Button 
               variant="outline" 

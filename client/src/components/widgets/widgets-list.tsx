@@ -8,6 +8,7 @@ interface WidgetsListProps {
   onDelete: (widgetId: number) => void;
   onSaveAsTemplate: (widget: Widget) => void;
   onAddToDashboard: (widget: Widget) => void;
+  onShareWidget?: (widget: Widget) => void;
   isTemplate?: boolean;
 }
 
@@ -17,6 +18,7 @@ export default function WidgetsList({
   onDelete,
   onSaveAsTemplate,
   onAddToDashboard,
+  onShareWidget,
   isTemplate = false,
 }: WidgetsListProps) {
   if (!widgets.length) {
@@ -41,6 +43,7 @@ export default function WidgetsList({
           onDelete={() => onDelete(widget.id)}
           onSaveAsTemplate={() => onSaveAsTemplate(widget)}
           onAddToDashboard={() => onAddToDashboard(widget)}
+          onShareWidget={onShareWidget ? () => onShareWidget(widget) : undefined}
           showControls={true}
           isTemplate={isTemplate}
         />

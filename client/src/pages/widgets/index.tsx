@@ -9,6 +9,7 @@ import {
 import LayoutTemplate from "@/components/layout/layout-template";
 import WidgetsList from "@/components/widgets/widgets-list";
 import WidgetEditor from "@/components/widgets/widget-editor";
+import ShareWidgetDialog from "@/components/widgets/share-widget-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useWidgets } from "@/hooks/use-widgets";
@@ -39,6 +40,7 @@ export default function WidgetsPage() {
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showAddToDashboardDialog, setShowAddToDashboardDialog] = useState(false);
+  const [showShareWidgetDialog, setShowShareWidgetDialog] = useState(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
   
   // Fetch widgets data
@@ -156,6 +158,18 @@ export default function WidgetsPage() {
     setSelectedWidget(null);
   };
   
+  // Handle share widget
+  const handleShareWidget = (widget: Widget) => {
+    setSelectedWidget(widget);
+    setShowShareWidgetDialog(true);
+  };
+  
+  // Close share widget dialog
+  const handleCloseShareDialog = () => {
+    setShowShareWidgetDialog(false);
+    setSelectedWidget(null);
+  };
+  
   // Filter widgets based on current tab
   const filteredWidgets = widgets?.filter((widget: Widget) => 
     currentTab === "all" 
@@ -221,6 +235,7 @@ export default function WidgetsPage() {
               onDelete={handleDeleteWidget}
               onSaveAsTemplate={handleSaveAsTemplate}
               onAddToDashboard={() => {}}
+              onShareWidget={handleShareWidget}
             />
           )}
         </TabsContent>
@@ -306,6 +321,15 @@ export default function WidgetsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Share Widget Dialog */}
+      {selectedWidget && showShareWidgetDialog && (
+        <ShareWidgetDialog
+          widget={selectedWidget}
+          isOpen={showShareWidgetDialog}
+          onClose={handleCloseShareDialog}
+        />
+      )}
       </div>
     </LayoutTemplate>
   );
