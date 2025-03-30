@@ -233,15 +233,7 @@ export default function WidgetCard({
       
       {showControls && (
         <CardFooter className="p-3 pt-0 flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onEdit}
-            className="flex-1 mr-2"
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          {/* Removed "Edit" button as requested - only kept in dropdown */}
           
           {!isTemplate ? (
             <>
@@ -250,14 +242,12 @@ export default function WidgetCard({
                   variant="outline" 
                   size="sm" 
                   onClick={onShareWidget}
-                  className="flex-1 mr-2"
+                  className="flex-1"
                 >
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
                 </Button>
               ) : null}
-              
-              {/* Removed "Template" button as requested */}
             </>
           ) : (
             <Button 
