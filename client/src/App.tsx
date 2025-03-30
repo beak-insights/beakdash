@@ -12,6 +12,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/dashboard/:id" component={Dashboard} />
       <Route path="/connections" component={Connections} />
       <Route path="/datasets" component={Datasets} />
       <Route path="/settings" component={Settings} />

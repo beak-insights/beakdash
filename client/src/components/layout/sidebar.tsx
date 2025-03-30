@@ -12,23 +12,46 @@ import {
   Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dashboard } from "@shared/schema";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const [isAddingDashboard, setIsAddingDashboard] = useState(false);
   const [newDashboardName, setNewDashboardName] = useState("");
+  const queryClient = useQueryClient();
 
   // Fetch dashboards
   const { data: dashboards = [] } = useQuery<Dashboard[]>({
     queryKey: ['/api/dashboards'],
   });
 
+  const [, navigate] = useLocation();
+  const { mutate: createDashboard, isPending } = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await fetch('/api/dashboards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, userId: 1 }), // Default to user 1 for now
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create dashboard');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data: Dashboard) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
+      navigate(`/dashboard/${data.id}`);
+    },
+  });
+  
   const handleAddDashboard = () => {
-    if (isAddingDashboard) {
-      // In a real app, this would create the dashboard via API
-      console.log("Creating dashboard:", newDashboardName);
+    if (isAddingDashboard && newDashboardName.trim()) {
+      createDashboard(newDashboardName);
       setNewDashboardName("");
       setIsAddingDashboard(false);
     } else {

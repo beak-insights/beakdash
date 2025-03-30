@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import WidgetGrid from "@/components/widgets/widget-grid";
@@ -13,7 +14,10 @@ export default function Dashboard() {
   const [isWidgetEditorOpen, setIsWidgetEditorOpen] = useState(false);
   const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
-  const dashboardId = 1; // For demo purposes, would typically come from URL or state
+  
+  // Get dashboard ID from URL params or default to 1
+  const params = useParams<{ id: string }>();
+  const dashboardId = params?.id ? parseInt(params.id, 10) : 1;
 
   // Fetch widgets for current dashboard
   const { data: widgets = [], isLoading: isLoadingWidgets, isError: isErrorWidgets } = useQuery({
@@ -102,7 +106,11 @@ export default function Dashboard() {
 
       {/* AI Copilot Chat */}
       {isAICopilotOpen && (
-        <AICopilot onClose={() => setIsAICopilotOpen(false)} />
+        <AICopilot 
+          onClose={() => setIsAICopilotOpen(false)} 
+          activeDatasetId={editingWidget?.datasetId || undefined}
+          activeChartType={editingWidget?.type}
+        />
       )}
     </div>
   );

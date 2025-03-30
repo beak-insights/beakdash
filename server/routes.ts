@@ -461,41 +461,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Copilot route
   app.post(`${apiPrefix}/ai/copilot`, async (req, res) => {
     try {
-      const { prompt, context } = req.body;
+      const { prompt, context, datasetId, chartType } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: "Prompt is required" });
       }
+
+      // Import the OpenAI service dynamically
+      const { generateAIResponse } = await import("./services/openai");
       
-      // Simplified AI response simulation
-      // In a real application, this would integrate with an actual LLM API
-      const responses = {
-        "chart suggestion": "I recommend using a line chart to visualize this trend data. You can set the x-axis to time intervals and the y-axis to the metric you're tracking.",
-        "need help": "I'm here to help! You can ask me about creating widgets, connecting data sources, or visualizing your data.",
-        "data analysis": "Based on your data, I notice a positive correlation between these variables. Consider using a scatter plot to visualize this relationship.",
-        "default": "How can I assist you with your dashboard today?"
-      };
+      // Generate a response from OpenAI
+      const aiResponse = await generateAIResponse(
+        prompt, 
+        context || [], 
+        datasetId, 
+        chartType
+      );
       
-      let aiResponse = responses.default;
-      const promptLower = prompt.toLowerCase();
-      
-      if (promptLower.includes("chart") || promptLower.includes("visualization")) {
-        aiResponse = responses["chart suggestion"];
-      } else if (promptLower.includes("help") || promptLower.includes("how to")) {
-        aiResponse = responses["need help"];
-      } else if (promptLower.includes("analyze") || promptLower.includes("pattern")) {
-        aiResponse = responses["data analysis"];
-      }
-      
-      // Add a small delay to simulate processing
-      setTimeout(() => {
-        return res.status(200).json({ 
-          response: aiResponse,
-          timestamp: new Date()
-        });
-      }, 500);
+      return res.status(200).json({ 
+        response: aiResponse,
+        timestamp: new Date()
+      });
     } catch (error) {
       console.error("AI Copilot error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // AI Chart Recommendation route
+  app.post(`${apiPrefix}/ai/chart-recommendation`, async (req, res) => {
+    try {
+      const { datasetId } = req.body;
+      
+      if (!datasetId) {
+        return res.status(400).json({ message: "Dataset ID is required" });
+      }
+
+      // Check if the dataset exists
+      const dataset = await storage.getDataset(datasetId);
+      if (!dataset) {
+        return res.status(404).json({ message: "Dataset not found" });
+      }
+
+      // Import the OpenAI service dynamically
+      const { generateChartRecommendation } = await import("./services/openai");
+      
+      // Generate chart recommendations
+      const recommendation = await generateChartRecommendation(datasetId);
+      
+      return res.status(200).json(recommendation);
+    } catch (error) {
+      console.error("Chart recommendation error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
