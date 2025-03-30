@@ -49,19 +49,50 @@ export default function WidgetCard({
     const sampleData = getSampleDataForPreview(widget.type as ChartType);
     
     // Extract config from the widget
-    const config = widget.config as Record<string, any>;
+    const config = widget.config as Record<string, any> || {};
+    
+    // Create chart configuration based on chart type
+    const chartConfig: Record<string, any> = {
+      colors: config.colors || undefined,
+      showLegend: config.showLegend !== false,
+      showGrid: config.showGrid !== false,
+      showTooltip: config.showTooltip !== false,
+    };
+    
+    // Add appropriate axis configuration based on chart type
+    switch (widget.type) {
+      case "bar":
+      case "column":
+        chartConfig.xAxis = "category";
+        chartConfig.yAxis = "value";
+        break;
+      case "line":
+        chartConfig.xAxis = "x";
+        chartConfig.yAxis = "y";
+        chartConfig.groupBy = "series";
+        break;
+      case "pie":
+        chartConfig.xAxis = "name";
+        chartConfig.yAxis = "value";
+        break;
+      case "scatter":
+        chartConfig.xAxis = "x";
+        chartConfig.yAxis = "y";
+        chartConfig.groupBy = "group";
+        break;
+      case "dual-axes":
+        chartConfig.xAxis = "x";
+        chartConfig.yAxis = "y1";
+        chartConfig.y2Axis = "y2";
+        break;
+    }
     
     return (
       <div className="w-full h-[200px] overflow-hidden">
         <Chart
           type={widget.type as ChartType}
           data={sampleData}
-          config={{
-            colors: config.colors || undefined,
-            showLegend: config.showLegend !== false,
-            showGrid: config.showGrid !== false,
-            showTooltip: config.showTooltip !== false,
-          }}
+          config={chartConfig}
           height="100%"
         />
       </div>
@@ -81,11 +112,16 @@ export default function WidgetCard({
         ];
       case "line":
         return [
-          { x: "Jan", y: 10, z: 20 },
-          { x: "Feb", y: 30, z: 15 },
-          { x: "Mar", y: 20, z: 40 },
-          { x: "Apr", y: 40, z: 30 },
-          { x: "May", y: 50, z: 25 },
+          { x: "Jan", y: 10, series: "Series A" },
+          { x: "Feb", y: 30, series: "Series A" },
+          { x: "Mar", y: 20, series: "Series A" },
+          { x: "Apr", y: 40, series: "Series A" },
+          { x: "May", y: 50, series: "Series A" },
+          { x: "Jan", y: 20, series: "Series B" },
+          { x: "Feb", y: 15, series: "Series B" },
+          { x: "Mar", y: 40, series: "Series B" },
+          { x: "Apr", y: 30, series: "Series B" },
+          { x: "May", y: 25, series: "Series B" },
         ];
       case "pie":
         return [
