@@ -306,23 +306,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
           trimFields: config.trimFields !== false
         });
       } else if (connection.type === "rest") {
-        // For demo purposes, we'll return mock data for REST connections
-        data = [
-          { id: 1, name: "Product A", category: "Electronics", price: 499.99, stock: 120 },
-          { id: 2, name: "Product B", category: "Electronics", price: 299.99, stock: 85 },
-          { id: 3, name: "Product C", category: "Furniture", price: 199.99, stock: 45 },
-          { id: 4, name: "Product D", category: "Clothing", price: 59.99, stock: 200 },
-          { id: 5, name: "Product E", category: "Home", price: 149.99, stock: 75 },
-        ];
+        try {
+          // Get the connection config
+          const config = connection.config as Record<string, any>;
+          if (!config || !config.url) {
+            return res.status(400).json({ message: "REST connection URL is missing" });
+          }
+          
+          // Create fetch options with headers if provided
+          const fetchOptions: RequestInit = {};
+          if (config.headers) {
+            fetchOptions.headers = config.headers;
+          }
+          
+          // Add authentication if provided
+          if (config.auth) {
+            if (config.auth.type === 'basic') {
+              const credentials = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
+              fetchOptions.headers = {
+                ...fetchOptions.headers,
+                'Authorization': `Basic ${credentials}`
+              };
+            } else if (config.auth.type === 'bearer' && config.auth.token) {
+              fetchOptions.headers = {
+                ...fetchOptions.headers,
+                'Authorization': `Bearer ${config.auth.token}`
+              };
+            }
+          }
+          
+          // Set the method (default to GET)
+          fetchOptions.method = config.method || 'GET';
+          
+          // Add body for POST, PUT, PATCH methods
+          if (['POST', 'PUT', 'PATCH'].includes(fetchOptions.method) && config.body) {
+            fetchOptions.body = JSON.stringify(config.body);
+            fetchOptions.headers = {
+              ...fetchOptions.headers,
+              'Content-Type': 'application/json'
+            };
+          }
+          
+          console.log(`Making REST API request to: ${config.url}`);
+          
+          // Make the request
+          const response = await fetch(config.url, fetchOptions);
+          if (!response.ok) {
+            throw new Error(`API returned ${response.status}: ${response.statusText}`);
+          }
+          
+          // Parse the response
+          const jsonResponse = await response.json();
+          
+          // Extract data using the result path if provided
+          const { extractRESTData } = await import("@/lib/data-adapters");
+          data = extractRESTData(jsonResponse, {
+            resultPath: config.resultPath
+          });
+        } catch (apiError: any) {
+          console.error("REST API request error:", apiError.message);
+          return res.status(400).json({ 
+            message: "REST API request failed", 
+            error: apiError.message 
+          });
+        }
       } else if (connection.type === "sql") {
-        // For demo purposes, we'll return mock data for SQL connections
-        data = [
-          { order_id: 1001, customer_id: 5001, product_id: 101, quantity: 2, total: 999.98, order_date: "2023-01-15" },
-          { order_id: 1002, customer_id: 5002, product_id: 102, quantity: 1, total: 299.99, order_date: "2023-01-16" },
-          { order_id: 1003, customer_id: 5001, product_id: 103, quantity: 3, total: 599.97, order_date: "2023-01-18" },
-          { order_id: 1004, customer_id: 5003, product_id: 101, quantity: 1, total: 499.99, order_date: "2023-01-20" },
-          { order_id: 1005, customer_id: 5002, product_id: 104, quantity: 2, total: 119.98, order_date: "2023-01-22" },
-        ];
+        try {
+          // Use the already imported pool from the top of the file
+          
+          // Determine which query to execute
+          let sqlQuery = "SELECT * FROM users LIMIT 100"; // Default query as fallback
+          
+          // Check if the dataset has a custom query
+          if (dataset.query) {
+            sqlQuery = dataset.query;
+          } else if (dataset.config && typeof dataset.config === 'object') {
+            // If there's a table specified in the config
+            const config = dataset.config as Record<string, any>;
+            if (config.table) {
+              sqlQuery = `SELECT * FROM ${config.table} LIMIT 100`;
+            }
+          }
+          
+          // Check for widget customQuery if provided in the request
+          const { customQuery } = req.query;
+          if (customQuery && typeof customQuery === 'string') {
+            sqlQuery = customQuery;
+          }
+          
+          console.log(`Executing SQL query: ${sqlQuery}`);
+          
+          // Execute the query using the database pool
+          const result = await pool.query(sqlQuery);
+          
+          // Return the actual data from the database
+          data = result.rows;
+        } catch (dbError: any) {
+          console.error("Database query error:", dbError.message);
+          return res.status(400).json({ 
+            message: "SQL query execution failed", 
+            error: dbError.message 
+          });
+        }
       }
       
       return res.status(200).json(data);
