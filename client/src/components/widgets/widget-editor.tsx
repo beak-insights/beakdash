@@ -546,22 +546,6 @@ export default function WidgetEditor({
                       </div>
                     </div>
                   )}
-                  
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <Label htmlFor="custom-query" className="block">SQL Query</Label>
-                    </div>
-                    <MonacoSQLEditor
-                      value={customQuery}
-                      onChange={setCustomQuery}
-                      onExecute={handleExecuteQuery}
-                      height="200px"
-                      loading={executeCustomQueryMutation.isPending}
-                      executeLabel="Run Query"
-                      showExecuteButton={true}
-                      className="mt-1"
-                    />
-                  </div>
                 </div>
               )}
             </div>
