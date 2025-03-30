@@ -223,6 +223,44 @@ export default function WidgetEditor({
       }
     }
   }, [datasetData, chartType]);
+  
+  // Fetch dataset SQL query when a dataset is selected and user switches to custom SQL
+  useEffect(() => {
+    const fetchDatasetQuery = async () => {
+      if (!selectedDatasetId) return;
+      
+      try {
+        const response = await fetch(`/api/datasets/${selectedDatasetId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch dataset details");
+        }
+        
+        const dataset = await response.json();
+        if (dataset.query) {
+          // Create a CTE with the dataset query and a simple SELECT * from it
+          const cteQuery = `WITH dataset_${dataset.id} AS (\n  ${dataset.query}\n)\nSELECT * FROM dataset_${dataset.id} LIMIT 100;`;
+          setCustomQuery(cteQuery);
+        } else if (dataset.config && typeof dataset.config === 'object') {
+          // If there's a table specified in the config
+          const datasetConfig = dataset.config as Record<string, any>;
+          if (datasetConfig.table) {
+            const tableQuery = `SELECT * FROM ${datasetConfig.table} LIMIT 100;`;
+            setCustomQuery(tableQuery);
+          }
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: `Failed to load dataset SQL: ${error.message}`,
+          variant: "destructive",
+        });
+      }
+    };
+    
+    if (selectedDatasetId && useCustomQuery) {
+      fetchDatasetQuery();
+    }
+  }, [selectedDatasetId, useCustomQuery]);
 
   // Update tables dropdown when SQL connection changes
   useEffect(() => {
@@ -556,7 +594,18 @@ export default function WidgetEditor({
                             type="radio"
                             id="sql-source"
                             checked={useCustomQuery}
-                            onChange={() => setUseCustomQuery(true)}
+                            onChange={() => {
+                              // When switching to custom SQL mode
+                              setUseCustomQuery(true);
+                              
+                              // If there's a dataset selected, try to initialize the SQL editor with that dataset's query
+                              if (selectedDatasetId) {
+                                // The fetchDatasetQuery effect will handle initializing the query
+                              } else if (selectedTable) {
+                                // If no dataset selected but a table is selected, show a basic query for that table
+                                setCustomQuery(`SELECT * FROM ${selectedTable} LIMIT 100;`);
+                              }
+                            }}
                             className="rounded-full"
                             disabled={
                               connections.find(
@@ -633,6 +682,21 @@ export default function WidgetEditor({
                                     : "Select a table to load columns"}
                               </span>
                             </div>
+                            
+                            {/* Display column information when available */}
+                            {!tableSchemaQuery.isPending && tableSchemaQuery.data && Array.isArray(tableSchemaQuery.data) && tableSchemaQuery.data.length > 0 && (
+                              <div className="mt-2 bg-muted p-2 rounded text-xs h-[150px] overflow-y-auto">
+                                <h4 className="font-medium mb-1">Column information:</h4>
+                                <ul className="space-y-1">
+                                  {tableSchemaQuery.data.map((column: any, idx: number) => (
+                                    <li key={idx} className="flex items-center justify-between border-b border-border pb-1 last:border-0">
+                                      <span className="font-mono">{column.name}</span>
+                                      <span className="text-muted-foreground">{column.type}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
