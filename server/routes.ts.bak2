@@ -10,7 +10,6 @@ import {
   insertUserSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
-import { WebSocketServer, WebSocket } from "ws";
 // Import OpenAI services dynamically in the routes to avoid circular dependencies
 
 // Handle zod validation errors
@@ -1177,62 +1176,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
-  // Setup WebSocket server on a distinct path to avoid conflicts with Vite's HMR
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  wss.on('connection', async (socket) => {
-    console.log('WebSocket client connected');
-    
-    // Import the OpenAI service to register the socket
-    const { registerWebSocketClient } = await import("./services/openai");
-    
-    // Register this socket with the OpenAI service for broadcasting
-    registerWebSocketClient(socket);
-    
-    // Send welcome message
-    socket.send(JSON.stringify({ 
-      type: 'connection',
-      message: 'Connected to BeakDash WebSocket server',
-      timestamp: new Date().toISOString()
-    }));
-    
-    // Handle messages from clients
-    socket.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
-        
-        // Echo the message back to the client
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'echo',
-            data: message,
-            timestamp: new Date().toISOString()
-          }));
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'error',
-            message: 'Invalid message format',
-            timestamp: new Date().toISOString()
-          }));
-        }
-      }
-    });
-    
-    // Handle client disconnection
-    socket.on('close', () => {
-      console.log('WebSocket client disconnected');
-    });
-    
-    // Handle errors
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
-  });
-  
   return httpServer;
 }

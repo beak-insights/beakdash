@@ -1,9 +1,46 @@
 import OpenAI from "openai";
+import WebSocket from "ws";
 
 // Initialize the OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Active WebSocket clients
+const activeClients: Set<WebSocket> = new Set();
+
+/**
+ * Broadcast a message to all connected WebSocket clients
+ */
+export function broadcastWebSocketMessage(message: any): void {
+  const messageString = typeof message === 'string' ? message : JSON.stringify(message);
+  
+  // Iterate through all connected clients
+  activeClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageString);
+    }
+  });
+}
+
+/**
+ * Register a WebSocket client
+ */
+export function registerWebSocketClient(client: WebSocket): void {
+  activeClients.add(client);
+  
+  // Remove client when it disconnects
+  client.on('close', () => {
+    activeClients.delete(client);
+  });
+}
+
+/**
+ * Unregister a WebSocket client
+ */
+export function unregisterWebSocketClient(client: WebSocket): void {
+  activeClients.delete(client);
+}
 
 interface WidgetContext {
   id: number;
@@ -28,6 +65,20 @@ export async function generateAIResponse(
   widgetContext?: WidgetContext
 ): Promise<string> {
   try {
+    const requestId = Date.now().toString(); // Generate a unique request ID
+    
+    // Notify clients via WebSocket that request is starting
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'ai-request',
+      data: {
+        status: 'processing',
+        requestId,
+        message: 'AI processing started',
+        timestamp: new Date().toISOString()
+      }
+    });
+    
     // System message that defines the AI's behavior
     const systemMessage = `You are an AI Copilot for a dashboard creation platform called BeakDash. 
 Your role is to help users create, manage, and optimize their data dashboards. 
@@ -53,6 +104,18 @@ If they need help with dashboard features, guide them step by step.`;
       { role: "user", content: prompt },
     ];
 
+    // Notify clients that we're sending the request to OpenAI
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'ai-request',
+      data: {
+        status: 'sending',
+        requestId,
+        message: 'Sending request to AI model',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -61,10 +124,29 @@ If they need help with dashboard features, guide them step by step.`;
       temperature: 0.7,
     });
 
+    // Notify clients that we've received a response
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'ai-request',
+      data: {
+        status: 'completed',
+        requestId,
+        message: 'AI processing completed',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     // Return the AI's response
     return completion.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
     console.error("OpenAI API error:", error);
+    
+    // Notify clients about the error
+    broadcastWebSocketMessage({
+      type: 'error',
+      message: 'Error processing AI request: ' + (error instanceof Error ? error.message : String(error)),
+      timestamp: new Date().toISOString()
+    });
     
     // Fallback response in case of an error
     return "I'm sorry, I encountered an error processing your request. Please try again later.";
@@ -77,6 +159,21 @@ If they need help with dashboard features, guide them step by step.`;
  */
 export async function generateChartImprovements(widgetContext: WidgetContext): Promise<any> {
   try {
+    const requestId = Date.now().toString(); // Generate a unique request ID
+    
+    // Notify clients via WebSocket that request is starting
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'chart-improvements',
+      data: {
+        status: 'processing',
+        requestId,
+        widgetId: widgetContext.id,
+        message: `Analyzing chart "${widgetContext.name}" for improvement suggestions`,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
     // Import required modules
     const { storage } = await import("../storage");
     
@@ -91,6 +188,19 @@ export async function generateChartImprovements(widgetContext: WidgetContext): P
     Provide your response in JSON format with these properties:
     - suggestions: an array of 3-5 specific, actionable improvement suggestions
     - explanation: a brief explanation of why these improvements would enhance the visualization (2-3 sentences)`;
+
+    // Notify clients that we're sending the request to OpenAI
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'chart-improvements',
+      data: {
+        status: 'sending',
+        requestId,
+        widgetId: widgetContext.id,
+        message: 'Sending request to AI model',
+        timestamp: new Date().toISOString()
+      }
+    });
 
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
@@ -110,9 +220,29 @@ export async function generateChartImprovements(widgetContext: WidgetContext): P
     // Add the widget ID to the recommendation
     improvements.widgetId = widgetContext.id;
 
+    // Notify clients that we've received a response
+    broadcastWebSocketMessage({
+      type: 'data-update',
+      dataset: 'chart-improvements',
+      data: {
+        status: 'completed',
+        requestId,
+        widgetId: widgetContext.id,
+        message: 'Chart improvement suggestions generated successfully',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     return improvements;
   } catch (error) {
     console.error("Chart improvements error:", error);
+    
+    // Notify clients about the error
+    broadcastWebSocketMessage({
+      type: 'error',
+      message: 'Error generating chart improvements: ' + (error instanceof Error ? error.message : String(error)),
+      timestamp: new Date().toISOString()
+    });
     
     // Return a fallback response if there's an error
     return {

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Search, Bell, Settings, LogOut, User, LayoutTemplate } from "lucide-react";
+import { WebSocketStatus } from "@/components/ui/websocket-status";
 
 export default function Header() {
   // In a real application, this would come from an auth context/hook
@@ -62,6 +63,9 @@ export default function Header() {
         </div>
       </div>
       <div className="flex items-center space-x-2">
+        <div className="mr-2">
+          <WebSocketStatus />
+        </div>
         <Button variant="ghost" size="icon" className="rounded-full">
           <Search className="h-5 w-5" />
         </Button>

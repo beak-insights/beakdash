@@ -9,6 +9,7 @@ import { MessageSquare, X, Minimize, Maximize, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dataset, chartTypes } from "@shared/schema";
+import { AIProcessingStatus } from "@/components/ai/ai-processing-status";
 
 interface Message {
   id: string;
