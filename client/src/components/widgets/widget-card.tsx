@@ -22,17 +22,18 @@ export default function WidgetCard({ widget, onEdit }: WidgetCardProps) {
 
   // Fetch data for this widget
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['/api/datasets', widget.datasetId],
+    queryKey: ['/api/datasets', widget.datasetId, 'data'],
     queryFn: async ({ queryKey }) => {
       try {
-        const response = await fetch(`${queryKey[0]}/${widget.datasetId}/data`);
+        const response = await fetch(`${queryKey[0]}/${queryKey[1]}/data`);
         if (!response.ok) {
-          throw new Error('Failed to fetch dataset data');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch dataset data');
         }
         return response.json();
-      } catch (error) {
-        // For demo purposes, return sample data
-        return getSampleData(widget.type as ChartType);
+      } catch (error: any) {
+        console.error("Error fetching widget data:", error.message);
+        return [];
       }
     },
   });

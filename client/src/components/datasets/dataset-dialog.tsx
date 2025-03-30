@@ -140,24 +140,73 @@ export default function DatasetDialog({
     setIsRunningQuery(true);
     
     try {
-      // In a real app, this would make an API call to execute the query
-      // For demo purposes, we'll simulate with sample data
-      const data = getSampleData(selectedConnection?.type || "csv");
+      if (!selectedConnection) {
+        throw new Error("Connection not found");
+      }
+
+      let data: Record<string, any>[] = [];
+      
+      // Process data based on connection type
+      if (selectedConnection.type === "csv") {
+        // For CSV connections, we use the data from the connection config
+        const connectionConfig = selectedConnection.config as any;
+        
+        if (!connectionConfig || !connectionConfig.csvData) {
+          throw new Error("No CSV data found in connection");
+        }
+        
+        // Parse the CSV data
+        const csvData = await parseCSVConnection(connectionConfig);
+        
+        // Set the preview data
+        data = csvData;
+      } else {
+        // For other connection types, use sample data for now
+        data = getSampleData(selectedConnection.type);
+      }
+      
       setPreviewData(data);
       
       toast({
         title: "Query executed",
         description: "Data preview has been updated.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to execute query. Please check your syntax.",
+        description: `Failed to execute query: ${error.message}`,
         variant: "destructive",
       });
     } finally {
       setIsRunningQuery(false);
     }
+  };
+  
+  // Function to parse CSV data from a connection
+  const parseCSVConnection = async (connectionConfig: any): Promise<Record<string, any>[]> => {
+    // Import the parseCSV function from data-adapters.ts
+    const { parseCSV } = await import('@/lib/data-adapters');
+    
+    // Extract CSV options from the connection config
+    const {
+      csvData,
+      delimiter = ',',
+      hasHeaders = true, 
+      quoteChar = '"',
+      trimFields = true
+    } = connectionConfig;
+    
+    if (!csvData) {
+      throw new Error("No CSV data found");
+    }
+    
+    // Parse the CSV data
+    return parseCSV(csvData, {
+      delimiter,
+      hasHeaders,
+      quoteChar,
+      trimFields
+    });
   };
 
   // Handle form submission

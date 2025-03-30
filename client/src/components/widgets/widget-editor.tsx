@@ -66,11 +66,18 @@ export default function WidgetEditor({
       
       try {
         const response = await fetch(`${queryKey[0]}/${queryKey[1]}/data`);
-        if (!response.ok) throw new Error('Failed to fetch dataset data');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch dataset data');
+        }
         return response.json();
-      } catch (error) {
-        // For demonstration, return sample data
-        return getSampleData(chartType);
+      } catch (error: any) {
+        toast({
+          title: "Error loading data",
+          description: error.message || "Failed to load dataset data",
+          variant: "destructive",
+        });
+        return [];
       }
     },
     enabled: !!selectedDatasetId,
