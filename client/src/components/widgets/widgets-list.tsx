@@ -1,17 +1,6 @@
+import React from "react";
 import { Widget } from "@shared/schema";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash, Copy, Database, LayoutTemplate } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import WidgetCard from "./widget-card";
 
 interface WidgetsListProps {
   widgets: Widget[];
@@ -19,6 +8,7 @@ interface WidgetsListProps {
   onDelete: (widgetId: number) => void;
   onSaveAsTemplate: (widget: Widget) => void;
   onAddToDashboard: (widget: Widget) => void;
+  isTemplate?: boolean;
 }
 
 export default function WidgetsList({
@@ -27,124 +17,35 @@ export default function WidgetsList({
   onDelete,
   onSaveAsTemplate,
   onAddToDashboard,
+  isTemplate = false,
 }: WidgetsListProps) {
+  if (!widgets || widgets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <h3 className="text-xl font-medium mb-2">No widgets found</h3>
+        <p className="text-muted-foreground mb-4">
+          {isTemplate 
+            ? "No template widgets available. Save widgets as templates to reuse them."
+            : "No widgets available for this dashboard. Create a new widget to get started."}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Dashboard</TableHead>
-            <TableHead>Dataset</TableHead>
-            <TableHead>Modified</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {widgets.map((widget) => (
-            <TableRow key={widget.id}>
-              <TableCell className="font-medium">
-                {widget.name}
-                {widget.isTemplate && (
-                  <Badge variant="outline" className="ml-2">Template</Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge variant="secondary">{widget.type}</Badge>
-              </TableCell>
-              <TableCell>
-                {widget.dashboardId ? (
-                  "Dashboard #" + widget.dashboardId
-                ) : (
-                  <span className="text-muted-foreground italic">None</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {widget.datasetId ? (
-                  <span className="flex items-center">
-                    <Database className="h-3 w-3 mr-1" />
-                    Dataset #{widget.datasetId}
-                  </span>
-                ) : widget.customQuery ? (
-                  <span className="flex items-center">
-                    <Database className="h-3 w-3 mr-1" />
-                    Custom Query
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground italic">None</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {widget.updatedAt ? formatDate(widget.updatedAt, { 
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                }) : "-"}
-              </TableCell>
-              <TableCell className="text-right">
-                <TooltipProvider>
-                  <div className="flex items-center justify-end space-x-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(widget)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Edit</TooltipContent>
-                    </Tooltip>
-                    
-                    {!widget.isTemplate && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onSaveAsTemplate(widget)}
-                          >
-                            <LayoutTemplate className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Save as Template</TooltipContent>
-                      </Tooltip>
-                    )}
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onAddToDashboard(widget)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Add to Dashboard</TooltipContent>
-                    </Tooltip>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDelete(widget.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      {widgets.map((widget) => (
+        <WidgetCard
+          key={widget.id}
+          widget={widget}
+          onEdit={() => onEdit(widget)}
+          onDelete={() => onDelete(widget.id)}
+          onSaveAsTemplate={() => onSaveAsTemplate(widget)}
+          onAddToDashboard={() => onAddToDashboard(widget)}
+          isTemplate={isTemplate}
+          showControls={true}
+        />
+      ))}
     </div>
   );
 }

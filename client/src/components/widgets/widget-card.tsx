@@ -1,231 +1,229 @@
-import { useState } from "react";
+import React from "react";
 import { Widget, ChartType } from "@shared/schema";
-import Chart from "@/components/ui/chart";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Maximize, RefreshCw } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import Chart from "@/components/ui/chart";
+import { 
+  Pencil, 
+  Trash2, 
+  Save,
+  Plus,
+  Copy
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { truncateString } from "@/lib/utils";
 
 interface WidgetCardProps {
   widget: Widget;
   onEdit: () => void;
+  onDelete: () => void;
+  onSaveAsTemplate: () => void;
+  onAddToDashboard: () => void;
+  isTemplate?: boolean;
+  showControls?: boolean;
 }
 
-export default function WidgetCard({ widget, onEdit }: WidgetCardProps) {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Fetch data for this widget
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['/api/datasets', widget.datasetId, 'data'],
-    queryFn: async ({ queryKey }) => {
-      try {
-        const response = await fetch(`${queryKey[0]}/${queryKey[1]}/data`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch dataset data');
-        }
-        return response.json();
-      } catch (error: any) {
-        console.error("Error fetching widget data:", error.message);
-        return [];
-      }
-    },
-  });
-
-  // Delete widget mutation
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest('DELETE', `/api/widgets/${widget.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
-      toast({
-        title: "Widget deleted",
-        description: "The widget has been successfully deleted.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to delete widget: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Toggle fullscreen mode
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+export default function WidgetCard({
+  widget,
+  onEdit,
+  onDelete,
+  onSaveAsTemplate,
+  onAddToDashboard,
+  isTemplate = false,
+  showControls = true
+}: WidgetCardProps) {
+  const getChartPreview = () => {
+    // Generate sample data based on chart type
+    const sampleData = getSampleDataForPreview(widget.type as ChartType);
+    
+    // Extract config from the widget
+    const config = widget.config as Record<string, any>;
+    
+    return (
+      <div className="w-full h-[200px] overflow-hidden">
+        <Chart
+          type={widget.type as ChartType}
+          data={sampleData}
+          config={{
+            colors: config.colors || undefined,
+            showLegend: config.showLegend !== false,
+            showGrid: config.showGrid !== false,
+            showTooltip: config.showTooltip !== false,
+          }}
+          height="100%"
+        />
+      </div>
+    );
   };
 
-  // Handle widget deletion
-  const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this widget?")) {
-      deleteMutation.mutate();
-    }
-  };
-  
-  // Generate sample data based on chart type
-  const getSampleData = (chartType: ChartType) => {
+  const getSampleDataForPreview = (chartType: ChartType) => {
     switch (chartType) {
       case "bar":
       case "column":
         return [
-          { month: "Jan", sales: 120 },
-          { month: "Feb", sales: 150 },
-          { month: "Mar", sales: 180 },
-          { month: "Apr", sales: 110 },
-          { month: "May", sales: 200 },
+          { category: "A", value: 40 },
+          { category: "B", value: 60 },
+          { category: "C", value: 30 },
+          { category: "D", value: 70 },
+          { category: "E", value: 50 },
         ];
       case "line":
         return [
-          { quarter: "Q1", organic: 120, paid: 80 },
-          { quarter: "Q2", organic: 150, paid: 100 },
-          { quarter: "Q3", organic: 180, paid: 120 },
-          { quarter: "Q4", organic: 200, paid: 160 },
-          { quarter: "Q5", organic: 250, paid: 200 },
+          { x: "Jan", y: 10, z: 20 },
+          { x: "Feb", y: 30, z: 15 },
+          { x: "Mar", y: 20, z: 40 },
+          { x: "Apr", y: 40, z: 30 },
+          { x: "May", y: 50, z: 25 },
         ];
       case "pie":
         return [
-          { region: "North America", value: 35 },
-          { region: "Europe", value: 25 },
-          { region: "Asia", value: 20 },
-          { region: "South America", value: 10 },
-          { region: "Africa", value: 5 },
-          { region: "Oceania", value: 5 },
+          { name: "A", value: 30 },
+          { name: "B", value: 40 },
+          { name: "C", value: 15 },
+          { name: "D", value: 15 },
         ];
       case "scatter":
         return [
-          { x: 10, y: 30, category: "A", size: 5 },
-          { x: 30, y: 40, category: "A", size: 10 },
-          { x: 45, y: 35, category: "A", size: 15 },
-          { x: 20, y: 60, category: "B", size: 12 },
-          { x: 35, y: 50, category: "B", size: 8 },
-          { x: 55, y: 25, category: "B", size: 5 },
+          { x: 10, y: 30, group: "A" },
+          { x: 20, y: 10, group: "A" },
+          { x: 30, y: 20, group: "A" },
+          { x: 40, y: 40, group: "B" },
+          { x: 50, y: 30, group: "B" },
+          { x: 60, y: 50, group: "B" },
         ];
       case "dual-axes":
         return [
-          { month: "Jan", revenue: 12450, profit: 4320 },
-          { month: "Feb", revenue: 15230, profit: 5450 },
-          { month: "Mar", revenue: 17800, profit: 6200 },
-          { month: "Apr", revenue: 14300, profit: 4900 },
-          { month: "May", revenue: 22100, profit: 7800 },
+          { x: "Jan", y1: 100, y2: 5 },
+          { x: "Feb", y1: 200, y2: 10 },
+          { x: "Mar", y1: 150, y2: 8 },
+          { x: "Apr", y1: 300, y2: 15 },
+          { x: "May", y1: 250, y2: 12 },
         ];
       default:
         return [];
     }
   };
 
-  // Extract chart config
-  const chartConfig = widget.config || {};
-  const chartType = widget.type as ChartType;
-
-  // Prepare config for the chart component based on chart type
-  const prepareChartConfig = () => {
-    const config: Record<string, any> = {
-      colors: chartConfig.colors || undefined,
-      showLegend: chartConfig.showLegend !== false,
-      showGrid: chartConfig.showGrid !== false,
-      showTooltip: chartConfig.showTooltip !== false,
-    };
-
-    switch (chartType) {
-      case "bar":
-      case "column":
-        config.xAxis = chartConfig.xAxis || "month";
-        config.yAxis = chartConfig.yAxis || "sales";
-        config.groupBy = chartConfig.groupBy;
-        break;
-      case "line":
-        config.xAxis = chartConfig.xAxis || "quarter";
-        config.yAxis = chartConfig.yAxis || "organic";
-        config.groupBy = chartConfig.groupBy;
-        break;
-      case "pie":
-        config.xAxis = chartConfig.xAxis || "region";
-        config.yAxis = chartConfig.yAxis || "value";
-        break;
-      case "scatter":
-        config.xAxis = chartConfig.xAxis || "x";
-        config.yAxis = chartConfig.yAxis || "y";
-        config.groupBy = chartConfig.groupBy || "category";
-        break;
-      case "dual-axes":
-        config.xAxis = chartConfig.xAxis || "month";
-        config.yAxis = chartConfig.yAxis || "revenue";
-        config.y2Axis = chartConfig.y2Axis || "profit";
-        break;
-    }
-
-    return config;
-  };
-
-  // Determine fullscreen classes
-  const fullscreenClasses = isFullscreen
-    ? "fixed inset-0 z-50 flex flex-col bg-background"
-    : "h-full";
-
   return (
-    <Card className={`${fullscreenClasses} flex flex-col overflow-hidden`}>
-      <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0 border-b">
-        <CardTitle className="text-base font-medium">{widget.name}</CardTitle>
-        <div className="flex items-center space-x-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleFullscreen}>
-            <Maximize className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <Card className="overflow-hidden flex flex-col">
+      <CardHeader className="p-3 pb-0">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-md">{truncateString(widget.name, 30)}</CardTitle>
+          {showControls && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4">
+                    <path d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                  </svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  <span>Edit</span>
+                </DropdownMenuItem>
+                
+                {!isTemplate && (
+                  <DropdownMenuItem onClick={onSaveAsTemplate}>
+                    <Save className="mr-2 h-4 w-4" />
+                    <span>Save as Template</span>
+                  </DropdownMenuItem>
+                )}
+                
+                {isTemplate && (
+                  <DropdownMenuItem onClick={onAddToDashboard}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>Add to Dashboard</span>
+                  </DropdownMenuItem>
+                )}
+                
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 p-3 overflow-hidden">
-        {isLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <Skeleton className="h-4/5 w-4/5 rounded-md" />
+      
+      <CardContent className="p-3 flex-1 flex flex-col">
+        {getChartPreview()}
+        
+        <div className="mt-2 text-xs text-muted-foreground">
+          <div className="flex justify-between">
+            <span>Type: {widget.type}</span>
+            {widget.isTemplate && (
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
+                Template
+              </span>
+            )}
           </div>
-        ) : isError ? (
-          <div className="h-full flex flex-col items-center justify-center text-destructive">
-            <AlertCircle className="h-8 w-8 mb-2" />
-            <p className="text-sm">Failed to load data</p>
-          </div>
-        ) : (
-          <Chart
-            type={chartType}
-            data={data}
-            config={prepareChartConfig()}
-            height="100%"
-          />
-        )}
+          
+          {widget.datasetId && (
+            <p>Dataset ID: {widget.datasetId}</p>
+          )}
+          
+          {widget.customQuery && (
+            <p className="truncate">Custom SQL Query</p>
+          )}
+        </div>
       </CardContent>
+      
+      {showControls && (
+        <CardFooter className="p-3 pt-0 flex justify-between">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onEdit}
+            className="flex-1 mr-2"
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          
+          {!isTemplate ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onSaveAsTemplate}
+              className="flex-1"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Template
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onAddToDashboard}
+              className="flex-1"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add
+            </Button>
+          )}
+        </CardFooter>
+      )}
     </Card>
   );
 }

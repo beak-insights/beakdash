@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Connections from "@/pages/dashboard/connections";
 import Datasets from "@/pages/dashboard/datasets";
 import Settings from "@/pages/dashboard/settings";
+import Widgets from "@/pages/widgets";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/connections" component={Connections} />
       <Route path="/datasets" component={Datasets} />
       <Route path="/settings" component={Settings} />
+      <Route path="/widgets" component={Widgets} />
       <Route component={NotFound} />
     </Switch>
   );

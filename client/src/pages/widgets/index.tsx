@@ -1,297 +1,298 @@
-import { useState } from "react";
-import { useWidgets } from "@/hooks/use-widgets";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Grid, List, Plus, Search } from "lucide-react";
-import WidgetCard from "@/components/widgets/widget-card";
+import React, { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { 
+  PlusCircle, 
+  AlertCircle, 
+  Layers,
+  LayoutTemplate
+} from "lucide-react";
 import WidgetsList from "@/components/widgets/widgets-list";
-import { Widget } from "@shared/schema";
 import WidgetEditor from "@/components/widgets/widget-editor";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDashboards } from "@/hooks/use-dashboard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useWidgets } from "@/hooks/use-widgets";
+import { useDashboard } from "@/hooks/use-dashboard";
+import { queryClient } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
+import { Widget } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function WidgetsRepository() {
-  const { data: widgets = [], isLoading, createWidget, updateWidget, deleteWidget } = useWidgets();
-  const { data: dashboards = [] } = useDashboards();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showOnlyTemplates, setShowOnlyTemplates] = useState(false);
-  const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
-  const [isCreatingWidget, setIsCreatingWidget] = useState(false);
-  const [isAddToDashboardOpen, setIsAddToDashboardOpen] = useState(false);
+export default function WidgetsPage() {
+  const [, setLocation] = useLocation();
+  const [currentTab, setCurrentTab] = useState<"all" | "templates">("all");
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
-  const [selectedDashboardId, setSelectedDashboardId] = useState<string>("");
-  const { toast } = useToast();
-
-  const filteredWidgets = widgets.filter(widget => {
-    if (showOnlyTemplates && !widget.isTemplate) return false;
-    return widget.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const handleAddWidgetToDashboard = async () => {
-    if (!selectedWidget || !selectedDashboardId) return;
-
-    try {
-      await createWidget({
-        name: `${selectedWidget.name} (Copy)`,
-        type: selectedWidget.type,
-        datasetId: selectedWidget.datasetId,
-        connectionId: selectedWidget.connectionId,
-        customQuery: selectedWidget.customQuery,
-        dashboardId: parseInt(selectedDashboardId),
-        config: selectedWidget.config,
-        position: { x: 0, y: 0, w: 6, h: 4 },
-        sourceWidgetId: selectedWidget.id,
-        isTemplate: false,
-      });
-
-      toast({
-        title: "Widget added to dashboard",
-        description: `The widget was successfully added to the dashboard.`,
-      });
-
-      setIsAddToDashboardOpen(false);
-      setSelectedWidget(null);
-      setSelectedDashboardId("");
-    } catch (error) {
-      toast({
-        title: "Error adding widget",
-        description: "There was an error adding the widget to the dashboard.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSaveAsTemplate = async (widget: Widget) => {
-    try {
-      await createWidget({
-        name: `${widget.name} (Template)`,
-        type: widget.type,
-        datasetId: widget.datasetId,
-        connectionId: widget.connectionId,
-        customQuery: widget.customQuery,
-        config: widget.config,
-        sourceWidgetId: widget.id,
-        isTemplate: true,
-      });
-
-      toast({
-        title: "Template created",
-        description: "The widget was saved as a template.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error creating template",
-        description: "There was an error saving the widget as a template.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  const [showEditor, setShowEditor] = useState(false);
+  const [showAddToDashboardDialog, setShowAddToDashboardDialog] = useState(false);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
+  
+  // Fetch widgets data
+  const { widgets, isLoading, isError, deleteWidget } = useWidgets();
+  
+  // Get dashboard data (for the add to dashboard dialog)
+  const { dashboards } = useDashboard();
+  
+  // Handle widget edit
   const handleEditWidget = (widget: Widget) => {
-    setEditingWidget(widget);
+    setSelectedWidget(widget);
+    setShowEditor(true);
   };
-
-  const handleCloseWidgetEditor = () => {
-    setEditingWidget(null);
-    setIsCreatingWidget(false);
-  };
-
-  const handleCreateWidget = () => {
-    setIsCreatingWidget(true);
-  };
-
+  
+  // Handle widget delete
   const handleDeleteWidget = async (widgetId: number) => {
+    if (!window.confirm("Are you sure you want to delete this widget?")) {
+      return;
+    }
+    
     try {
       await deleteWidget(widgetId);
       toast({
         title: "Widget deleted",
-        description: "The widget was successfully deleted.",
+        description: "Widget was successfully deleted.",
       });
     } catch (error) {
       toast({
-        title: "Error deleting widget",
-        description: "There was an error deleting the widget.",
+        title: "Error",
+        description: "Failed to delete widget.",
         variant: "destructive",
       });
     }
   };
-
-  const handleWidgetUpdated = (updatedWidget: Widget) => {
-    updateWidget(updatedWidget.id, updatedWidget);
-    setEditingWidget(null);
+  
+  // Handle save as template
+  const handleSaveAsTemplate = async (widget: Widget) => {
+    try {
+      const templateWidget = {
+        ...widget,
+        id: undefined, // Remove ID so it creates a new widget
+        isTemplate: true,
+        dashboardId: null, // Templates aren't associated with a dashboard
+      };
+      
+      await apiRequest("/api/widgets", {
+        method: "POST",
+        data: templateWidget,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
+      
+      toast({
+        title: "Widget saved as template",
+        description: "Widget was successfully saved as a template.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save widget as template.",
+        variant: "destructive",
+      });
+    }
   };
-
-  const handleWidgetCreated = () => {
-    setIsCreatingWidget(false);
-    toast({
-      title: "Widget created",
-      description: "The widget was successfully created.",
-    });
+  
+  // Handle add widget to dashboard
+  const handleAddToDashboard = (widget: Widget) => {
+    setSelectedWidget(widget);
+    setShowAddToDashboardDialog(true);
   };
-
+  
+  // Confirm adding widget to dashboard
+  const confirmAddToDashboard = async () => {
+    if (!selectedWidget || !selectedDashboardId) return;
+    
+    try {
+      const newWidget = {
+        ...selectedWidget,
+        id: undefined, // Remove ID so it creates a new widget
+        dashboardId: selectedDashboardId,
+        isTemplate: false,
+        sourceWidgetId: selectedWidget.id, // Reference the original template
+      };
+      
+      await apiRequest("/api/widgets", {
+        method: "POST",
+        data: newWidget,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboards", selectedDashboardId] });
+      
+      toast({
+        title: "Widget added",
+        description: "Widget was successfully added to the dashboard.",
+      });
+      
+      setShowAddToDashboardDialog(false);
+      setSelectedWidget(null);
+      setSelectedDashboardId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add widget to dashboard.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Close widget editor
+  const handleCloseEditor = () => {
+    setShowEditor(false);
+    setSelectedWidget(null);
+  };
+  
+  // Filter widgets based on current tab
+  const filteredWidgets = widgets?.filter(widget => 
+    currentTab === "all" 
+      ? !widget.isTemplate
+      : !!widget.isTemplate
+  ) || [];
+  
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Widgets Repository</h1>
-        <Button onClick={handleCreateWidget}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Widget
-        </Button>
+    <div className="container py-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Widgets</h1>
+          <p className="text-muted-foreground">
+            Manage widgets and widget templates for your dashboards
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setLocation("/")}
+          >
+            <Layers className="mr-2 h-4 w-4" />
+            Dashboards
+          </Button>
+          
+          <Button onClick={() => setShowEditor(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Widget
+          </Button>
+        </div>
       </div>
-
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all" onClick={() => setShowOnlyTemplates(false)}>All Widgets</TabsTrigger>
-          <TabsTrigger value="templates" onClick={() => setShowOnlyTemplates(true)}>Templates</TabsTrigger>
+      
+      {isError && (
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center mb-6">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <span>Failed to load widgets. Please try again.</span>
+        </div>
+      )}
+      
+      <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as "all" | "templates")}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="all" className="flex items-center">
+            <Layers className="mr-2 h-4 w-4" />
+            Dashboard Widgets
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center">
+            <LayoutTemplate className="mr-2 h-4 w-4" />
+            Widget Templates
+          </TabsTrigger>
         </TabsList>
-      </Tabs>
-
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search widgets..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex space-x-1 bg-muted rounded-md p-1">
-          <Button
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="icon"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "secondary" : "ghost"}
-            size="icon"
-            onClick={() => setViewMode("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="bg-muted/80 h-40" />
-              <CardContent className="pt-4">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                <div className="h-3 bg-muted rounded w-1/2" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filteredWidgets.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="rounded-full bg-muted p-6 mb-4">
-              <Search className="h-10 w-10 text-muted-foreground" />
+        
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">Loading widgets...</p>
             </div>
-            <CardTitle className="mb-2">No widgets found</CardTitle>
-            <CardDescription>
-              {searchQuery
-                ? "Try adjusting your search query"
-                : showOnlyTemplates
-                ? "No template widgets found. Save widgets as templates to see them here."
-                : "Create your first widget to get started"}
-            </CardDescription>
-            {!searchQuery && !showOnlyTemplates && (
-              <Button className="mt-4" onClick={handleCreateWidget}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Widget
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWidgets.map((widget) => (
-            <WidgetCard
-              key={widget.id}
-              widget={widget}
-              onEdit={() => handleEditWidget(widget)}
-              onDelete={() => handleDeleteWidget(widget.id)}
-              onSaveAsTemplate={() => handleSaveAsTemplate(widget)}
-              onAddToDashboard={() => {
-                setSelectedWidget(widget);
-                setIsAddToDashboardOpen(true);
-              }}
-              isTemplate={Boolean(widget.isTemplate)}
-              showControls={true}
+          ) : (
+            <WidgetsList
+              widgets={filteredWidgets}
+              onEdit={handleEditWidget}
+              onDelete={handleDeleteWidget}
+              onSaveAsTemplate={handleSaveAsTemplate}
+              onAddToDashboard={() => {}}
             />
-          ))}
-        </div>
-      ) : (
-        <WidgetsList
-          widgets={filteredWidgets}
-          onEdit={handleEditWidget}
-          onDelete={handleDeleteWidget}
-          onSaveAsTemplate={handleSaveAsTemplate}
-          onAddToDashboard={(widget) => {
-            setSelectedWidget(widget);
-            setIsAddToDashboardOpen(true);
-          }}
-        />
-      )}
-
-      {(editingWidget || isCreatingWidget) && (
+          )}
+        </TabsContent>
+        
+        <TabsContent value="templates">
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">Loading templates...</p>
+            </div>
+          ) : (
+            <WidgetsList
+              widgets={filteredWidgets}
+              onEdit={handleEditWidget}
+              onDelete={handleDeleteWidget}
+              onSaveAsTemplate={handleSaveAsTemplate}
+              onAddToDashboard={handleAddToDashboard}
+              isTemplate
+            />
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      {/* Widget Editor Dialog */}
+      {showEditor && (
         <WidgetEditor
-          widget={editingWidget}
-          isCreating={isCreatingWidget}
-          onSave={handleWidgetUpdated}
-          onCreate={handleWidgetCreated}
-          onClose={handleCloseWidgetEditor}
-          isTemplate={showOnlyTemplates}
+          widget={selectedWidget || undefined}
+          onClose={handleCloseEditor}
+          onCreate={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
+            handleCloseEditor();
+          }}
+          onSave={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
+            handleCloseEditor();
+          }}
+          isTemplate={currentTab === "templates"}
         />
       )}
-
-      <Dialog open={isAddToDashboardOpen} onOpenChange={setIsAddToDashboardOpen}>
+      
+      {/* Add to Dashboard Dialog */}
+      <Dialog open={showAddToDashboardDialog} onOpenChange={setShowAddToDashboardDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Widget to Dashboard</DialogTitle>
+            <DialogDescription>
+              Select a dashboard to add this widget to.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Select Dashboard</p>
-              <Select
-                value={selectedDashboardId}
-                onValueChange={setSelectedDashboardId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a dashboard" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dashboards.map((dashboard) => (
-                    <SelectItem
-                      key={dashboard.id}
-                      value={dashboard.id.toString()}
-                    >
-                      {dashboard.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          
+          <div className="py-4">
+            <Select 
+              value={selectedDashboardId?.toString() || ""} 
+              onValueChange={(value) => setSelectedDashboardId(Number(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a dashboard" />
+              </SelectTrigger>
+              <SelectContent>
+                {dashboards?.map(dashboard => (
+                  <SelectItem key={dashboard.id} value={dashboard.id.toString()}>
+                    {dashboard.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsAddToDashboardOpen(false)}
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAddToDashboardDialog(false)}
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleAddWidgetToDashboard}
+            <Button 
+              onClick={confirmAddToDashboard}
               disabled={!selectedDashboardId}
             >
               Add to Dashboard
