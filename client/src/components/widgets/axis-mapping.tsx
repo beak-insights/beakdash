@@ -30,7 +30,7 @@ export default function AxisMapping({
     );
   }
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: string, value: any) => {
     onChange({ [key]: value });
   };
 
@@ -163,14 +163,14 @@ export default function AxisMapping({
             <div>
               <Label htmlFor="groupBy" className="block mb-1">Group By</Label>
               <Select
-                value={config.groupBy || ""}
-                onValueChange={(value) => handleChange("groupBy", value)}
+                value={config.groupBy || "none"}
+                onValueChange={(value) => handleChange("groupBy", value === "none" ? "" : value)}
               >
                 <SelectTrigger id="groupBy">
                   <SelectValue placeholder="Select group by field (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {columns.map((column) => (
                     <SelectItem key={column} value={column}>
                       {column}
@@ -188,14 +188,14 @@ export default function AxisMapping({
         <Label htmlFor="sortBy" className="block mb-1">Sort Order</Label>
         <div className="grid grid-cols-2 gap-2">
           <Select
-            value={config.sortBy || ""}
-            onValueChange={(value) => handleChange("sortBy", value)}
+            value={config.sortBy || "default"}
+            onValueChange={(value) => handleChange("sortBy", value === "default" ? "" : value)}
           >
             <SelectTrigger id="sortBy">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Default</SelectItem>
+              <SelectItem value="default">Default</SelectItem>
               {columns.map((column) => (
                 <SelectItem key={column} value={column}>
                   {column}
@@ -224,14 +224,14 @@ export default function AxisMapping({
       <div>
         <Label htmlFor="limit" className="block mb-1">Limit Results</Label>
         <Select
-          value={config.limit?.toString() || ""}
-          onValueChange={(value) => handleChange("limit", value ? parseInt(value) : undefined)}
+          value={config.limit?.toString() || "nolimit"}
+          onValueChange={(value) => handleChange("limit", value === "nolimit" ? undefined : parseInt(value))}
         >
           <SelectTrigger id="limit">
             <SelectValue placeholder="Limit number of data points" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No limit</SelectItem>
+            <SelectItem value="nolimit">No limit</SelectItem>
             <SelectItem value="5">5</SelectItem>
             <SelectItem value="10">10</SelectItem>
             <SelectItem value="20">20</SelectItem>

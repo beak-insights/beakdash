@@ -46,7 +46,7 @@ export default function DatasetDialog({
   const [connectionId, setConnectionId] = useState<number | null>(dataset?.connectionId || null);
   const [query, setQuery] = useState(dataset?.query || "");
   const [refreshInterval, setRefreshInterval] = useState(dataset?.refreshInterval || "manual");
-  const [config, setConfig] = useState(dataset?.config || {});
+  const [config, setConfig] = useState(dataset?.config || { cacheDuration: "1h" });
   const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
   const [isRunningQuery, setIsRunningQuery] = useState(false);
   
@@ -113,8 +113,10 @@ export default function DatasetDialog({
             setQuery(""); // REST connections don't typically need a query
             break;
           case "sql":
-            if (connection.config?.database) {
-              setQuery(`SELECT * FROM ${connection.config.database}.table_name LIMIT 100`);
+            // Safely access config properties
+            const configAny = connection.config as any;
+            if (configAny && configAny.database) {
+              setQuery(`SELECT * FROM ${configAny.database}.table_name LIMIT 100`);
             } else {
               setQuery("SELECT * FROM table_name LIMIT 100");
             }
@@ -248,7 +250,7 @@ export default function DatasetDialog({
             <div>
               <Label htmlFor="connection" className="mb-1 block">Connection</Label>
               <Select 
-                value={connectionId?.toString() || ""} 
+                value={connectionId?.toString() || "0"} 
                 onValueChange={(value) => setConnectionId(Number(value))}
               >
                 <SelectTrigger id="connection">
@@ -335,7 +337,7 @@ export default function DatasetDialog({
 
               <div>
                 <Select
-                  value={config.cacheDuration || "1h"}
+                  value={(config as any).cacheDuration || "1h"}
                   onValueChange={(value) => setConfig({...config, cacheDuration: value})}
                 >
                   <SelectTrigger id="cache-duration">

@@ -252,7 +252,7 @@ export default function WidgetEditor({
             <div className="mb-4">
               <Label htmlFor="dataset" className="mb-1 block">Data Source</Label>
               <Select 
-                value={selectedDatasetId?.toString()} 
+                value={selectedDatasetId?.toString() || "0"} 
                 onValueChange={(value) => setSelectedDatasetId(Number(value))}
               >
                 <SelectTrigger>

@@ -92,7 +92,9 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id, 
-      createdAt: now
+      createdAt: now,
+      displayName: insertUser.displayName || null,
+      avatarUrl: insertUser.avatarUrl || null
     };
     this.users.set(id, user);
     return user;
@@ -112,9 +114,12 @@ export class MemStorage implements IStorage {
     const id = this.dashboardCounter++;
     const now = new Date();
     const newDashboard: Dashboard = {
-      ...dashboard,
       id,
+      name: dashboard.name,
+      userId: dashboard.userId ?? null,
+      description: dashboard.description ?? null,
       isActive: true,
+      layout: dashboard.layout ?? {},
       createdAt: now,
       updatedAt: now
     };
@@ -155,8 +160,11 @@ export class MemStorage implements IStorage {
     const id = this.connectionCounter++;
     const now = new Date();
     const newConnection: Connection = {
-      ...connection,
       id,
+      name: connection.name,
+      type: connection.type,
+      config: connection.config,
+      userId: connection.userId ?? null,
       createdAt: now,
       updatedAt: now
     };
@@ -206,8 +214,13 @@ export class MemStorage implements IStorage {
     const id = this.datasetCounter++;
     const now = new Date();
     const newDataset: Dataset = {
-      ...dataset,
       id,
+      name: dataset.name,
+      userId: dataset.userId ?? null,
+      connectionId: dataset.connectionId ?? null,
+      query: dataset.query ?? null,
+      refreshInterval: dataset.refreshInterval ?? null,
+      config: dataset.config ?? {},
       createdAt: now,
       updatedAt: now
     };
@@ -248,8 +261,13 @@ export class MemStorage implements IStorage {
     const id = this.widgetCounter++;
     const now = new Date();
     const newWidget: Widget = {
-      ...widget,
       id,
+      name: widget.name,
+      type: widget.type,
+      dashboardId: widget.dashboardId ?? null,
+      datasetId: widget.datasetId ?? null,
+      position: widget.position ?? {},
+      config: widget.config ?? {},
       createdAt: now,
       updatedAt: now
     };
