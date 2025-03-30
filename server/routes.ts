@@ -372,35 +372,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (connection.type === "sql") {
         try {
-          // Use the already imported pool from the top of the file
+          // Extract connection configuration
+          const config = connection.config as Record<string, any>;
+          if (!config) {
+            return res.status(400).json({ message: "Connection configuration is missing" });
+          }
           
-          // Determine which query to execute
-          let sqlQuery = "SELECT * FROM users LIMIT 100"; // Default query as fallback
+          // Create a temporary connection to the target database
+          const { Pool } = await import('pg');
           
-          // Check if the dataset has a custom query
-          if (dataset.query) {
-            sqlQuery = dataset.query;
-          } else if (dataset.config && typeof dataset.config === 'object') {
-            // If there's a table specified in the config
-            const config = dataset.config as Record<string, any>;
-            if (config.table) {
-              sqlQuery = `SELECT * FROM ${config.table} LIMIT 100`;
+          // Build connection string from config
+          let connectionString = '';
+          if (config.connectionString) {
+            connectionString = config.connectionString;
+          } else {
+            const host = config.host || 'localhost';
+            const port = config.port || 5432;
+            const database = config.database;
+            const user = config.user;
+            const password = config.password;
+            
+            if (!database || !user) {
+              return res.status(400).json({ 
+                message: "Connection configuration is incomplete. Database and user are required."
+              });
             }
+            
+            connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
           }
           
-          // Check for widget customQuery if provided in the request
-          const { customQuery } = req.query;
-          if (customQuery && typeof customQuery === 'string') {
-            sqlQuery = customQuery;
+          // Create temporary connection pool
+          const tempPool = new Pool({ connectionString });
+          
+          try {
+            // Determine which query to execute
+            let sqlQuery = "SELECT * FROM users LIMIT 100"; // Default query as fallback
+            
+            // Check if the dataset has a custom query
+            if (dataset.query) {
+              sqlQuery = dataset.query;
+            } else if (dataset.config && typeof dataset.config === 'object') {
+              // If there's a table specified in the config
+              const datasetConfig = dataset.config as Record<string, any>;
+              if (datasetConfig.table) {
+                sqlQuery = `SELECT * FROM ${datasetConfig.table} LIMIT 100`;
+              }
+            }
+            
+            // Check for widget customQuery if provided in the request
+            const { customQuery } = req.query;
+            if (customQuery && typeof customQuery === 'string') {
+              sqlQuery = customQuery;
+            }
+            
+            console.log(`Executing SQL query on connection ID ${connection.id}: ${sqlQuery}`);
+            
+            // Execute the query using the connection-specific pool
+            const result = await tempPool.query(sqlQuery);
+            
+            // Return the actual data from the database
+            data = result.rows;
+          } finally {
+            // Always close the temporary pool
+            await tempPool.end();
           }
-          
-          console.log(`Executing SQL query: ${sqlQuery}`);
-          
-          // Execute the query using the database pool
-          const result = await pool.query(sqlQuery);
-          
-          // Return the actual data from the database
-          data = result.rows;
         } catch (dbError: any) {
           console.error("Database query error:", dbError.message);
           return res.status(400).json({ 
@@ -801,39 +836,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // Get actual table schema from the database
+      // Get actual table schema from the connection's database
       try {
-        // Use the already imported pool from the top of the file
+        // Extract connection configuration
+        const config = connection.config as Record<string, any>;
+        if (!config) {
+          return res.status(400).json({ message: "Connection configuration is missing" });
+        }
         
-        // Query to get column information for a specific table
-        const schemaQuery = `
-          SELECT 
-            column_name as name, 
-            data_type as type
-          FROM 
-            information_schema.columns 
-          WHERE 
-            table_name = $1
-          ORDER BY 
-            ordinal_position
-        `;
+        // Create a temporary connection to the target database
+        const { Pool } = await import('pg');
         
-        // Execute the query with the table name as a parameter
-        const result = await pool.query(schemaQuery, [table]);
+        // Build connection string from config
+        let connectionString = '';
+        if (config.connectionString) {
+          connectionString = config.connectionString;
+        } else {
+          const host = config.host || 'localhost';
+          const port = config.port || 5432;
+          const database = config.database;
+          const user = config.user;
+          const password = config.password;
+          
+          if (!database || !user) {
+            return res.status(400).json({ 
+              message: "Connection configuration is incomplete. Database and user are required."
+            });
+          }
+          
+          connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+        }
         
-        // Return the columns
-        return res.status(200).json(result.rows);
+        // Create temporary connection pool
+        const tempPool = new Pool({ connectionString });
+        
+        try {
+          // Query to get column information for a specific table
+          const schemaQuery = `
+            SELECT 
+              column_name as name, 
+              data_type as type
+            FROM 
+              information_schema.columns 
+            WHERE 
+              table_name = $1
+            ORDER BY 
+              ordinal_position
+          `;
+          
+          // Execute the query with the table name as a parameter
+          const result = await tempPool.query(schemaQuery, [table]);
+          
+          // Return the columns
+          return res.status(200).json(result.rows);
+        } finally {
+          // Always close the temporary pool
+          await tempPool.end();
+        }
       } catch (dbError: any) {
         console.error("Get table schema error:", dbError.message);
-        
-        // If there's an error, return fallback columns
-        const fallbackColumns = [
-          { name: "id", type: "int" },
-          { name: "name", type: "varchar" },
-          { name: "created_at", type: "timestamp" },
-          { name: "updated_at", type: "timestamp" }
-        ];
-        return res.status(200).json(fallbackColumns);
+        return res.status(400).json({ 
+          message: "Failed to retrieve table schema", 
+          error: dbError.message 
+        });
       }
       
     } catch (error: any) {
@@ -858,44 +923,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // Get actual tables from the database
+      // Get actual tables from the connection's database
       try {
-        // Use the already imported pool from the top of the file
+        // Extract connection configuration
+        const config = connection.config as Record<string, any>;
+        if (!config) {
+          return res.status(400).json({ message: "Connection configuration is missing" });
+        }
         
-        // Query to get all tables in the public schema
-        const tablesQuery = `
-          SELECT 
-            table_name
-          FROM 
-            information_schema.tables 
-          WHERE 
-            table_schema = 'public'
-            AND table_type = 'BASE TABLE'
-          ORDER BY 
-            table_name
-        `;
+        // Create a temporary connection to the target database
+        const { Pool } = await import('pg');
         
-        // Execute the query
-        const result = await pool.query(tablesQuery);
+        // Build connection string from config
+        let connectionString = '';
+        if (config.connectionString) {
+          connectionString = config.connectionString;
+        } else {
+          const host = config.host || 'localhost';
+          const port = config.port || 5432;
+          const database = config.database;
+          const user = config.user;
+          const password = config.password;
+          
+          if (!database || !user) {
+            return res.status(400).json({ 
+              message: "Connection configuration is incomplete. Database and user are required."
+            });
+          }
+          
+          connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+        }
         
-        // Extract table names from the result
-        const tables = result.rows.map((row: any) => row.table_name);
+        // Create temporary connection pool
+        const tempPool = new Pool({ connectionString });
         
-        // Return the table names
-        return res.status(200).json(tables);
+        try {
+          // Query to get all tables in the public schema
+          const tablesQuery = `
+            SELECT 
+              table_name
+            FROM 
+              information_schema.tables 
+            WHERE 
+              table_schema = 'public'
+              AND table_type = 'BASE TABLE'
+            ORDER BY 
+              table_name
+          `;
+          
+          // Execute the query
+          const result = await tempPool.query(tablesQuery);
+          
+          // Extract table names from the result
+          const tables = result.rows.map((row: any) => row.table_name);
+          
+          // Return the table names
+          return res.status(200).json(tables);
+        } finally {
+          // Always close the temporary pool
+          await tempPool.end();
+        }
       } catch (dbError: any) {
         console.error("Get tables error:", dbError.message);
-        
-        // If there's an error, return default tables
-        const fallbackTables = [
-          "users", 
-          "dashboards", 
-          "connections", 
-          "datasets", 
-          "widgets",
-          "dashboard_widgets"
-        ];
-        return res.status(200).json(fallbackTables);
+        return res.status(400).json({ 
+          message: "Failed to retrieve database tables", 
+          error: dbError.message 
+        });
       }
       
     } catch (error: any) {
@@ -928,17 +1021,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection must be of type 'sql'" });
       }
       
-      // Execute the query on the PostgreSQL database
-      // We're using the application's database connection since this is a demo
-      // In a real app, you would use the connection parameters from the connection object
+      // Execute the query on the connection's database
       try {
-        // Use the already imported pool from the top of the file
+        // Extract connection configuration
+        const config = connection.config as Record<string, any>;
+        if (!config) {
+          return res.status(400).json({ message: "Connection configuration is missing" });
+        }
         
-        // Execute the query
-        const result = await pool.query(query);
+        // Create a temporary connection to the target database
+        const { Pool } = await import('pg');
         
-        // Return the results
-        return res.status(200).json(result.rows);
+        // Build connection string from config
+        let connectionString = '';
+        if (config.connectionString) {
+          connectionString = config.connectionString;
+        } else {
+          const host = config.host || 'localhost';
+          const port = config.port || 5432;
+          const database = config.database;
+          const user = config.user;
+          const password = config.password;
+          
+          if (!database || !user) {
+            return res.status(400).json({ 
+              message: "Connection configuration is incomplete. Database and user are required."
+            });
+          }
+          
+          connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+        }
+        
+        // Create temporary connection pool
+        const tempPool = new Pool({ connectionString });
+        
+        try {
+          console.log(`Executing SQL query on connection ${connectionId}: ${query}`);
+          
+          // Execute the query
+          const result = await tempPool.query(query);
+          
+          // Return the results
+          return res.status(200).json(result.rows);
+        } finally {
+          // Always close the temporary pool
+          await tempPool.end();
+        }
       } catch (dbError: any) {
         console.error("Database query error:", dbError.message);
         return res.status(400).json({ 
