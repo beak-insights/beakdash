@@ -1203,7 +1203,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = JSON.parse(data.toString());
         console.log('Received message:', message);
         
-        // Echo the message back to the client
+        // Handle ping messages for connection latency measurement
+        if (message.type === 'ping') {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'pong',
+              timestamp: new Date().toISOString(),
+              pingTime: message.timestamp
+            }));
+            return;
+          }
+        }
+        
+        // Echo other messages back to the client
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: 'echo',

@@ -1,42 +1,55 @@
-import { useWebSocket } from "@/lib/websocket-service";
-import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useWebSocket } from "@/lib/websocket-service";
+import { WifiIcon, WifiOff } from "lucide-react";
 
 /**
  * Component to display WebSocket connection status
  */
 export function WebSocketStatus() {
-  const { isConnected, subscribe } = useWebSocket();
-  const [hasMessages, setHasMessages] = useState(false);
-  const [eventCount, setEventCount] = useState(0);
+  const { isConnected, lastPing } = useWebSocket();
+  const [latency, setLatency] = useState<number | null>(null);
   
-  // Subscribe to all WebSocket events
+  // Calculate latency every time we get a ping
   useEffect(() => {
-    // Track message receipt
-    const unsubscribe = subscribe('all', () => {
-      setHasMessages(true);
-      setEventCount(prev => prev + 1);
-    });
-    
-    return unsubscribe;
-  }, [subscribe]);
+    if (lastPing && lastPing.sent && lastPing.received) {
+      const pingLatency = lastPing.received - lastPing.sent;
+      setLatency(pingLatency);
+    }
+  }, [lastPing]);
   
   return (
-    <div className="flex items-center gap-2">
-      <Badge 
-        variant={isConnected ? "default" : "destructive"}
-        className="rounded-full transition-colors px-2 py-0.5 text-xs"
-      >
-        {isConnected ? "Connected" : "Disconnected"}
-      </Badge>
-      {hasMessages && (
-        <Badge 
-          variant="outline" 
-          className="rounded-full px-2 py-0.5 text-xs"
-        >
-          {eventCount} event{eventCount !== 1 ? 's' : ''}
-        </Badge>
-      )}
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge 
+            variant={isConnected ? "outline" : "destructive"} 
+            className={`flex items-center gap-1 ${isConnected ? "hover:bg-green-50" : "hover:bg-red-50"}`}
+          >
+            {isConnected ? (
+              <>
+                <WifiIcon className="h-3 w-3 text-green-500" /> 
+                <span className="text-xs">
+                  Connected {latency !== null && `(${latency}ms)`}
+                </span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3" /> 
+                <span className="text-xs">Offline</span>
+              </>
+            )}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>
+            {isConnected 
+              ? `WebSocket connection is active ${latency !== null ? `with ${latency}ms latency` : ''}` 
+              : "WebSocket connection is offline. Real-time updates are not available."}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

@@ -1,233 +1,251 @@
-/**
- * WebSocket service for real-time communication
- */
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { create } from 'zustand';
 
-// Event types
-export type WebSocketEvent = 
-  | { type: 'connection', message: string, timestamp: string }
-  | { type: 'echo', data: any, timestamp: string }
-  | { type: 'error', message: string, timestamp: string }
-  | { type: 'data-update', dataset: string, data: any, timestamp: string };
+// Define types for websocket events
+export type WebSocketEvent = {
+  type: string;
+  message?: string;
+  timestamp: string;
+  [key: string]: any;
+};
 
-export type WebSocketEventHandler = (event: WebSocketEvent) => void;
+type WebSocketState = {
+  isConnected: boolean;
+  socket: WebSocket | null;
+  lastPing: { sent: number; received: number } | null;
+  reconnectAttempt: number;
+  eventListeners: Map<string, Set<(event: WebSocketEvent) => void>>;
+  connect: () => void;
+  disconnect: () => void;
+  resetReconnectAttempt: () => void;
+  setSocket: (socket: WebSocket | null) => void;
+  setIsConnected: (isConnected: boolean) => void;
+  setLastPing: (ping: { sent: number; received: number } | null) => void;
+  incrementReconnectAttempt: () => void;
+  addEventListenerToSet: (type: string, callback: (event: WebSocketEvent) => void) => void;
+  removeEventListenerFromSet: (type: string, callback: (event: WebSocketEvent) => void) => void;
+};
 
-class WebSocketService {
-  private socket: WebSocket | null = null;
-  private eventListeners: Map<string, WebSocketEventHandler[]> = new Map();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+// Create a store to manage WebSocket state
+const useWebSocketStore = create<WebSocketState>((set, get) => ({
+  isConnected: false,
+  socket: null,
+  lastPing: null,
+  reconnectAttempt: 0,
+  eventListeners: new Map(),
   
-  /**
-   * Connect to the WebSocket server
-   */
-  connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        // Close existing socket if one exists
-        if (this.socket) {
-          this.socket.close();
-        }
-        
-        // Create new WebSocket connection with the correct protocol and path
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        this.socket = new WebSocket(wsUrl);
-        
-        // Setup event handlers
-        this.socket.onopen = () => {
-          console.log('WebSocket connection established');
-          this.reconnectAttempts = 0;
-          resolve();
-        };
-        
-        this.socket.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            this.handleMessage(data);
-          } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
-          }
-        };
-        
-        this.socket.onclose = (event) => {
-          console.log(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
-          this.socket = null;
-          
-          // Attempt to reconnect if not a normal closure
-          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.attemptReconnect();
-          }
-        };
-        
-        this.socket.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          reject(error);
-        };
-      } catch (error) {
-        console.error('Failed to establish WebSocket connection:', error);
-        reject(error);
-      }
-    });
-  }
-  
-  /**
-   * Attempt to reconnect to the WebSocket server
-   */
-  private attemptReconnect(): void {
-    this.reconnectAttempts++;
-    const delay = Math.min(30000, Math.pow(2, this.reconnectAttempts) * 1000);
-    
-    console.log(`Attempting to reconnect in ${delay / 1000} seconds (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
-    // Clear any existing reconnect timeout
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-    }
-    
-    this.reconnectTimeout = setTimeout(() => {
-      this.connect().catch(() => {
-        // If reconnect fails and we haven't reached max attempts, try again
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.attemptReconnect();
-        }
-      });
-    }, delay);
-  }
-  
-  /**
-   * Send a message to the WebSocket server
-   */
-  send(data: any): boolean {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket not connected');
-      return false;
-    }
-    
-    try {
-      const message = typeof data === 'string' ? data : JSON.stringify(data);
-      this.socket.send(message);
-      return true;
-    } catch (error) {
-      console.error('Error sending WebSocket message:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Close the WebSocket connection
-   */
-  disconnect(): void {
-    if (this.socket) {
-      this.socket.close(1000, 'Normal closure');
-      this.socket = null;
-    }
-    
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-  }
-  
-  /**
-   * Subscribe to WebSocket events
-   */
-  subscribe(eventType: string, handler: WebSocketEventHandler): () => void {
-    if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, []);
-    }
-    
-    const handlers = this.eventListeners.get(eventType)!;
-    handlers.push(handler);
-    
-    // Return an unsubscribe function
-    return () => {
-      const index = handlers.indexOf(handler);
-      if (index !== -1) {
-        handlers.splice(index, 1);
-      }
-    };
-  }
-  
-  /**
-   * Handle incoming WebSocket messages
-   */
-  private handleMessage(data: any): void {
-    if (!data || !data.type) {
-      console.error('Invalid WebSocket message format:', data);
+  connect: () => {
+    const { socket } = get();
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
     
-    // Notify all handlers for this event type
-    const handlers = this.eventListeners.get(data.type) || [];
-    handlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error(`Error in WebSocket event handler for type "${data.type}":`, error);
-      }
-    });
-    
-    // Also notify 'all' event handlers
-    const allHandlers = this.eventListeners.get('all') || [];
-    allHandlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error(`Error in WebSocket 'all' event handler for type "${data.type}":`, error);
-      }
-    });
-  }
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
+      const newSocket = new WebSocket(wsUrl);
+      set({ socket: newSocket });
+      
+      // Socket event handlers are set up in the useWebSocket hook
+    } catch (error) {
+      console.error('Failed to connect to WebSocket:', error);
+      set({ isConnected: false });
+    }
+  },
   
-  /**
-   * Check if the WebSocket connection is currently open
-   */
-  isConnected(): boolean {
-    return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
-  }
-}
+  disconnect: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.close();
+      set({ socket: null, isConnected: false });
+    }
+  },
+  
+  resetReconnectAttempt: () => set({ reconnectAttempt: 0 }),
+  
+  setSocket: (socket) => set({ socket }),
+  
+  setIsConnected: (isConnected) => set({ isConnected }),
+  
+  setLastPing: (ping) => set({ lastPing: ping }),
+  
+  incrementReconnectAttempt: () => set((state) => ({ reconnectAttempt: state.reconnectAttempt + 1 })),
+  
+  addEventListenerToSet: (type, callback) => {
+    set((state) => {
+      const listeners = state.eventListeners;
+      if (!listeners.has(type)) {
+        listeners.set(type, new Set());
+      }
+      listeners.get(type)?.add(callback);
+      return { eventListeners: new Map(listeners) };
+    });
+  },
+  
+  removeEventListenerFromSet: (type, callback) => {
+    set((state) => {
+      const listeners = state.eventListeners;
+      if (listeners.has(type)) {
+        const typeListeners = listeners.get(type);
+        if (typeListeners) {
+          typeListeners.delete(callback);
+          if (typeListeners.size === 0) {
+            listeners.delete(type);
+          }
+        }
+      }
+      return { eventListeners: new Map(listeners) };
+    });
+  },
+}));
 
-// Create and export a singleton instance
-export const webSocketService = new WebSocketService();
+// The maximum time to wait before trying to reconnect
+const MAX_RECONNECT_TIME = 30000; // 30 seconds
 
-// Export React hook for using the WebSocket service
-import { useEffect, useState } from 'react';
-
+/**
+ * Hook for websocket functionality
+ */
 export function useWebSocket() {
-  const [isConnected, setIsConnected] = useState(webSocketService.isConnected());
+  const { 
+    isConnected, 
+    socket, 
+    lastPing,
+    reconnectAttempt,
+    connect, 
+    disconnect, 
+    resetReconnectAttempt,
+    setIsConnected,
+    setLastPing,
+    incrementReconnectAttempt,
+    addEventListenerToSet,
+    removeEventListenerFromSet,
+    eventListeners
+  } = useWebSocketStore();
   
+  // Effect for socket setup and event handling
   useEffect(() => {
-    // Connect to the WebSocket server when the component mounts
-    if (!webSocketService.isConnected()) {
-      webSocketService.connect().catch(error => {
-        console.error('Failed to connect to WebSocket server:', error);
-      });
+    // If no socket exists, establish connection
+    if (!socket) {
+      connect();
+      return;
     }
     
-    // Subscribe to connection events
-    const connectionHandler = () => {
-      setIsConnected(webSocketService.isConnected());
+    const handleOpen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+      resetReconnectAttempt();
+      
+      // Start ping loop
+      const pingInterval = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          const pingTime = Date.now();
+          socket.send(JSON.stringify({ type: 'ping', timestamp: pingTime }));
+          
+          // Store the sent time for the ping
+          setLastPing(lastPing ? { ...lastPing, sent: pingTime } : { sent: pingTime, received: 0 });
+        }
+      }, 10000); // Ping every 10 seconds
+      
+      return () => clearInterval(pingInterval);
     };
     
-    const unsubscribeConnection = webSocketService.subscribe('connection', connectionHandler);
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as WebSocketEvent;
+        
+        // Handle pong responses
+        if (data.type === 'pong') {
+          setLastPing(lastPing ? { ...lastPing, received: Date.now() } : { sent: 0, received: Date.now() });
+        }
+        
+        // Notify all listeners for this event type
+        const listeners = eventListeners.get(data.type);
+        if (listeners) {
+          listeners.forEach(callback => callback(data));
+        }
+        
+        // Notify 'all' listeners for all events
+        const allListeners = eventListeners.get('all');
+        if (allListeners) {
+          allListeners.forEach(callback => callback(data));
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
     
-    // Check connection status periodically
-    const interval = setInterval(() => {
-      setIsConnected(webSocketService.isConnected());
-    }, 5000);
+    const handleClose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+      
+      // Attempt to reconnect with exponential backoff
+      incrementReconnectAttempt();
+      const reconnectTime = Math.min(1000 * Math.pow(2, reconnectAttempt), MAX_RECONNECT_TIME);
+      
+      console.log(`Attempting to reconnect in ${reconnectTime}ms`);
+      const reconnectTimeout = setTimeout(() => {
+        connect();
+      }, reconnectTime);
+      
+      return () => clearTimeout(reconnectTimeout);
+    };
     
-    // Cleanup on unmount
+    const handleError = (error: Event) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+    };
+    
+    // Add event listeners
+    socket.addEventListener('open', handleOpen);
+    socket.addEventListener('message', handleMessage);
+    socket.addEventListener('close', handleClose);
+    socket.addEventListener('error', handleError);
+    
+    // Clean up on unmount
     return () => {
-      unsubscribeConnection();
-      clearInterval(interval);
+      socket.removeEventListener('open', handleOpen);
+      socket.removeEventListener('message', handleMessage);
+      socket.removeEventListener('close', handleClose);
+      socket.removeEventListener('error', handleError);
     };
-  }, []);
+  }, [
+    socket, 
+    connect, 
+    setIsConnected, 
+    resetReconnectAttempt, 
+    incrementReconnectAttempt, 
+    reconnectAttempt,
+    setLastPing,
+    lastPing,
+    eventListeners
+  ]);
   
-  return {
+  // Subscribe to events
+  const subscribe = useCallback((type: string, callback: (event: WebSocketEvent) => void) => {
+    addEventListenerToSet(type, callback);
+    
+    // Return unsubscribe function
+    return () => {
+      removeEventListenerFromSet(type, callback);
+    };
+  }, [addEventListenerToSet, removeEventListenerFromSet]);
+  
+  // Send message to websocket
+  const send = useCallback((message: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
+  }, [socket]);
+  
+  return useMemo(() => ({
     isConnected,
-    send: webSocketService.send.bind(webSocketService),
-    subscribe: webSocketService.subscribe.bind(webSocketService),
-    connect: webSocketService.connect.bind(webSocketService),
-    disconnect: webSocketService.disconnect.bind(webSocketService)
-  };
+    lastPing,
+    connect,
+    disconnect,
+    subscribe,
+    send
+  }), [isConnected, lastPing, connect, disconnect, subscribe, send]);
 }

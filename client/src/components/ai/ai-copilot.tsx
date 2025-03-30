@@ -41,6 +41,7 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | undefined>(activeDatasetId);
   const [selectedChartType, setSelectedChartType] = useState<string | undefined>(activeChartType);
   const [showDatasetSelector, setShowDatasetSelector] = useState(false);
+  const [datasetKey, setDatasetKey] = useState<string>(`ai-copilot-${Date.now()}`);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -384,6 +385,9 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
       </CardHeader>
       
       <CardContent className="p-3 flex-1 overflow-y-auto">
+        {/* Processing status for real-time WebSocket updates */}
+        <AIProcessingStatus datasetKey={datasetKey} />
+        
         {showDatasetSelector ? (
           <div className="space-y-3">
             <h4 className="text-sm font-medium">Select a Dataset</h4>
