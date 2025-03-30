@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Search, Bell, Settings, LogOut, User } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, LayoutTemplate } from "lucide-react";
 
 export default function Header() {
   // In a real application, this would come from an auth context/hook
@@ -51,6 +51,12 @@ export default function Header() {
           <Link href="/datasets">
             <Button variant="ghost" className="px-3 py-1.5 text-sm rounded-md">
               Datasets
+            </Button>
+          </Link>
+          <Link href="/widgets">
+            <Button variant="ghost" className="px-3 py-1.5 text-sm rounded-md">
+              <LayoutTemplate className="mr-1 h-4 w-4" />
+              Widgets
             </Button>
           </Link>
         </div>

@@ -88,7 +88,9 @@ export default function WidgetsList({
           <CardFooter className="flex justify-between bg-card pt-3 pb-3">
             <div className="text-xs text-muted-foreground">
               {formatDate(widget.updatedAt || widget.createdAt || new Date(), {
-                dateStyle: "medium",
+                year: "numeric",
+                month: "short",
+                day: "numeric"
               })}
             </div>
             <div className="flex gap-1">

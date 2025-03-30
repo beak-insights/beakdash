@@ -7,7 +7,7 @@ import WidgetGrid from "@/components/widgets/widget-grid";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import AICopilot from "@/components/ai/ai-copilot";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, MessageSquare, Layers } from "lucide-react";
+import { Plus, Settings, MessageSquare, Layers, LayoutTemplate } from "lucide-react";
 import { Widget } from "@shared/schema";
 
 export default function Dashboard() {
@@ -76,7 +76,7 @@ export default function Dashboard() {
                   <span>Options</span>
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setLocation("/widgets")}>
-                  <Layers className="mr-2 h-4 w-4" />
+                  <LayoutTemplate className="mr-2 h-4 w-4" />
                   <span>Widgets</span>
                 </Button>
                 <Button variant="default" size="sm" onClick={handleToggleAICopilot}>
