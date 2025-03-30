@@ -233,7 +233,7 @@ Charlie,Brown,charlie.brown@example.com,29,Seattle`;
             <SelectContent>
               <SelectItem value='"'>Double quote (")</SelectItem>
               <SelectItem value="'">Single quote (')</SelectItem>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
             </SelectContent>
           </Select>
         </div>
