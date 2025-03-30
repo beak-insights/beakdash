@@ -9,6 +9,7 @@ import {
   insertUserSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
+// Import OpenAI services dynamically in the routes to avoid circular dependencies
 
 // Handle zod validation errors
 function handleZodError(error: ZodError, res: Response) {
@@ -636,6 +637,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(recommendation);
     } catch (error) {
       console.error("Chart recommendation error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // AI Chart Improvements route
+  app.post(`${apiPrefix}/ai/chart-improvements`, async (req, res) => {
+    try {
+      const { widgetContext } = req.body;
+      
+      if (!widgetContext || !widgetContext.id || !widgetContext.type) {
+        return res.status(400).json({ message: "Valid widget context is required" });
+      }
+
+      // Import the OpenAI service dynamically
+      const { generateChartImprovements } = await import("./services/openai");
+      
+      // Generate chart improvement suggestions
+      const improvements = await generateChartImprovements(widgetContext);
+      
+      return res.status(200).json(improvements);
+    } catch (error) {
+      console.error("Chart improvements error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // AI KPI Suggestions route
+  app.post(`${apiPrefix}/ai/kpi-suggestions`, async (req, res) => {
+    try {
+      const { datasetId } = req.body;
+      
+      if (!datasetId) {
+        return res.status(400).json({ message: "Dataset ID is required" });
+      }
+
+      // Check if the dataset exists
+      const dataset = await storage.getDataset(datasetId);
+      if (!dataset) {
+        return res.status(404).json({ message: "Dataset not found" });
+      }
+
+      // Import the OpenAI service dynamically
+      const { generateKPISuggestions } = await import("./services/openai");
+      
+      // Generate KPI widget suggestions
+      const suggestions = await generateKPISuggestions(datasetId);
+      
+      return res.status(200).json(suggestions);
+    } catch (error) {
+      console.error("KPI suggestions error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });

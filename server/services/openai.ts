@@ -72,6 +72,151 @@ If they need help with dashboard features, guide them step by step.`;
 }
 
 /**
+ * Generate chart improvement suggestions based on widget context
+ * @param widgetContext Widget context information
+ */
+export async function generateChartImprovements(widgetContext: WidgetContext): Promise<any> {
+  try {
+    // Import required modules
+    const { storage } = await import("../storage");
+    
+    // System message that defines what we want from the AI
+    const systemMessage = `You are an AI data visualization expert. 
+    Analyze the following chart configuration and provide suggestions for improvements.
+    
+    Widget name: ${widgetContext.name}
+    Widget type: ${widgetContext.type}
+    Widget configuration: ${JSON.stringify(widgetContext.config, null, 2)}
+    
+    Provide your response in JSON format with these properties:
+    - suggestions: an array of 3-5 specific, actionable improvement suggestions
+    - explanation: a brief explanation of why these improvements would enhance the visualization (2-3 sentences)`;
+
+    // Call the OpenAI API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemMessage },
+      ],
+      max_tokens: 800,
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    // Parse the JSON response
+    const responseContent = completion.choices[0].message.content || "{}";
+    const improvements = JSON.parse(responseContent);
+
+    // Add the widget ID to the recommendation
+    improvements.widgetId = widgetContext.id;
+
+    return improvements;
+  } catch (error) {
+    console.error("Chart improvements error:", error);
+    
+    // Return a fallback response if there's an error
+    return {
+      suggestions: [
+        "Consider adding a clear title to describe what the chart represents",
+        "Try using contrasting colors to improve readability",
+        "Consider adding data labels to make values more explicit"
+      ],
+      explanation: "These are general best practices for data visualization that often improve chart clarity and usability.",
+      widgetId: widgetContext.id
+    };
+  }
+}
+
+/**
+ * Generate new KPI chart suggestions based on dataset
+ * @param datasetId Dataset ID to analyze
+ */
+export async function generateKPISuggestions(datasetId: number): Promise<any> {
+  try {
+    // Import required modules
+    const { storage } = await import("../storage");
+    
+    // Fetch the dataset
+    const dataset = await storage.getDataset(datasetId);
+    if (!dataset) {
+      throw new Error("Dataset not found");
+    }
+
+    // System message that defines what we want from the AI
+    const systemMessage = `You are an AI data visualization expert. 
+    Analyze the following dataset and suggest 3-5 meaningful KPI (Key Performance Indicator) widgets that could be created from this data.
+    
+    Dataset name: ${dataset.name}
+    Dataset description: ${dataset.query || "No description provided"}
+    
+    Provide your response in JSON format with this structure:
+    {
+      "kpiSuggestions": [
+        {
+          "title": "Name of the KPI",
+          "description": "Brief description of what this KPI measures and why it's valuable",
+          "widgetType": "counter or stat-card",
+          "config": {
+            "valueField": "suggested field from dataset",
+            "format": "number, currency, or percentage",
+            "colorCode": true/false
+          }
+        },
+        // More suggestions...
+      ],
+      "explanation": "A brief explanation of how these KPIs together provide a comprehensive view of the data"
+    }`;
+
+    // Call the OpenAI API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemMessage },
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    // Parse the JSON response
+    const responseContent = completion.choices[0].message.content || "{}";
+    const suggestions = JSON.parse(responseContent);
+
+    // Add the dataset ID to the suggestions
+    suggestions.datasetId = datasetId;
+
+    return suggestions;
+  } catch (error) {
+    console.error("KPI suggestions error:", error);
+    
+    // Return a fallback suggestion if there's an error
+    return {
+      kpiSuggestions: [
+        {
+          title: "Total Count",
+          description: "Counts the total number of records in your dataset",
+          widgetType: "counter",
+          config: {
+            format: "number"
+          }
+        },
+        {
+          title: "Average Value",
+          description: "Shows the average of a numeric field in your dataset",
+          widgetType: "stat-card",
+          config: {
+            format: "number",
+            colorCode: true
+          }
+        }
+      ],
+      explanation: "These are basic KPIs that can be applied to most datasets to get started with monitoring key metrics.",
+      datasetId: datasetId
+    };
+  }
+}
+
+/**
  * Generate chart recommendations based on dataset
  * @param datasetId Dataset ID to analyze
  */

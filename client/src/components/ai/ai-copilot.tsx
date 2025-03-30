@@ -121,13 +121,105 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
     },
   });
 
-  // Define the expected chart recommendation response type
+  // Define the expected response types
   interface ChartRecommendation {
     chartType: string;
     explanation: string;
     suggestedConfig: string;
     datasetId: number;
   }
+
+  interface ChartImprovement {
+    suggestions: string[];
+    explanation: string;
+    widgetId: number;
+  }
+
+  interface KPISuggestion {
+    title: string;
+    description: string;
+    widgetType: string;
+    config: Record<string, any>;
+  }
+
+  interface KPISuggestions {
+    kpiSuggestions: KPISuggestion[];
+    explanation: string;
+    datasetId: number;
+  }
+
+  // Generate chart improvements
+  const chartImprovementsMutation = useMutation({
+    mutationFn: async () => {
+      if (!widgetContext) {
+        throw new Error("Widget context is required for chart improvements");
+      }
+      
+      const response = await apiRequest("POST", "/api/ai/chart-improvements", { 
+        widgetContext: {
+          id: widgetContext.id,
+          name: widgetContext.name,
+          type: widgetContext.type,
+          config: widgetContext.config
+        } 
+      });
+      
+      // Type guard to ensure we have proper chart improvements
+      if (response && typeof response === 'object' && 'suggestions' in response) {
+        return response as ChartImprovement;
+      }
+      
+      // Fallback if the response is not in the expected format
+      throw new Error("Received invalid chart improvements format");
+    },
+    onSuccess: (data: ChartImprovement) => {
+      // Add improvement suggestions to messages
+      const suggestionsFormatted = data.suggestions.map(suggestion => `• ${suggestion}`).join('\n');
+      const improvementsMessage: Message = {
+        id: `improvements-${Date.now()}`,
+        role: "assistant",
+        content: `I've analyzed your "${widgetContext?.name}" widget and have some suggestions to improve it:\n\n${suggestionsFormatted}\n\n${data.explanation}\n\nWould you like me to help you implement any of these improvements?`,
+        timestamp: new Date(),
+        context: widgetContext ? {
+          chartType: widgetContext.type
+        } : undefined
+      };
+      setMessages(prev => [...prev, improvementsMessage]);
+    },
+  });
+
+  // Generate KPI suggestions
+  const kpiSuggestionsMutation = useMutation({
+    mutationFn: async (datasetId: number) => {
+      const response = await apiRequest("POST", "/api/ai/kpi-suggestions", { datasetId });
+      
+      // Type guard to ensure we have proper KPI suggestions
+      if (response && typeof response === 'object' && 'kpiSuggestions' in response) {
+        return response as KPISuggestions;
+      }
+      
+      // Fallback if the response is not in the expected format
+      throw new Error("Received invalid KPI suggestions format");
+    },
+    onSuccess: (data: KPISuggestions) => {
+      // Format the KPI suggestions nicely
+      const suggestionsFormatted = data.kpiSuggestions.map(kpi => 
+        `• ${kpi.title} (${kpi.widgetType}): ${kpi.description}`
+      ).join('\n');
+      
+      // Add KPI suggestions to messages
+      const kpiMessage: Message = {
+        id: `kpi-suggestions-${Date.now()}`,
+        role: "assistant",
+        content: `Based on your dataset, here are some KPI widgets I recommend creating:\n\n${suggestionsFormatted}\n\n${data.explanation}\n\nWould you like me to help you create any of these KPI widgets?`,
+        timestamp: new Date(),
+        context: {
+          datasetId: data.datasetId
+        }
+      };
+      setMessages(prev => [...prev, kpiMessage]);
+    },
+  });
 
   // Generate chart recommendation
   const chartRecommendationMutation = useMutation({
@@ -206,6 +298,56 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
     chartRecommendationMutation.mutate(selectedDatasetId);
   };
 
+  const handleGetChartImprovements = () => {
+    if (!widgetContext) {
+      // Show a message if there's no widget context
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content: "I need a specific widget to analyze before I can offer improvement suggestions. Please open the AI Copilot from a widget's menu to get improvement suggestions.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
+    const promptMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: `Please analyze my "${widgetContext.name}" widget and suggest improvements.`,
+      timestamp: new Date(),
+      context: {
+        chartType: widgetContext.type
+      }
+    };
+    setMessages(prev => [...prev, promptMessage]);
+    
+    // Generate improvement suggestions
+    chartImprovementsMutation.mutate();
+  };
+
+  const handleGetKPISuggestions = () => {
+    if (!selectedDatasetId) {
+      // If no dataset is selected, show the dataset selector
+      setShowDatasetSelector(true);
+      return;
+    }
+
+    const promptMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: `Please suggest KPI widgets I could create from dataset ${selectedDatasetId}.`,
+      timestamp: new Date(),
+      context: {
+        datasetId: selectedDatasetId
+      }
+    };
+    setMessages(prev => [...prev, promptMessage]);
+    
+    // Generate KPI suggestions
+    kpiSuggestionsMutation.mutate(selectedDatasetId);
+  };
+
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
   };
@@ -222,7 +364,7 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 z-40 w-80 h-96 flex flex-col shadow-lg border border-border overflow-hidden">
+    <Card className="fixed bottom-4 right-4 z-40 w-80 h-[28rem] flex flex-col shadow-lg border border-border overflow-hidden">
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6 bg-primary">
@@ -332,30 +474,90 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
       <CardFooter className="p-3 border-t">
         {!showDatasetSelector && (
           <>
-            <div className="flex items-center space-x-2 w-full">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
-                title="Get chart recommendation"
-                onClick={handleGetChartRecommendation}
-                disabled={aiMutation.isPending || chartRecommendationMutation.isPending}
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col space-y-2 w-full">
+              {/* AI actions toolbar */}
+              <div className="flex items-center justify-start gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0"
+                  title="Get chart recommendation"
+                  onClick={handleGetChartRecommendation}
+                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending || 
+                           chartImprovementsMutation.isPending || kpiSuggestionsMutation.isPending}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+                
+                {/* Chart improvements button - only enabled when we have widget context */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0"
+                  title="Get chart improvement suggestions"
+                  onClick={handleGetChartImprovements}
+                  disabled={!widgetContext || aiMutation.isPending || chartRecommendationMutation.isPending || 
+                          chartImprovementsMutation.isPending || kpiSuggestionsMutation.isPending}
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 12h4l3 8 4-16 3 8h4"></path>
+                  </svg>
+                </Button>
+                
+                {/* KPI suggestions button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0"
+                  title="Get KPI widget suggestions"
+                  onClick={handleGetKPISuggestions}
+                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending || 
+                          chartImprovementsMutation.isPending || kpiSuggestionsMutation.isPending}
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20V10"></path>
+                    <path d="M18 20V4"></path>
+                    <path d="M6 20v-4"></path>
+                  </svg>
+                </Button>
+              </div>
               
-              <form onSubmit={handleSend} className="flex space-x-2 flex-1">
+              {/* Message input form */}
+              <form onSubmit={handleSend} className="flex space-x-2 w-full">
                 <Input
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Ask a question..."
-                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending}
+                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending || 
+                          chartImprovementsMutation.isPending || kpiSuggestionsMutation.isPending}
                   className="flex-1"
                 />
                 <Button 
                   type="submit" 
                   size="icon" 
-                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending || !prompt.trim()}
+                  disabled={aiMutation.isPending || chartRecommendationMutation.isPending || 
+                           chartImprovementsMutation.isPending || kpiSuggestionsMutation.isPending || 
+                           !prompt.trim()}
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
