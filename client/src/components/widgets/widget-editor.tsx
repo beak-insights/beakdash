@@ -17,6 +17,7 @@ import {
   SelectTrigger, 
   SelectValue,
 } from "@/components/ui/select";
+import { useDashboard } from "@/hooks/use-dashboard";
 import {
   Tabs,
   TabsContent,
@@ -69,9 +70,11 @@ export default function WidgetEditor({
   const [customQuery, setCustomQuery] = useState<string>(widget?.customQuery || "");
   const [useCustomQuery, setUseCustomQuery] = useState<boolean>(!!widget?.customQuery);
   const [showDataPreview, setShowDataPreview] = useState<boolean>(false);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(dashboardId || null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { dashboards } = useDashboard();
 
   // Fetch available datasets
   const { data: datasets = [] } = useQuery<Dataset[]>({
@@ -303,7 +306,7 @@ export default function WidgetEditor({
     // Create widget data object
     const widgetData = {
       name,
-      dashboardId,
+      dashboardId: selectedDashboardId,
       datasetId: useCustomQuery ? null : selectedDatasetId,
       connectionId: useCustomQuery ? selectedConnectionId : null,
       customQuery: useCustomQuery ? customQuery : null,
@@ -645,23 +648,44 @@ export default function WidgetEditor({
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border pt-4">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={
-              (!useCustomQuery && !selectedDatasetId) || 
-              (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) || 
-              !name || 
-              createMutation.isPending || 
-              updateMutation.isPending
-            }
-          >
-            {createMutation.isPending || updateMutation.isPending ? 
-              "Saving..." : 
-              widget ? "Update Widget" : "Create Widget"
-            }
-          </Button>
+        <DialogFooter className="border-t border-border pt-4 flex-col sm:flex-row gap-4 items-stretch">
+          <div className="flex items-center space-x-4 w-full sm:w-auto">
+            <Label htmlFor="dashboard-selector" className="whitespace-nowrap">Add to Dashboard:</Label>
+            <Select 
+              value={selectedDashboardId?.toString() || "0"} 
+              onValueChange={(value) => setSelectedDashboardId(Number(value) || null)}
+            >
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select dashboard" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">None</SelectItem>
+                {dashboards.map((dashboard) => (
+                  <SelectItem key={dashboard.id} value={dashboard.id.toString()}>
+                    {dashboard.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 w-full sm:w-auto ml-auto">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={
+                (!useCustomQuery && !selectedDatasetId) || 
+                (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) || 
+                !name || 
+                createMutation.isPending || 
+                updateMutation.isPending
+              }
+            >
+              {createMutation.isPending || updateMutation.isPending ? 
+                "Saving..." : 
+                widget ? "Update Widget" : "Create Widget"
+              }
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
