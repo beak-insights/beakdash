@@ -457,6 +457,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  // Dashboard Widget relationship routes
+  
+  // Get all widgets in a dashboard
+  app.get(`${apiPrefix}/dashboards/:id/widgets`, async (req, res) => {
+    try {
+      const dashboardId = Number(req.params.id);
+      const dashboard = await storage.getDashboard(dashboardId);
+      
+      if (!dashboard) {
+        return res.status(404).json({ message: "Dashboard not found" });
+      }
+      
+      const widgets = await storage.getDashboardWidgets(dashboardId);
+      return res.status(200).json(widgets);
+    } catch (error) {
+      console.error("Get dashboard widgets error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get all dashboards containing a widget
+  app.get(`${apiPrefix}/widgets/:id/dashboards`, async (req, res) => {
+    try {
+      const widgetId = Number(req.params.id);
+      const widget = await storage.getWidget(widgetId);
+      
+      if (!widget) {
+        return res.status(404).json({ message: "Widget not found" });
+      }
+      
+      const dashboards = await storage.getWidgetDashboards(widgetId);
+      return res.status(200).json(dashboards);
+    } catch (error) {
+      console.error("Get widget dashboards error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Add a widget to a dashboard
+  app.post(`${apiPrefix}/dashboards/:dashboardId/widgets/:widgetId`, async (req, res) => {
+    try {
+      const dashboardId = Number(req.params.dashboardId);
+      const widgetId = Number(req.params.widgetId);
+      
+      const dashboard = await storage.getDashboard(dashboardId);
+      if (!dashboard) {
+        return res.status(404).json({ message: "Dashboard not found" });
+      }
+      
+      const widget = await storage.getWidget(widgetId);
+      if (!widget) {
+        return res.status(404).json({ message: "Widget not found" });
+      }
+      
+      const position = req.body.position || {};
+      const dashboardWidget = await storage.addWidgetToDashboard(dashboardId, widgetId, position);
+      
+      return res.status(201).json(dashboardWidget);
+    } catch (error) {
+      console.error("Add widget to dashboard error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Remove a widget from a dashboard
+  app.delete(`${apiPrefix}/dashboards/:dashboardId/widgets/:widgetId`, async (req, res) => {
+    try {
+      const dashboardId = Number(req.params.dashboardId);
+      const widgetId = Number(req.params.widgetId);
+      
+      const dashboard = await storage.getDashboard(dashboardId);
+      if (!dashboard) {
+        return res.status(404).json({ message: "Dashboard not found" });
+      }
+      
+      const widget = await storage.getWidget(widgetId);
+      if (!widget) {
+        return res.status(404).json({ message: "Widget not found" });
+      }
+      
+      const success = await storage.removeWidgetFromDashboard(dashboardId, widgetId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Widget is not in the specified dashboard" });
+      }
+      
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Remove widget from dashboard error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update widget position in a dashboard
+  app.patch(`${apiPrefix}/dashboards/:dashboardId/widgets/:widgetId/position`, async (req, res) => {
+    try {
+      const dashboardId = Number(req.params.dashboardId);
+      const widgetId = Number(req.params.widgetId);
+      
+      const dashboard = await storage.getDashboard(dashboardId);
+      if (!dashboard) {
+        return res.status(404).json({ message: "Dashboard not found" });
+      }
+      
+      const widget = await storage.getWidget(widgetId);
+      if (!widget) {
+        return res.status(404).json({ message: "Widget not found" });
+      }
+      
+      const position = req.body.position;
+      if (!position) {
+        return res.status(400).json({ message: "Position data is required" });
+      }
+      
+      const updatedDashboardWidget = await storage.updateWidgetPosition(dashboardId, widgetId, position);
+      
+      return res.status(200).json(updatedDashboardWidget);
+    } catch (error) {
+      console.error("Update widget position error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // AI Copilot route
   app.post(`${apiPrefix}/ai/copilot`, async (req, res) => {

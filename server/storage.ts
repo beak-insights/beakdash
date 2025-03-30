@@ -3,10 +3,11 @@ import {
   dashboards, type Dashboard, type InsertDashboard,
   connections, type Connection, type InsertConnection,
   datasets, type Dataset, type InsertDataset,
-  widgets, type Widget, type InsertWidget
+  widgets, type Widget, type InsertWidget,
+  dashboardWidgets, type DashboardWidget, type InsertDashboardWidget
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -41,6 +42,13 @@ export interface IStorage {
   createWidget(widget: InsertWidget): Promise<Widget>;
   updateWidget(id: number, widget: Partial<Widget>): Promise<Widget>;
   deleteWidget(id: number): Promise<boolean>;
+  
+  // Dashboard Widget operations (for many-to-many relationship)
+  getDashboardWidgets(dashboardId: number): Promise<Widget[]>;
+  getWidgetDashboards(widgetId: number): Promise<Dashboard[]>;
+  addWidgetToDashboard(dashboardId: number, widgetId: number, position?: any): Promise<DashboardWidget>;
+  removeWidgetFromDashboard(dashboardId: number, widgetId: number): Promise<boolean>;
+  updateWidgetPosition(dashboardId: number, widgetId: number, position: any): Promise<DashboardWidget>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -213,8 +221,10 @@ export class DatabaseStorage implements IStorage {
   // Widget operations
   async getWidgets(dashboardId?: number): Promise<Widget[]> {
     if (dashboardId) {
-      return await db.select().from(widgets).where(eq(widgets.dashboardId, dashboardId)).orderBy(desc(widgets.createdAt));
+      // Use the many-to-many relationship through dashboardWidgets
+      return this.getDashboardWidgets(dashboardId);
     }
+    // Get all widgets
     return await db.select().from(widgets).orderBy(desc(widgets.createdAt));
   }
 
@@ -224,21 +234,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWidget(widget: InsertWidget): Promise<Widget> {
+    // Extract dashboardId from the widget data (if any)
+    const dashboardId = widget.dashboardId;
+    
+    // Create widget without dashboardId (since we're using many-to-many relationship now)
     const result = await db.insert(widgets).values({
       name: widget.name,
       type: widget.type,
-      dashboardId: widget.dashboardId || null,
       datasetId: widget.datasetId || null,
-      position: widget.position || {},
-      config: widget.config || {}
+      config: widget.config || {},
+      customQuery: widget.customQuery || null,
+      isTemplate: widget.isTemplate || false,
+      sourceWidgetId: widget.sourceWidgetId || null
     }).returning();
-    return result[0];
+    
+    const createdWidget = result[0];
+    
+    // If dashboardId was provided, create the many-to-many relationship
+    if (dashboardId) {
+      await this.addWidgetToDashboard(dashboardId, createdWidget.id, widget.position || {});
+    }
+    
+    return createdWidget;
   }
 
   async updateWidget(id: number, widget: Partial<Widget>): Promise<Widget> {
+    // Extract the position and dashboardId from the update if they exist
+    const { position, dashboardId, ...widgetData } = widget;
+    
+    // Update the widget properties
     const result = await db.update(widgets)
       .set({
-        ...widget,
+        ...widgetData,
         updatedAt: new Date()
       })
       .where(eq(widgets.id, id))
@@ -248,12 +275,128 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Widget with id ${id} not found`);
     }
     
+    // If position and dashboardId are provided, update the widget position in the dashboard
+    if (position && dashboardId) {
+      await this.updateWidgetPosition(dashboardId, id, position);
+    }
+    
     return result[0];
   }
 
   async deleteWidget(id: number): Promise<boolean> {
+    // First delete any dashboard-widget relationships
+    await db.delete(dashboardWidgets).where(eq(dashboardWidgets.widgetId, id));
+    
+    // Then delete the widget
     const result = await db.delete(widgets).where(eq(widgets.id, id)).returning();
     return result.length > 0;
+  }
+  
+  // Dashboard Widget operations (many-to-many relationship)
+  async getDashboardWidgets(dashboardId: number): Promise<Widget[]> {
+    const result = await db
+      .select({
+        widget: widgets
+      })
+      .from(dashboardWidgets)
+      .innerJoin(widgets, eq(dashboardWidgets.widgetId, widgets.id))
+      .where(eq(dashboardWidgets.dashboardId, dashboardId))
+      .orderBy(desc(widgets.createdAt));
+    
+    return result.map(row => row.widget);
+  }
+  
+  async getWidgetDashboards(widgetId: number): Promise<Dashboard[]> {
+    const result = await db
+      .select({
+        dashboard: dashboards
+      })
+      .from(dashboardWidgets)
+      .innerJoin(dashboards, eq(dashboardWidgets.dashboardId, dashboards.id))
+      .where(eq(dashboardWidgets.widgetId, widgetId))
+      .orderBy(desc(dashboards.createdAt));
+    
+    return result.map(row => row.dashboard);
+  }
+  
+  async addWidgetToDashboard(dashboardId: number, widgetId: number, position: any = {}): Promise<DashboardWidget> {
+    // Check if relation already exists
+    const existingRelation = await db
+      .select()
+      .from(dashboardWidgets)
+      .where(
+        and(
+          eq(dashboardWidgets.dashboardId, dashboardId),
+          eq(dashboardWidgets.widgetId, widgetId)
+        )
+      );
+    
+    if (existingRelation.length > 0) {
+      // Update position if relation exists
+      const result = await db
+        .update(dashboardWidgets)
+        .set({
+          position,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(dashboardWidgets.dashboardId, dashboardId),
+            eq(dashboardWidgets.widgetId, widgetId)
+          )
+        )
+        .returning();
+      
+      return result[0];
+    }
+    
+    // Create new relation
+    const result = await db
+      .insert(dashboardWidgets)
+      .values({
+        dashboardId,
+        widgetId,
+        position
+      })
+      .returning();
+    
+    return result[0];
+  }
+  
+  async removeWidgetFromDashboard(dashboardId: number, widgetId: number): Promise<boolean> {
+    const result = await db
+      .delete(dashboardWidgets)
+      .where(
+        and(
+          eq(dashboardWidgets.dashboardId, dashboardId),
+          eq(dashboardWidgets.widgetId, widgetId)
+        )
+      )
+      .returning();
+    
+    return result.length > 0;
+  }
+  
+  async updateWidgetPosition(dashboardId: number, widgetId: number, position: any): Promise<DashboardWidget> {
+    const result = await db
+      .update(dashboardWidgets)
+      .set({
+        position,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(dashboardWidgets.dashboardId, dashboardId),
+          eq(dashboardWidgets.widgetId, widgetId)
+        )
+      )
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error(`Widget position not found for dashboard ${dashboardId} and widget ${widgetId}`);
+    }
+    
+    return result[0];
   }
 }
 

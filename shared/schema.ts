@@ -89,12 +89,10 @@ export const chartTypeSchema = z.enum(chartTypes);
 // Widgets schema
 export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
-  dashboardId: integer("dashboard_id").references(() => dashboards.id),
   datasetId: integer("dataset_id").references(() => datasets.id),
   connectionId: integer("connection_id").references(() => connections.id),
   name: text("name").notNull(),
   type: text("type").notNull(),
-  position: jsonb("position").default({}),
   config: jsonb("config").default({}),
   customQuery: text("custom_query"),
   isTemplate: boolean("is_template").default(false),
@@ -103,17 +101,31 @@ export const widgets = pgTable("widgets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Dashboard Widgets join table for many-to-many relationship
+export const dashboardWidgets = pgTable("dashboard_widgets", {
+  id: serial("id").primaryKey(),
+  dashboardId: integer("dashboard_id").notNull().references(() => dashboards.id),
+  widgetId: integer("widget_id").notNull().references(() => widgets.id),
+  position: jsonb("position").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertWidgetSchema = createInsertSchema(widgets).pick({
-  dashboardId: true,
   datasetId: true,
   connectionId: true,
   name: true,
   type: true,
-  position: true,
   config: true,
   customQuery: true,
   isTemplate: true,
   sourceWidgetId: true,
+});
+
+export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).pick({
+  dashboardId: true,
+  widgetId: true,
+  position: true,
 });
 
 // Type exports
@@ -133,6 +145,9 @@ export type InsertDataset = z.infer<typeof insertDatasetSchema>;
 export type Widget = typeof widgets.$inferSelect;
 export type InsertWidget = z.infer<typeof insertWidgetSchema>;
 export type ChartType = z.infer<typeof chartTypeSchema>;
+
+export type DashboardWidget = typeof dashboardWidgets.$inferSelect;
+export type InsertDashboardWidget = z.infer<typeof insertDashboardWidgetSchema>;
 
 // Schema for position data
 export const positionSchema = z.object({
@@ -163,3 +178,74 @@ export const chartConfigSchema = z.object({
     })
   ).optional(),
 });
+
+// Define relationships between tables
+import { relations } from "drizzle-orm";
+
+// User relations
+export const usersRelations = relations(users, ({ many }) => ({
+  dashboards: many(dashboards),
+  connections: many(connections),
+  datasets: many(datasets),
+}));
+
+// Dashboard relations
+export const dashboardsRelations = relations(dashboards, ({ one, many }) => ({
+  user: one(users, {
+    fields: [dashboards.userId],
+    references: [users.id],
+  }),
+  dashboardWidgets: many(dashboardWidgets),
+}));
+
+// Connection relations
+export const connectionsRelations = relations(connections, ({ one, many }) => ({
+  user: one(users, {
+    fields: [connections.userId],
+    references: [users.id],
+  }),
+  datasets: many(datasets),
+  widgets: many(widgets),
+}));
+
+// Dataset relations
+export const datasetsRelations = relations(datasets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [datasets.userId],
+    references: [users.id],
+  }),
+  connection: one(connections, {
+    fields: [datasets.connectionId],
+    references: [connections.id],
+  }),
+  widgets: many(widgets),
+}));
+
+// Widget relations
+export const widgetsRelations = relations(widgets, ({ one, many }) => ({
+  dataset: one(datasets, {
+    fields: [widgets.datasetId],
+    references: [datasets.id],
+  }),
+  connection: one(connections, {
+    fields: [widgets.connectionId],
+    references: [connections.id],
+  }),
+  sourceWidget: one(widgets, {
+    fields: [widgets.sourceWidgetId],
+    references: [widgets.id],
+  }),
+  dashboardWidgets: many(dashboardWidgets),
+}));
+
+// DashboardWidget relations
+export const dashboardWidgetsRelations = relations(dashboardWidgets, ({ one }) => ({
+  dashboard: one(dashboards, {
+    fields: [dashboardWidgets.dashboardId],
+    references: [dashboards.id],
+  }),
+  widget: one(widgets, {
+    fields: [dashboardWidgets.widgetId],
+    references: [widgets.id],
+  }),
+}));

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useWidgets } from "@/hooks/use-widgets";
 import {
   Tabs,
   TabsContent,
@@ -36,7 +37,7 @@ import ChartConfig from "./chart-config";
 import AxisMapping from "./axis-mapping";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ChartType, Widget, Dataset, chartTypes } from "@shared/schema";
+import { ChartType, Widget, Dataset, chartTypes, Dashboard, positionSchema } from "@shared/schema";
 import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
 
@@ -75,6 +76,14 @@ export default function WidgetEditor({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { dashboards } = useDashboard();
+  
+  // Use our custom hook for widget operations
+  const { 
+    createWidget, 
+    updateWidget, 
+    isPending,
+    useWidgetDashboards
+  } = useWidgets();
 
   // Fetch available datasets
   const { data: datasets = [] } = useQuery<Dataset[]>({
@@ -85,6 +94,9 @@ export default function WidgetEditor({
   const { data: connections = [] } = useQuery({
     queryKey: ['/api/connections'],
   });
+  
+  // Fetch dashboards for this widget if editing
+  const { data: widgetDashboards = [] } = useWidgetDashboards(widget?.id);
 
   // Fetch dataset data when selected
   const { data: datasetData, isLoading: isLoadingData } = useQuery({
@@ -109,50 +121,6 @@ export default function WidgetEditor({
       }
     },
     enabled: !!selectedDatasetId,
-  });
-
-  // Create new widget mutation
-  const createMutation = useMutation({
-    mutationFn: async (newWidget: any) => {
-      return apiRequest('POST', '/api/widgets', newWidget);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
-      toast({
-        title: "Widget created",
-        description: "New widget has been added to the dashboard.",
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to create widget: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update widget mutation
-  const updateMutation = useMutation({
-    mutationFn: async (updatedWidget: any) => {
-      return apiRequest('PUT', `/api/widgets/${widget?.id}`, updatedWidget);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
-      toast({
-        title: "Widget updated",
-        description: "Widget has been successfully updated.",
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update widget: ${error.message}`,
-        variant: "destructive",
-      });
-    },
   });
 
   // Handle changes to dataset or chart type
@@ -329,15 +297,15 @@ export default function WidgetEditor({
     
     if (onCreate && !widget) {
       onCreate();
-      createMutation.mutate(widgetData);
+      createWidget(widgetData);
       return;
     }
     
     // Default save behavior
     if (widget) {
-      updateMutation.mutate(widgetData);
+      updateWidget({ id: widget.id, widget: widgetData });
     } else {
-      createMutation.mutate(widgetData);
+      createWidget(widgetData);
     }
   };
 
@@ -676,11 +644,10 @@ export default function WidgetEditor({
                 (!useCustomQuery && !selectedDatasetId) || 
                 (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) || 
                 !name || 
-                createMutation.isPending || 
-                updateMutation.isPending
+                isPending
               }
             >
-              {createMutation.isPending || updateMutation.isPending ? 
+              {isPending ? 
                 "Saving..." : 
                 widget ? "Update Widget" : "Create Widget"
               }
