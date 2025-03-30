@@ -42,12 +42,13 @@ export default function AxisMapping({
           <Label htmlFor="xAxis" className="block mb-1">X Axis</Label>
           <Select
             value={config.xAxis || (columns.length > 0 ? columns[0] : '')}
-            onValueChange={(value) => handleChange("xAxis", value)}
+            onValueChange={(value) => handleChange("xAxis", value === "none" ? "" : value)}
           >
             <SelectTrigger id="xAxis">
               <SelectValue placeholder="Select X axis" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">None</SelectItem>
               {columns.map((column) => (
                 <SelectItem key={column} value={column}>
                   {column}
@@ -65,12 +66,13 @@ export default function AxisMapping({
             <Label htmlFor="nameField" className="block mb-1">Name Field</Label>
             <Select
               value={config.xAxis || (columns.length > 0 ? columns[0] : '')}
-              onValueChange={(value) => handleChange("xAxis", value)}
+              onValueChange={(value) => handleChange("xAxis", value === "none" ? "" : value)}
             >
               <SelectTrigger id="nameField">
                 <SelectValue placeholder="Select name field" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 {columns.map((column) => (
                   <SelectItem key={column} value={column}>
                     {column}
@@ -83,12 +85,13 @@ export default function AxisMapping({
             <Label htmlFor="valueField" className="block mb-1">Value Field</Label>
             <Select
               value={config.yAxis || (columns.length > 1 ? columns[1] : columns[0])}
-              onValueChange={(value) => handleChange("yAxis", value)}
+              onValueChange={(value) => handleChange("yAxis", value === "none" ? "" : value)}
             >
               <SelectTrigger id="valueField">
                 <SelectValue placeholder="Select value field" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 {columns.map((column) => (
                   <SelectItem key={column} value={column}>
                     {column}
@@ -104,12 +107,13 @@ export default function AxisMapping({
             <Label htmlFor="yAxis" className="block mb-1">Left Y Axis</Label>
             <Select
               value={config.yAxis || (columns.length > 1 ? columns[1] : columns[0])}
-              onValueChange={(value) => handleChange("yAxis", value)}
+              onValueChange={(value) => handleChange("yAxis", value === "none" ? "" : value)}
             >
               <SelectTrigger id="yAxis">
                 <SelectValue placeholder="Select left Y axis" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 {columns.map((column) => (
                   <SelectItem key={column} value={column}>
                     {column}
@@ -122,12 +126,13 @@ export default function AxisMapping({
             <Label htmlFor="y2Axis" className="block mb-1">Right Y Axis</Label>
             <Select
               value={config.y2Axis || (columns.length > 2 ? columns[2] : columns[0])}
-              onValueChange={(value) => handleChange("y2Axis", value)}
+              onValueChange={(value) => handleChange("y2Axis", value === "none" ? "" : value)}
             >
               <SelectTrigger id="y2Axis">
                 <SelectValue placeholder="Select right Y axis" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 {columns.map((column) => (
                   <SelectItem key={column} value={column}>
                     {column}
@@ -143,12 +148,13 @@ export default function AxisMapping({
             <Label htmlFor="yAxis" className="block mb-1">Y Axis</Label>
             <Select
               value={config.yAxis || (columns.length > 1 ? columns[1] : columns[0])}
-              onValueChange={(value) => handleChange("yAxis", value)}
+              onValueChange={(value) => handleChange("yAxis", value === "none" ? "" : value)}
             >
               <SelectTrigger id="yAxis">
                 <SelectValue placeholder="Select Y axis" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 {columns.map((column) => (
                   <SelectItem key={column} value={column}>
                     {column}

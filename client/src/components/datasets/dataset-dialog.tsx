@@ -5,7 +5,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter 
+  DialogFooter, 
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -282,6 +283,9 @@ export default function DatasetDialog({
       <DialogContent className="w-[800px] max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>{dataset ? "Edit Dataset" : "Create Dataset"}</DialogTitle>
+          <DialogDescription>
+            Configure your dataset to extract and transform data from your connections.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

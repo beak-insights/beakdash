@@ -5,7 +5,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter 
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -161,6 +162,9 @@ export default function ConnectionDialog({
       <DialogContent className="w-[600px] max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>{connection ? "Edit Connection" : "Add Connection"}</DialogTitle>
+          <DialogDescription>
+            Configure your data connection settings to import data into your dashboard.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

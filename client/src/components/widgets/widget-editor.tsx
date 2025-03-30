@@ -6,6 +6,7 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -327,6 +328,9 @@ export default function WidgetEditor({
       <DialogContent className="w-[95vw] max-w-[900px] h-[85vh] max-h-[800px] flex flex-col">
         <DialogHeader>
           <DialogTitle>{widget ? "Edit Widget" : "Create New Widget"}</DialogTitle>
+          <DialogDescription>
+            Configure your widget settings, data source, and visualization options.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden gap-4">

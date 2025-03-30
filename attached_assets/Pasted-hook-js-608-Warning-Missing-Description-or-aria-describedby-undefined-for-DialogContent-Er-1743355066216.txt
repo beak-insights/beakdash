@@ -1,0 +1,128 @@
+hook.js:608 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. Error Component Stack
+    at DescriptionWarning (@radix-ui_react-dialog.js?v=c970ddf0:332:29)
+    at @radix-ui_react-dialog.js?v=c970ddf0:236:13
+    at @radix-ui_react-dialog.js?v=c970ddf0:159:58
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at @radix-ui_react-dialog.js?v=c970ddf0:150:64
+    at chunk-SUQKDRX6.js?v=b67ebf4e:73:11
+    at chunk-SUQKDRX6.js?v=b67ebf4e:54:11
+    at chunk-N2XNWX7N.js?v=b67ebf4e:41:13
+    at chunk-QSBI4UXL.js?v=b67ebf4e:260:22
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at DialogPortal (@radix-ui_react-dialog.js?v=c970ddf0:113:11)
+    at _c3 (dialog.tsx:33:6)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at Dialog (@radix-ui_react-dialog.js?v=c970ddf0:54:5)
+    at ConnectionDialog (connection-dialog.tsx:27:3)
+    at div (<anonymous>)
+    at Connections (connections.tsx:16:43)
+    at Route (wouter.js?v=bc83a899:280:16)
+    at Switch (wouter.js?v=bc83a899:336:17)
+    at Router (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=3f05ba2a:2882:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+(anonymous) @ @radix-ui_react-dialog.js?v=c970ddf0:340
+commitHookEffectListMount @ chunk-OR6547GA.js?v=b67ebf4e:16915
+commitPassiveMountOnFiber @ chunk-OR6547GA.js?v=b67ebf4e:18156
+commitPassiveMountEffects_complete @ chunk-OR6547GA.js?v=b67ebf4e:18129
+commitPassiveMountEffects_begin @ chunk-OR6547GA.js?v=b67ebf4e:18119
+commitPassiveMountEffects @ chunk-OR6547GA.js?v=b67ebf4e:18109
+flushPassiveEffectsImpl @ chunk-OR6547GA.js?v=b67ebf4e:19490
+flushPassiveEffects @ chunk-OR6547GA.js?v=b67ebf4e:19447
+commitRootImpl @ chunk-OR6547GA.js?v=b67ebf4e:19416
+commitRoot @ chunk-OR6547GA.js?v=b67ebf4e:19277
+performSyncWorkOnRoot @ chunk-OR6547GA.js?v=b67ebf4e:18895
+flushSyncCallbacks @ chunk-OR6547GA.js?v=b67ebf4e:9119
+(anonymous) @ chunk-OR6547GA.js?v=b67ebf4e:18627Understand this warningAI
+queryClient.ts:47 
+            
+            
+           POST http://localhost:5000/api/connections 413 (Payload Too Large)
+apiRequest @ queryClient.ts:47
+mutationFn @ connection-dialog.tsx:40
+fn @ @tanstack_react-query.js?v=3f05ba2a:1193
+run @ @tanstack_react-query.js?v=3f05ba2a:493
+start @ @tanstack_react-query.js?v=3f05ba2a:535
+execute @ @tanstack_react-query.js?v=3f05ba2a:1229
+await in execute
+mutate @ @tanstack_react-query.js?v=3f05ba2a:2662
+(anonymous) @ @tanstack_react-query.js?v=3f05ba2a:3384
+handleSubmit @ connection-dialog.tsx:131
+callCallback2 @ chunk-OR6547GA.js?v=b67ebf4e:3674
+invokeGuardedCallbackDev @ chunk-OR6547GA.js?v=b67ebf4e:3699
+invokeGuardedCallback @ chunk-OR6547GA.js?v=b67ebf4e:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-OR6547GA.js?v=b67ebf4e:3736
+executeDispatch @ chunk-OR6547GA.js?v=b67ebf4e:7014
+processDispatchQueueItemsInOrder @ chunk-OR6547GA.js?v=b67ebf4e:7034
+processDispatchQueue @ chunk-OR6547GA.js?v=b67ebf4e:7043
+dispatchEventsForPlugins @ chunk-OR6547GA.js?v=b67ebf4e:7051
+(anonymous) @ chunk-OR6547GA.js?v=b67ebf4e:7174
+batchedUpdates$1 @ chunk-OR6547GA.js?v=b67ebf4e:18913
+batchedUpdates @ chunk-OR6547GA.js?v=b67ebf4e:3579
+dispatchEventForPluginEventSystem @ chunk-OR6547GA.js?v=b67ebf4e:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-OR6547GA.js?v=b67ebf4e:5478
+dispatchEvent @ chunk-OR6547GA.js?v=b67ebf4e:5472
+dispatchDiscreteEvent @ chunk-OR6547GA.js?v=b67ebf4e:5449Understand this errorAI
+hook.js:608 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. Error Component Stack
+    at DescriptionWarning (@radix-ui_react-dialog.js?v=c970ddf0:332:29)
+    at @radix-ui_react-dialog.js?v=c970ddf0:236:13
+    at @radix-ui_react-dialog.js?v=c970ddf0:159:58
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at @radix-ui_react-dialog.js?v=c970ddf0:150:64
+    at chunk-SUQKDRX6.js?v=b67ebf4e:73:11
+    at chunk-SUQKDRX6.js?v=b67ebf4e:54:11
+    at chunk-N2XNWX7N.js?v=b67ebf4e:41:13
+    at chunk-QSBI4UXL.js?v=b67ebf4e:260:22
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at DialogPortal (@radix-ui_react-dialog.js?v=c970ddf0:113:11)
+    at _c3 (dialog.tsx:33:6)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at Dialog (@radix-ui_react-dialog.js?v=c970ddf0:54:5)
+    at DatasetDialog (dataset-dialog.tsx:41:3)
+    at div (<anonymous>)
+    at Datasets (datasets.tsx:17:43)
+    at Route (wouter.js?v=bc83a899:280:16)
+    at Switch (wouter.js?v=bc83a899:336:17)
+    at Router (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=3f05ba2a:2882:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+(anonymous) @ @radix-ui_react-dialog.js?v=c970ddf0:340
+commitHookEffectListMount @ chunk-OR6547GA.js?v=b67ebf4e:16915
+commitPassiveMountOnFiber @ chunk-OR6547GA.js?v=b67ebf4e:18156
+commitPassiveMountEffects_complete @ chunk-OR6547GA.js?v=b67ebf4e:18129
+commitPassiveMountEffects_begin @ chunk-OR6547GA.js?v=b67ebf4e:18119
+commitPassiveMountEffects @ chunk-OR6547GA.js?v=b67ebf4e:18109
+flushPassiveEffectsImpl @ chunk-OR6547GA.js?v=b67ebf4e:19490
+flushPassiveEffects @ chunk-OR6547GA.js?v=b67ebf4e:19447
+commitRootImpl @ chunk-OR6547GA.js?v=b67ebf4e:19416
+commitRoot @ chunk-OR6547GA.js?v=b67ebf4e:19277
+performSyncWorkOnRoot @ chunk-OR6547GA.js?v=b67ebf4e:18895
+flushSyncCallbacks @ chunk-OR6547GA.js?v=b67ebf4e:9119
+(anonymous) @ chunk-OR6547GA.js?v=b67ebf4e:18627Understand this warningAI
+hook.js:608 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. Error Component Stack
+    at DescriptionWarning (@radix-ui_react-dialog.js?v=c970ddf0:332:29)
+    at @radix-ui_react-dialog.js?v=c970ddf0:236:13
+    at @radix-ui_react-dialog.js?v=c970ddf0:159:58
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at @radix-ui_react-dialog.js?v=c970ddf0:150:64
+    at chunk-SUQKDRX6.js?v=b67ebf4e:73:11
+    at chunk-SUQKDRX6.js?v=b67ebf4e:54:11
+    at chunk-N2XNWX7N.js?v=b67ebf4e:41:13
+    at chunk-QSBI4UXL.js?v=b67ebf4e:260:22
+    at Presence (chunk-ITUGWUQC.js?v=b67ebf4e:24:11)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at DialogPortal (@radix-ui_react-dialog.js?v=c970ddf0:113:11)
+    at _c3 (dialog.tsx:33:6)
+    at Provider (chunk-RKWMQIPQ.js?v=b67ebf4e:38:15)
+    at Dialog (@radix-ui_react-dialog.js?v=c970ddf0:54:5)
+    at WidgetEditor (widget-editor.tsx:55:3)
+    at div (<anonymous>)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at LayoutTemplate (layout-template.tsx:9:42)
+    at WidgetsPage (index.tsx:38:27)
