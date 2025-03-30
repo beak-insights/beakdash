@@ -38,14 +38,12 @@ export function useDatasets(connectionId?: number) {
   const useDatasetData = (id?: number) => useQuery({
     queryKey: ['/api/datasets', id, 'data'],
     queryFn: async ({ queryKey }) => {
-      try {
-        const res = await fetch(`${queryKey[0]}/${queryKey[1]}/data`);
-        if (!res.ok) throw new Error('Failed to fetch dataset data');
-        return res.json();
-      } catch (error) {
-        // For demo purposes, return sample data
-        return getSampleData();
+      const res = await fetch(`${queryKey[0]}/${queryKey[1]}/data`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch dataset data');
       }
+      return res.json();
     },
     enabled: !!id,
   });
@@ -114,16 +112,9 @@ export function useDatasets(connectionId?: number) {
     },
   });
 
-  // Helper function for sample data
-  const getSampleData = () => [
-    { month: "Jan", region: "North", sales: 120, revenue: 12450, profit: 4320 },
-    { month: "Jan", region: "South", sales: 95, revenue: 9820, profit: 3150 },
-    { month: "Feb", region: "North", sales: 145, revenue: 15230, profit: 5450 },
-    { month: "Feb", region: "South", sales: 110, revenue: 11500, profit: 3900 },
-    { month: "Mar", region: "North", sales: 170, revenue: 17800, profit: 6200 },
-  ];
 
-  // Execute query (for REST, SQL, etc.)
+
+  // Execute custom SQL query against a dataset
   const executeQuery = useMutation({
     mutationFn: async ({ id, query }: { id: number; query: string }) => {
       return apiRequest('POST', `/api/datasets/${id}/execute`, { query });
@@ -131,13 +122,13 @@ export function useDatasets(connectionId?: number) {
     onSuccess: (data) => {
       toast({
         title: "Query executed",
-        description: "The query has been successfully executed.",
+        description: "The SQL query was successfully executed.",
       });
       return data;
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "SQL Error",
         description: `Failed to execute query: ${error.message}`,
         variant: "destructive",
       });

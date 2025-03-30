@@ -263,6 +263,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Execute query against a dataset
+  app.post(`${apiPrefix}/datasets/:id/execute`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Valid SQL query is required" });
+      }
+      
+      const dataset = await storage.getDataset(id);
+      
+      if (!dataset) {
+        return res.status(404).json({ message: "Dataset not found" });
+      }
+      
+      if (dataset.connectionId === null) {
+        return res.status(400).json({ message: "Dataset has no associated connection" });
+      }
+      
+      // Get the connection for this dataset
+      const connection = await storage.getConnection(dataset.connectionId);
+      
+      if (!connection) {
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      // Only SQL connections supported for custom queries
+      if (connection.type !== 'sql') {
+        return res.status(400).json({ message: "Custom queries are only supported for SQL connections" });
+      }
+      
+      try {
+        // Extract connection configuration
+        const config = connection.config as Record<string, any>;
+        if (!config) {
+          return res.status(400).json({ message: "Connection configuration is missing" });
+        }
+        
+        // Create a temporary connection to the target database
+        const { Pool } = await import('pg');
+        
+        // Build connection string from config
+        let connectionString = '';
+        if (config.connectionString) {
+          connectionString = config.connectionString;
+        } else {
+          const host = config.host || 'localhost';
+          const port = config.port || 5432;
+          const database = config.database;
+          const user = config.user;
+          const password = config.password;
+          
+          if (!database || !user) {
+            return res.status(400).json({ 
+              message: "Connection configuration is incomplete. Database and user are required."
+            });
+          }
+          
+          connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+        }
+        
+        // Create temporary connection pool
+        const tempPool = new Pool({ connectionString });
+        
+        try {
+          // If the dataset has a defined query, use it as a CTE (Common Table Expression)
+          let sqlQuery = query;
+          
+          if (dataset.query) {
+            // Wrap the dataset query in a CTE and use the user's query against it
+            sqlQuery = `WITH dataset_${dataset.id} AS (${dataset.query}) ${query}`;
+          }
+          
+          console.log(`Executing custom SQL query against dataset ID ${dataset.id}: ${sqlQuery}`);
+          
+          // Execute the query using the connection-specific pool
+          const result = await tempPool.query(sqlQuery);
+          
+          // Return the results
+          return res.status(200).json(result.rows);
+        } finally {
+          // Always close the temporary pool
+          await tempPool.end();
+        }
+      } catch (dbError: any) {
+        console.error("Database query error:", dbError.message);
+        return res.status(400).json({ 
+          message: "SQL query execution failed", 
+          error: dbError.message 
+        });
+      }
+    } catch (error) {
+      console.error("Execute dataset query error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Dataset data route
   app.get(`${apiPrefix}/datasets/:id/data`, async (req, res) => {
     try {
