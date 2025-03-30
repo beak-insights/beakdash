@@ -80,8 +80,8 @@ export function BarChartComponent({
     : [yAxis];
 
   return (
-    <div className={cn("w-full h-full", className)}>
-      <ResponsiveContainer width={width} height={height}>
+    <div className={cn("w-full h-full", className)} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" />}
           <XAxis dataKey={xAxis} />
@@ -128,8 +128,8 @@ export function LineChartComponent({
     : [yAxis];
 
   return (
-    <div className={cn("w-full h-full", className)}>
-      <ResponsiveContainer width={width} height={height}>
+    <div className={cn("w-full h-full", className)} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" />}
           <XAxis dataKey={xAxis} />
@@ -173,8 +173,8 @@ export function PieChartComponent({
   }
 
   return (
-    <div className={cn("w-full h-full", className)}>
-      <ResponsiveContainer width={width} height={height}>
+    <div className={cn("w-full h-full", className)} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
         <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           {showTooltip && <Tooltip />}
           {showLegend && <Legend />}
@@ -226,8 +226,8 @@ export function ScatterChartComponent({
   const names = Array.from(new Set(data.map((item) => item[nameField])));
 
   return (
-    <div className={cn("w-full h-full", className)}>
-      <ResponsiveContainer width={width} height={height}>
+    <div className={cn("w-full h-full", className)} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" />}
           <XAxis dataKey={xAxis} type="number" name={xAxis} />
@@ -269,8 +269,8 @@ export function DualAxesChartComponent({
   }
 
   return (
-    <div className={cn("w-full h-full", className)}>
-      <ResponsiveContainer width={width} height={height}>
+    <div className={cn("w-full h-full", className)} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" />}
           <XAxis dataKey={xAxis} />
@@ -325,6 +325,9 @@ export function Chart({
   // Extract common configuration
   const { xAxis, yAxis, y2Axis, groupBy, showLegend, showGrid, showTooltip, colors } = config;
   
+  // Calculate the final height - convert string "100%" to actual numeric height
+  const finalHeight = height === "100%" ? "100%" : height;
+  
   if (!data || !data.length) {
     return <div className="flex items-center justify-center h-full text-muted-foreground">No data available</div>;
   }
@@ -343,7 +346,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );
@@ -359,7 +362,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );
@@ -375,7 +378,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );
@@ -389,7 +392,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );
@@ -405,7 +408,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );
@@ -421,7 +424,7 @@ export function Chart({
           showTooltip={showTooltip}
           colors={colors}
           width={width}
-          height={height}
+          height={finalHeight}
           className={className}
         />
       );

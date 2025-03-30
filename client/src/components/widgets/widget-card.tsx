@@ -117,12 +117,14 @@ export default function WidgetCard({
     }
     
     return (
-      <div className="w-full h-[200px] overflow-hidden">
+      <div className="w-full h-full flex-1 min-h-[180px] overflow-hidden">
         <Chart
           type={widget.type as ChartType}
           data={sampleData}
           config={chartConfig}
           height="100%"
+          width="100%"
+          className="h-full"
         />
       </div>
     );
