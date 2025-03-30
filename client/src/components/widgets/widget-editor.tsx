@@ -41,6 +41,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ChartType, Widget, Dataset, chartTypes, Dashboard, positionSchema } from "@shared/schema";
 import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
+import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";
 
 interface WidgetEditorProps {
   dashboardId?: number;
@@ -547,22 +548,16 @@ export default function WidgetEditor({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <Label htmlFor="custom-query" className="block">SQL Query</Label>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="h-6 text-xs px-2"
-                        onClick={handleExecuteQuery}
-                        disabled={!selectedConnectionId || !customQuery.trim() || executeCustomQueryMutation.isPending}
-                      >
-                        {executeCustomQueryMutation.isPending ? "Running..." : "Run Query"}
-                      </Button>
                     </div>
-                    <textarea
-                      id="custom-query"
+                    <MonacoSQLEditor
                       value={customQuery}
-                      onChange={(e) => setCustomQuery(e.target.value)}
-                      placeholder="SELECT * FROM table WHERE condition"
-                      className="w-full h-24 px-3 py-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                      onChange={setCustomQuery}
+                      onExecute={handleExecuteQuery}
+                      height="200px"
+                      loading={executeCustomQueryMutation.isPending}
+                      executeLabel="Run Query"
+                      showExecuteButton={true}
+                      className="mt-1"
                     />
                   </div>
                 </div>
