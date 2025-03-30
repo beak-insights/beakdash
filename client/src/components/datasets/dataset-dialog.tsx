@@ -27,10 +27,23 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
+import { Card } from "@/components/ui/card";
+import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dataset, Connection } from "@shared/schema";
-import { PlayCircle, FileDown, RefreshCw } from "lucide-react";
+import { PlayCircle, FileDown, RefreshCw, ChevronDown, ChevronUp, Code, Table2 } from "lucide-react";
 
 interface DatasetDialogProps {
   dataset?: Dataset | null;
@@ -320,137 +333,218 @@ export default function DatasetDialog({
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label htmlFor="query">Query or Table</Label>
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={runQuery}
-                  disabled={!connectionId || isRunningQuery}
-                >
-                  {isRunningQuery ? (
-                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+          {/* Collapsible Editor and Preview */}
+          <div className="space-y-4">
+            {/* SQL Query Editor Section */}
+            <Collapsible defaultOpen className="w-full">
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="query">Query Editor</Label>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={runQuery}
+                    disabled={!connectionId || isRunningQuery}
+                  >
+                    {isRunningQuery ? (
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <PlayCircle className="h-4 w-4 mr-1" />
+                    )}
+                    Run Query
+                  </Button>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </div>
+
+              <CollapsibleContent>
+                <div className="mb-4">
+                  {/* SQL editor or textarea based on connection type */}
+                  {selectedConnection?.type === "sql" ? (
+                    <div className="border border-input rounded-md overflow-hidden">
+                      <div className="bg-muted px-3 py-2 border-b border-border text-xs text-muted-foreground">
+                        {selectedConnection ? (
+                          `Connection: ${selectedConnection.name} (${selectedConnection.type})`
+                        ) : (
+                          "No connection selected"
+                        )}
+                      </div>
+                      <div className="p-0">
+                        <Editor
+                          height="200px"
+                          language="sql"
+                          value={query}
+                          onChange={(value) => setQuery(value || "")}
+                          options={{
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            wordWrap: "on",
+                            renderLineHighlight: "all",
+                            lineNumbers: "on",
+                            folding: true,
+                            automaticLayout: true,
+                            tabCompletion: "on",
+                            suggestOnTriggerCharacters: true,
+                          }}
+                          loading={<div className="h-full w-full flex items-center justify-center">Loading editor...</div>}
+                        />
+                      </div>
+                    </div>
                   ) : (
-                    <PlayCircle className="h-4 w-4 mr-1" />
+                    <div className="border border-input rounded-md overflow-hidden">
+                      <div className="bg-muted px-3 py-2 border-b border-border text-xs text-muted-foreground">
+                        {selectedConnection ? (
+                          `Connection: ${selectedConnection.name} (${selectedConnection.type})`
+                        ) : (
+                          "No connection selected"
+                        )}
+                      </div>
+                      <Textarea
+                        id="query"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={
+                          selectedConnection?.type === "csv"
+                            ? "SELECT * FROM data"
+                            : "Enter query or leave blank for default data"
+                        }
+                        rows={4}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
                   )}
-                  Run Query
-                </Button>
-              </div>
-            </div>
+                </div>
 
-            <div className="border border-input rounded-md overflow-hidden">
-              <div className="bg-muted px-3 py-2 border-b border-border text-xs text-muted-foreground">
-                {selectedConnection ? (
-                  `Connection: ${selectedConnection.name} (${selectedConnection.type})`
-                ) : (
-                  "No connection selected"
-                )}
-              </div>
-              <Textarea
-                id="query"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={
-                  selectedConnection?.type === "sql" 
-                    ? "SELECT * FROM table_name" 
-                    : selectedConnection?.type === "csv"
-                    ? "SELECT * FROM data"
-                    : "Enter query or leave blank for default data"
-                }
-                rows={4}
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-          </div>
+                <div>
+                  <Label htmlFor="refresh-interval" className="mb-1 block">Refresh Settings</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Select
+                        value={refreshInterval}
+                        onValueChange={setRefreshInterval}
+                      >
+                        <SelectTrigger id="refresh-interval">
+                          <SelectValue placeholder="Select refresh rate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">Manual</SelectItem>
+                          <SelectItem value="5m">Every 5 minutes</SelectItem>
+                          <SelectItem value="15m">Every 15 minutes</SelectItem>
+                          <SelectItem value="1h">Every hour</SelectItem>
+                          <SelectItem value="6h">Every 6 hours</SelectItem>
+                          <SelectItem value="1d">Daily</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-          <div>
-            <Label htmlFor="refresh-interval" className="mb-1 block">Refresh Settings</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Select
-                  value={refreshInterval}
-                  onValueChange={setRefreshInterval}
-                >
-                  <SelectTrigger id="refresh-interval">
-                    <SelectValue placeholder="Select refresh rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="5m">Every 5 minutes</SelectItem>
-                    <SelectItem value="15m">Every 15 minutes</SelectItem>
-                    <SelectItem value="1h">Every hour</SelectItem>
-                    <SelectItem value="6h">Every 6 hours</SelectItem>
-                    <SelectItem value="1d">Daily</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                    <div>
+                      <Select
+                        value={(config as any).cacheDuration || "1h"}
+                        onValueChange={(value) => setConfig({...config, cacheDuration: value})}
+                      >
+                        <SelectTrigger id="cache-duration">
+                          <SelectValue placeholder="Select cache duration" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No cache</SelectItem>
+                          <SelectItem value="5m">5 minutes</SelectItem>
+                          <SelectItem value="15m">15 minutes</SelectItem>
+                          <SelectItem value="1h">1 hour</SelectItem>
+                          <SelectItem value="6h">6 hours</SelectItem>
+                          <SelectItem value="1d">1 day</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-              <div>
-                <Select
-                  value={(config as any).cacheDuration || "1h"}
-                  onValueChange={(value) => setConfig({...config, cacheDuration: value})}
-                >
-                  <SelectTrigger id="cache-duration">
-                    <SelectValue placeholder="Select cache duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No cache</SelectItem>
-                    <SelectItem value="5m">5 minutes</SelectItem>
-                    <SelectItem value="15m">15 minutes</SelectItem>
-                    <SelectItem value="1h">1 hour</SelectItem>
-                    <SelectItem value="6h">6 hours</SelectItem>
-                    <SelectItem value="1d">1 day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {previewData.length > 0 && (
+            {/* Data Preview Section - Always shown */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Data Preview</Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    // In a real app, this would download the data as CSV
-                    console.log("Download data", previewData);
-                  }}
-                >
-                  <FileDown className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
+                <div className="flex items-center gap-2">
+                  {previewData.length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        // In a real app, this would download the data as CSV
+                        console.log("Download data", previewData);
+                      }}
+                    >
+                      <FileDown className="h-4 w-4 mr-1" />
+                      Export
+                    </Button>
+                  )}
+                  {!isRunningQuery && connectionId && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={runQuery}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRunningQuery ? 'animate-spin' : ''}`} />
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="border border-input rounded-md overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {Object.keys(previewData[0]).map((key) => (
-                        <TableHead key={key}>{key}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewData.map((row, i) => (
-                      <TableRow key={i}>
-                        {Object.values(row).map((value, j) => (
-                          <TableCell key={j}>{String(value)}</TableCell>
+
+              {previewData.length > 0 ? (
+                <div>
+                  <div className="border border-input rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {Object.keys(previewData[0]).map((key) => (
+                            <TableHead key={key}>{key}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row, i) => (
+                          <TableRow key={i}>
+                            {Object.values(row).map((value, j) => (
+                              <TableCell key={j}>{String(value)}</TableCell>
+                            ))}
+                          </TableRow>
                         ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Showing {previewData.length} rows from preview data
-              </p>
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Showing {previewData.length} rows from preview data
+                  </p>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground border border-dashed rounded-md">
+                  <p>No data preview available. Run a query first to see results.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={runQuery}
+                    disabled={!connectionId || isRunningQuery}
+                  >
+                    {isRunningQuery ? (
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <PlayCircle className="h-4 w-4 mr-1" />
+                    )}
+                    Run Query
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         <DialogFooter>

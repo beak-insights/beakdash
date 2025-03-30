@@ -2,7 +2,7 @@ import Editor, { Monaco } from "@monaco-editor/react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { PlayIcon, DatabaseIcon, DatabaseBackupIcon } from "lucide-react";
+import { PlayIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface MonacoSQLEditorProps {
