@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -8,11 +8,18 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Dashboard } from "@shared/schema";
+import { useSpaces } from "@/hooks/use-spaces";
+import { User, Dashboard, Space } from "@shared/schema";
 
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { 
+    spaces, 
+    userSpaces, 
+    currentSpaceId,  
+    updateDefaultSpace 
+  } = useSpaces();
 
   // Fetch user dashboards
   const { data: dashboards = [] } = useQuery<Dashboard[]>({
@@ -23,6 +30,24 @@ export default function Settings() {
   const [appearance, setAppearance] = useState(user?.theme || "light");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [defaultDashboardId, setDefaultDashboardId] = useState<string>("");
+  const [defaultSpaceId, setDefaultSpaceId] = useState<string>(
+    currentSpaceId ? currentSpaceId.toString() : "null"
+  );
+  
+  // Fetch user settings to get default space on mount
+  useEffect(() => {
+    if (user?.id) {
+      // Get current preference from user settings
+      fetch(`/api/user/settings/${user.id}`)
+        .then(res => res.json())
+        .then(settings => {
+          if (settings && settings.defaultSpaceId !== undefined) {
+            setDefaultSpaceId(settings.defaultSpaceId === null ? "null" : settings.defaultSpaceId.toString());
+          }
+        })
+        .catch(err => console.error("Error loading user settings:", err));
+    }
+  }, [user]);
   
   const handleSaveAppearance = () => {
     toast({
@@ -32,6 +57,11 @@ export default function Settings() {
   };
   
   const handleSaveGeneral = () => {
+    // Update default space preference
+    if (user?.id) {
+      updateDefaultSpace(defaultSpaceId === "null" ? null : Number(defaultSpaceId));
+    }
+    
     toast({
       title: "Settings updated",
       description: "Your general settings have been saved",
@@ -66,6 +96,28 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="defaultSpace">Default Space</Label>
+                  <Select 
+                    value={defaultSpaceId} 
+                    onValueChange={setDefaultSpaceId}
+                  >
+                    <SelectTrigger id="defaultSpace">
+                      <SelectValue placeholder="Select a default space" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">All Spaces</SelectItem>
+                      {userSpaces && userSpaces.length > 0 && userSpaces.map((space) => (
+                        <SelectItem key={space.id} value={space.id.toString()}>
+                          {space.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This space will be automatically selected when you log in
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="defaultDashboard">Default Dashboard</Label>
                   <Select 

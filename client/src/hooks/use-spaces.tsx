@@ -14,7 +14,7 @@ interface SpaceStore {
 }
 
 export const useSpaceStore = create<SpaceStore>((set) => ({
-  currentSpaceId: 1, // Default to the default space
+  currentSpaceId: null, // Default to "All Spaces"
   setCurrentSpaceId: (id) => set({ currentSpaceId: id }),
 }));
 
@@ -27,6 +27,7 @@ export function useSpaces() {
   const { subscribe, switchSpace } = useWebSocket();
   const { currentSpaceId, setCurrentSpaceId } = useSpaceStore();
   const [switchingSpace, setSwitchingSpace] = useState(false);
+  const [userSettingsLoaded, setUserSettingsLoaded] = useState(false);
 
   // Fetch all available spaces
   const { 
@@ -85,6 +86,36 @@ export function useSpaces() {
       });
     }
   }, [userSpacesError, toast]);
+  
+  // Load user settings for default space
+  useEffect(() => {
+    if (!user || !user.id || userSettingsLoaded) return;
+    
+    const loadUserSettings = async () => {
+      try {
+        const response = await fetch(`/api/user/settings/${user.id}`);
+        if (response.ok) {
+          const settings = await response.json();
+          // If user has a default space preference, set it
+          if (settings && settings.defaultSpaceId !== undefined) {
+            if (settings.defaultSpaceId === null) {
+              // If default is explicitly set to null, use "All Spaces"
+              setCurrentSpaceId(null);
+            } else if (settings.defaultSpaceId) {
+              // Otherwise use the specified space
+              setCurrentSpaceId(Number(settings.defaultSpaceId));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user settings:', error);
+      } finally {
+        setUserSettingsLoaded(true);
+      }
+    };
+    
+    loadUserSettings();
+  }, [user, setCurrentSpaceId, userSettingsLoaded]);
 
   // Create a new space
   const createSpaceMutation = useMutation({
@@ -273,6 +304,33 @@ export function useSpaces() {
     ? spaces.find(space => space && space.id === currentSpaceId) || null
     : null;
 
+  // Update default space in user settings
+  const updateDefaultSpace = useMutation({
+    mutationFn: async (spaceId: number | null) => {
+      if (!user || !user.id) {
+        throw new Error("You must be logged in to update settings");
+      }
+      return apiRequest("PUT", `/api/user/settings/${user.id}`, {
+        defaultSpaceId: spaceId
+      });
+    },
+    onSuccess: (_, defaultSpaceId) => {
+      toast({
+        title: "Default space updated",
+        description: defaultSpaceId === null 
+          ? "All Spaces will now be selected by default" 
+          : "Your default space preference has been saved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update default space",
+        description: error.message || "An error occurred while updating your settings.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     spaces,
     userSpaces, 
@@ -283,6 +341,7 @@ export function useSpaces() {
     createSpaceMutation,
     joinSpaceMutation,
     leaveSpaceMutation,
+    updateDefaultSpace: updateDefaultSpace.mutate,
     currentSpaceId,
     currentSpace,
     setCurrentSpaceId,
