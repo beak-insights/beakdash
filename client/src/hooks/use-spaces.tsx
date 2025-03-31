@@ -35,17 +35,14 @@ export function useSpaces() {
     error: spacesError
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/spaces');
-        if (!response.ok) {
-          throw new Error('Failed to fetch spaces');
-        }
-        return await response.json();
-      } catch (error) {
-        console.error("Error fetching spaces:", error);
-        throw error;
-      }
+    retry: 1,
+    onError: (error: Error) => {
+      console.error("Error fetching spaces:", error);
+      toast({
+        title: "Failed to load spaces",
+        description: "There was an error loading spaces. Please try again later.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -56,17 +53,14 @@ export function useSpaces() {
     error: userSpacesError
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces/user'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/spaces/user');
-        if (!response.ok) {
-          throw new Error('Failed to fetch user spaces');
-        }
-        return await response.json();
-      } catch (error) {
-        console.error("Error fetching user spaces:", error);
-        throw error;
-      }
+    retry: 1,
+    onError: (error: Error) => {
+      console.error("Error fetching user spaces:", error);
+      toast({
+        title: "Failed to load your spaces",
+        description: "There was an error loading your spaces. Please try again later.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -144,6 +138,9 @@ export function useSpaces() {
 
   // Set up WebSocket subscriptions for space switching
   useEffect(() => {
+    // Only set up WebSocket subscriptions if we have all the dependencies
+    if (!subscribe || !toast) return;
+    
     // Listen for space switch success events
     const unsubscribeSuccess = subscribe('space_switch_success', (event) => {
       if (event.space && event.space.id) {
@@ -177,7 +174,7 @@ export function useSpaces() {
       unsubscribeSuccess();
       unsubscribeError();
     };
-  }, [subscribe, setCurrentSpaceId, toast]);
+  }, [subscribe, setCurrentSpaceId, toast, queryClient]);
   
   // Function to switch spaces using WebSocket
   const switchToSpace = (spaceId: number) => {

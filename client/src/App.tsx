@@ -35,7 +35,7 @@ function Router() {
   );
 }
 
-function App() {
+function WebSocketInitializer() {
   // Initialize WebSocket connection when the app starts
   const { connect, disconnect } = useWebSocket();
   
@@ -49,9 +49,14 @@ function App() {
     };
   }, [connect, disconnect]);
   
+  return null;
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <WebSocketInitializer />
         <Router />
         <Toaster />
       </AuthProvider>

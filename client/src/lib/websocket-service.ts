@@ -56,18 +56,24 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
       // Create the WebSocket connection with specific options
       const newSocket = new WebSocket(wsUrl);
       
-      // Set a connection timeout to prevent hanging connections
+      // Increase the connection timeout to prevent premature closing
       const connectionTimeout = setTimeout(() => {
         if (newSocket.readyState !== WebSocket.OPEN) {
           console.warn('WebSocket connection timeout, closing socket');
           newSocket.close();
           set({ isConnected: false });
+          
+          // Attempt to reconnect after a short delay
+          setTimeout(() => {
+            get().connect();
+          }, 2000);
         }
-      }, 10000); // 10 second timeout
+      }, 30000); // 30 second timeout
       
       // Clear the timeout once connected
       newSocket.addEventListener('open', () => {
         clearTimeout(connectionTimeout);
+        console.log('WebSocket connection established successfully');
       });
       
       set({ socket: newSocket });
