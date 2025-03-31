@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { Dashboard } from "@shared/schema";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,18 +8,18 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, PieChart, ArrowUpRight, Clock, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
+import useDashboard from "@/hooks/use-dashboard";
+import { useSpaces } from "@/hooks/use-spaces";
+import { Dashboard } from "@shared/schema";
 
 export default function DashboardListPage() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "mine">("all");
-  
-  const { data: dashboards, isLoading } = useQuery<Dashboard[]>({
-    queryKey: ["/api/dashboards"],
-    enabled: !!user,
-  });
+  const { dashboards, isLoading } = useDashboard();
+  const { currentSpace } = useSpaces();
   
   // Filter dashboards based on the selected filter
-  const filteredDashboards = dashboards?.filter(dashboard => {
+  const filteredDashboards = dashboards?.filter((dashboard: Dashboard) => {
     if (filter === "all") return true;
     return dashboard.userId === user?.id;
   });
@@ -32,7 +30,9 @@ export default function DashboardListPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboards</h1>
             <p className="text-muted-foreground mt-1">
-              View, filter, and manage all your dashboards
+              {currentSpace ? 
+                `Dashboards in ${currentSpace.name} space` : 
+                "View, filter, and manage all your dashboards"}
             </p>
           </div>
           <Link href="/dashboard/new">
@@ -74,7 +74,7 @@ export default function DashboardListPage() {
               </Card>
             ))
           ) : filteredDashboards && filteredDashboards.length > 0 ? (
-            filteredDashboards.map((dashboard) => (
+            filteredDashboards.map((dashboard: Dashboard) => (
               <Card key={dashboard.id} className="overflow-hidden">
                 <CardHeader>
                   <div className="flex justify-between items-start">

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dashboard, InsertDashboard } from "@shared/schema";
+import { useSpaceStore } from "@/hooks/use-spaces";
 
 /**
  * Hook for dashboard-related operations
@@ -9,10 +10,17 @@ import { Dashboard, InsertDashboard } from "@shared/schema";
 export function useDashboard(id?: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentSpaceId } = useSpaceStore();
 
-  // Fetch all dashboards
+  // Fetch all dashboards filtered by the current space
   const dashboardsQuery = useQuery({
-    queryKey: ['/api/dashboards'],
+    queryKey: ['/api/dashboards', { spaceId: currentSpaceId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/dashboards?spaceId=${currentSpaceId}`);
+      if (!res.ok) throw new Error('Failed to fetch dashboards');
+      return res.json();
+    },
+    enabled: !!currentSpaceId,
   });
 
   // Fetch a specific dashboard if ID is provided
@@ -29,10 +37,15 @@ export function useDashboard(id?: number) {
   // Create a new dashboard
   const createDashboard = useMutation({
     mutationFn: async (dashboard: InsertDashboard) => {
-      return apiRequest('POST', '/api/dashboards', dashboard);
+      // Ensure the dashboard is created in the current space
+      const dashboardWithSpace = {
+        ...dashboard,
+        spaceId: currentSpaceId || undefined
+      };
+      return apiRequest('POST', '/api/dashboards', dashboardWithSpace);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboards', { spaceId: currentSpaceId }] });
       toast({
         title: "Dashboard created",
         description: "Your dashboard has been successfully created.",
@@ -53,7 +66,7 @@ export function useDashboard(id?: number) {
       return apiRequest('PUT', `/api/dashboards/${id}`, dashboard);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboards', { spaceId: currentSpaceId }] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboards', variables.id] });
       toast({
         title: "Dashboard updated",
@@ -75,7 +88,7 @@ export function useDashboard(id?: number) {
       return apiRequest('DELETE', `/api/dashboards/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboards', { spaceId: currentSpaceId }] });
       toast({
         title: "Dashboard deleted",
         description: "Your dashboard has been successfully deleted.",

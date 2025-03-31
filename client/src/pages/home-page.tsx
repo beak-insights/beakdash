@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { Dashboard } from "@shared/schema";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +6,14 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, LineChart, BarChart3, PieChart, Activity, Clock, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Dashboard } from "@shared/schema";
+import useDashboard from "@/hooks/use-dashboard";
+import { useSpaces } from "@/hooks/use-spaces";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { data: dashboards, isLoading } = useQuery<Dashboard[]>({
-    queryKey: ["/api/dashboards"],
-    enabled: !!user,
-  });
+  const { dashboards, isLoading } = useDashboard();
+  const { currentSpace } = useSpaces();
 
   return (
       <div className="flex flex-col space-y-6 p-6 md:p-8">
@@ -22,7 +21,9 @@ export default function HomePage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.displayName || user?.username}</h1>
             <p className="text-muted-foreground mt-1">
-              Here's a summary of your dashboards and recent activity.
+              {currentSpace ? 
+                `Viewing your activity in ${currentSpace.name} space.` : 
+                "Here's a summary of your dashboards and recent activity."}
             </p>
           </div>
           <Link href="/dashboard/new">
@@ -131,7 +132,7 @@ export default function HomePage() {
               </Card>
             ))
           ) : dashboards && dashboards.length > 0 ? (
-            dashboards.slice(0, 6).map((dashboard) => (
+            dashboards.slice(0, 6).map((dashboard: Dashboard) => (
               <Card key={dashboard.id} className="overflow-hidden">
                 <CardHeader>
                   <div className="flex justify-between items-start">
