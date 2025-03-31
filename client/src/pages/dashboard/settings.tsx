@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -47,9 +46,8 @@ export default function Settings() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="container mx-auto py-6">
-        <h2 className="text-2xl font-bold mb-6">Application Settings</h2>
+    <div className="container mx-auto py-6">
+      <h2 className="text-2xl font-bold mb-6">Application Settings</h2>
 
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="w-full md:w-auto">
@@ -243,6 +241,5 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
   );
 }
