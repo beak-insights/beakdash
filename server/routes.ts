@@ -1461,7 +1461,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Prevent server crash by catching all errors
   });
   
-  // Setup ping interval to keep connections alive
+  // Import websocket service for heartbeat
+  import("./services/websocket").then(({ startWebSocketHeartbeat }) => {
+    // Start the heartbeat to keep connections alive and clean up dead ones
+    const heartbeatInterval = startWebSocketHeartbeat(30000);
+    
+    // Clean up the interval when the server shuts down
+    process.on('SIGINT', () => {
+      clearInterval(heartbeatInterval);
+      process.exit();
+    });
+  });
+  
+  // Setup ping interval to keep connections alive (legacy approach - will be replaced by heartbeat)
   const pingInterval = setInterval(() => {
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
@@ -1484,13 +1496,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       socket.isAlive = true;
     });
     
-    // Import the OpenAI service to register the socket
-    const { registerWebSocketClient, unregisterWebSocketClient } = await import("./services/openai");
+    // Import both services
+    const { registerWebSocketClient: registerOAIClient, unregisterWebSocketClient: unregisterOAIClient } = await import("./services/openai");
+    const { registerWebSocketClient, unregisterWebSocketClient, processWebSocketMessage } = await import("./services/websocket");
     
-    // Initialize the "isAlive" property required by the ExtendedWebSocket interface
-    socket.isAlive = true;
-    
-    // Register this socket with the OpenAI service for broadcasting
+    // Register this socket with both services for broadcasting
+    registerOAIClient(socket);
     registerWebSocketClient(socket);
     
     // Send welcome message
@@ -1505,79 +1516,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle messages from clients
     socket.on('message', async (data) => {
       try {
-        const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
-        
-        // Handle ping messages for connection latency measurement
-        if (message.type === 'ping') {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-              type: 'pong',
-              timestamp: new Date().toISOString(),
-              pingTime: message.timestamp
-            }));
-            return;
-          }
-        }
-        
-        // Handle space-related messages
-        if (message.type === 'space_switch') {
-          // Client is switching to a different space
-          const { userId, spaceId } = message;
-          
-          if (userId && spaceId) {
-            try {
-              // Verify user has access to this space
-              const hasAccess = await storage.isUserInSpace(userId, spaceId);
-              
-              if (hasAccess) {
-                // Get space details
-                const space = await storage.getSpace(spaceId);
-                
-                if (space) {
-                  // Send space data back to client
-                  if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                      type: 'space_switch_success',
-                      space,
-                      timestamp: new Date().toISOString()
-                    }));
-                  }
-                  return;
-                }
-              }
-              
-              // Space not found or user doesn't have access
-              if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                  type: 'space_switch_error',
-                  message: 'Space not found or access denied',
-                  timestamp: new Date().toISOString()
-                }));
-              }
-              return;
-            } catch (error) {
-              console.error('Error processing space switch:', error);
-              if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                  type: 'space_switch_error',
-                  message: 'Failed to switch space',
-                  timestamp: new Date().toISOString()
-                }));
-              }
-              return;
-            }
-          }
-        }
-        
-        // Echo other messages back to the client
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'echo',
-            data: message,
-            timestamp: new Date().toISOString()
-          }));
-        }
+        // Process the message in our dedicated websocket service
+        processWebSocketMessage(socket, data.toString());
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
         if (socket.readyState === WebSocket.OPEN) {
@@ -1593,7 +1533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle client disconnection with proper cleanup
     socket.on('close', () => {
       console.log('WebSocket client disconnected');
-      // Clean up by unregistering the client
+      // Clean up by unregistering the client from both services
+      unregisterOAIClient(socket);
       unregisterWebSocketClient(socket);
       socket.isAlive = false;
     });
@@ -1602,6 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     socket.on('error', (error) => {
       console.error('WebSocket error:', error);
       // Clean up when error occurs
+      unregisterOAIClient(socket);
       unregisterWebSocketClient(socket);
       socket.isAlive = false;
       // Attempt to close the socket if not already closed
