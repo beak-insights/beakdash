@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Dashboard } from "@shared/schema";
 import { Link } from "wouter";
-import DashboardLayout from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ export default function HomePage() {
               Here's a summary of your dashboards and recent activity.
             </p>
           </div>
-          <Link href="/dashboards/new">
+          <Link href="/dashboard/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Dashboard
@@ -155,7 +155,7 @@ export default function HomePage() {
                     <Clock className="h-4 w-4 mr-1" />
                     <span>Updated {new Date((dashboard.updatedAt || dashboard.createdAt || new Date()) as Date).toLocaleDateString()}</span>
                   </div>
-                  <Link href={`/dashboards/${dashboard.id}`}>
+                  <Link href={`/dashboard/${dashboard.id}`}>
                     <Button variant="outline" size="sm">
                       <ArrowUpRight className="h-4 w-4 mr-1" />
                       View
@@ -173,7 +173,7 @@ export default function HomePage() {
               <p className="text-muted-foreground max-w-md mb-4">
                 Create your first dashboard to start visualizing your data with powerful analytics and AI insights.
               </p>
-              <Link href="/dashboards/new">
+              <Link href="/dashboard/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Dashboard

@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Save, Camera } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import DashboardLayout from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

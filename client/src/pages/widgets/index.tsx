@@ -6,7 +6,7 @@ import {
   Layers,
   LayoutTemplate as LayoutTemplateIcon
 } from "lucide-react";
-import LayoutTemplate from "@/components/layout/layout-template";
+import { LayoutTemplate } from "@/components/layout";
 import WidgetsList from "@/components/widgets/widgets-list";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import ShareWidgetDialog from "@/components/widgets/share-widget-dialog";

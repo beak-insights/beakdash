@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import Header from "@/components/layout/header";
-import Sidebar from "@/components/layout/sidebar";
+import { DashboardLayout } from "@/components/layout";
 import WidgetGrid from "@/components/widgets/widget-grid";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import AICopilot from "@/components/ai/ai-copilot";
@@ -67,45 +66,39 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-muted">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">
-                {isLoadingDashboard ? "Loading..." : dashboard?.name || "Dashboard"}
-              </h2>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Options</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/widgets")}>
-                  <LayoutTemplate className="mr-2 h-4 w-4" />
-                  <span>Widgets</span>
-                </Button>
-                <Button variant="default" size="sm" onClick={handleToggleAICopilot}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  <span>AI Copilot</span>
-                </Button>
-                <Button variant="default" size="sm" onClick={handleAddWidget}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Add Widget</span>
-                </Button>
-              </div>
-            </div>
-
-            <WidgetGrid 
-              widgets={widgets} 
-              isLoading={isLoadingWidgets}
-              isError={isErrorWidgets}
-              onEditWidget={handleEditWidget}
-              onOpenCopilot={handleOpenCopilotWithWidget}
-            />
+    <DashboardLayout>
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">
+            {isLoadingDashboard ? "Loading..." : dashboard?.name || "Dashboard"}
+          </h2>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Options</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setLocation("/widgets")}>
+              <LayoutTemplate className="mr-2 h-4 w-4" />
+              <span>Widgets</span>
+            </Button>
+            <Button variant="default" size="sm" onClick={handleToggleAICopilot}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              <span>AI Copilot</span>
+            </Button>
+            <Button variant="default" size="sm" onClick={handleAddWidget}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Add Widget</span>
+            </Button>
           </div>
-        </main>
+        </div>
+
+        <WidgetGrid 
+          widgets={widgets} 
+          isLoading={isLoadingWidgets}
+          isError={isErrorWidgets}
+          onEditWidget={handleEditWidget}
+          onOpenCopilot={handleOpenCopilotWithWidget}
+        />
       </div>
 
       {/* Widget Editor Modal */}
@@ -132,6 +125,6 @@ export default function Dashboard() {
             } : undefined}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 }
