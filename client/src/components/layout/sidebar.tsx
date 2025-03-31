@@ -116,9 +116,9 @@ export default function Sidebar() {
       <Button 
         variant="outline" 
         size="icon" 
-        className="absolute -right-4 h-8 w-8 rounded-full border border-primary shadow-md z-50 hover:bg-primary hover:text-white transition-colors"
+        className="absolute -right-1 h-8 w-8 rounded-full border border-primary shadow-md z-50 hover:bg-primary hover:text-white transition-colors"
         onClick={toggleCollapsed}
-        style={{ transform: 'translateX(50%)', top: '50%', marginTop: '-16px' }}
+        style={{ transform: 'translateX(50%)', top: '40%', marginTop: '-16px' }}
       >
         {collapsed ? 
           <ChevronRight className="h-4 w-4" /> : 
