@@ -35,7 +35,7 @@ export default function DashboardListPage() {
                 "View, filter, and manage all your dashboards"}
             </p>
           </div>
-          <Link href={currentSpace ? "/dashboard/new" : "#"}>
+          <Link to={currentSpace ? "/dashboard/new" : "#"}>
             <Button
               disabled={!currentSpace}
               title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
@@ -110,7 +110,7 @@ export default function DashboardListPage() {
                     <Clock className="h-4 w-4 mr-1" />
                     <span>Updated {new Date((dashboard.updatedAt || dashboard.createdAt || new Date()) as Date).toLocaleDateString()}</span>
                   </div>
-                  <Link href={`/dashboard/${dashboard.id}`}>
+                  <Link to={`/dashboard/${dashboard.id}`}>
                     <Button variant="outline" size="sm">
                       <ArrowUpRight className="h-4 w-4 mr-1" />
                       View
@@ -132,7 +132,7 @@ export default function DashboardListPage() {
                   ? "Create your first dashboard to start visualizing your data with powerful analytics and AI insights."
                   : "Create a new dashboard or switch to 'Mine' to see only your dashboards."}
               </p>
-              <Link href={currentSpace ? "/dashboard/new" : "#"}>
+              <Link to={currentSpace ? "/dashboard/new" : "#"}>
                 <Button
                   disabled={!currentSpace}
                   title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
