@@ -17,7 +17,7 @@ export default function HomePage() {
   });
 
   return (
-      <div className="flex flex-col space-y-6 p-6">
+      <div className="flex flex-col space-y-6 p-6 md:p-8">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.displayName || user?.username}</h1>

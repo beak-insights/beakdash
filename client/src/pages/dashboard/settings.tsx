@@ -46,7 +46,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto p-6 md:p-8">
       <h2 className="text-2xl font-bold mb-6">Application Settings</h2>
 
         <Tabs defaultValue="general" className="space-y-6">

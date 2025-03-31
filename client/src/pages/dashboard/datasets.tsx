@@ -96,7 +96,7 @@ export default function Datasets() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Datasets</h2>
         <Button onClick={handleAddDataset}>

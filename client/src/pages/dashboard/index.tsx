@@ -76,7 +76,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">
           {isLoadingDashboard ? "Loading..." : dashboard?.name || "Dashboard"}
