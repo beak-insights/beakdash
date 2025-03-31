@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Dashboard } from "@shared/schema";
 import { Link } from "wouter";
-import { DashboardLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +17,7 @@ export default function HomePage() {
   });
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col space-y-6">
+      <div className="flex flex-col space-y-6 p-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.displayName || user?.username}</h1>
@@ -189,6 +187,5 @@ export default function HomePage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
   );
 }

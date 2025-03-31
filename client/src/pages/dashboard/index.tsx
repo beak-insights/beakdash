@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { DashboardLayout } from "@/components/layout";
 import WidgetGrid from "@/components/widgets/widget-grid";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import AICopilot from "@/components/ai/ai-copilot";
@@ -65,41 +64,50 @@ export default function Dashboard() {
     setIsAICopilotOpen(true);
   };
 
-  return (
-    <DashboardLayout>
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">
-            {isLoadingDashboard ? "Loading..." : dashboard?.name || "Dashboard"}
-          </h2>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Options</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/widgets")}>
-              <LayoutTemplate className="mr-2 h-4 w-4" />
-              <span>Widgets</span>
-            </Button>
-            <Button variant="default" size="sm" onClick={handleToggleAICopilot}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              <span>AI Copilot</span>
-            </Button>
-            <Button variant="default" size="sm" onClick={handleAddWidget}>
-              <Plus className="mr-2 h-4 w-4" />
-              <span>Add Widget</span>
-            </Button>
-          </div>
-        </div>
+  const getWidgetContext = () => {
+    if (!copilotWidget) return undefined;
+    
+    return {
+      id: copilotWidget.id,
+      name: copilotWidget.name,
+      type: copilotWidget.type,
+      config: copilotWidget.config
+    };
+  };
 
-        <WidgetGrid 
-          widgets={widgets} 
-          isLoading={isLoadingWidgets}
-          isError={isErrorWidgets}
-          onEditWidget={handleEditWidget}
-          onOpenCopilot={handleOpenCopilotWithWidget}
-        />
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">
+          {isLoadingDashboard ? "Loading..." : dashboard?.name || "Dashboard"}
+        </h2>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Options</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/widgets")}>
+            <LayoutTemplate className="mr-2 h-4 w-4" />
+            <span>Widgets</span>
+          </Button>
+          <Button variant="default" size="sm" onClick={handleToggleAICopilot}>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            <span>AI Copilot</span>
+          </Button>
+          <Button variant="default" size="sm" onClick={handleAddWidget}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span>Add Widget</span>
+          </Button>
+        </div>
       </div>
+
+      <WidgetGrid 
+        widgets={widgets} 
+        isLoading={isLoadingWidgets}
+        isError={isErrorWidgets}
+        onEditWidget={handleEditWidget}
+        onOpenCopilot={handleOpenCopilotWithWidget}
+      />
 
       {/* Widget Editor Modal */}
       {isWidgetEditorOpen && (
@@ -116,15 +124,9 @@ export default function Dashboard() {
           onClose={() => setIsAICopilotOpen(false)} 
           activeDatasetId={copilotWidget?.datasetId || editingWidget?.datasetId || undefined}
           activeChartType={copilotWidget?.type || editingWidget?.type}
-          widgetContext={copilotWidget ? 
-            {
-              id: copilotWidget.id,
-              name: copilotWidget.name,
-              type: copilotWidget.type,
-              config: copilotWidget.config
-            } : undefined}
+          widgetContext={getWidgetContext()}
         />
       )}
-    </DashboardLayout>
+    </div>
   );
 }

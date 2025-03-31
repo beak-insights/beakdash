@@ -6,7 +6,6 @@ import {
   Layers,
   LayoutTemplate as LayoutTemplateIcon
 } from "lucide-react";
-import { LayoutTemplate } from "@/components/layout";
 import WidgetsList from "@/components/widgets/widgets-list";
 import WidgetEditor from "@/components/widgets/widget-editor";
 import ShareWidgetDialog from "@/components/widgets/share-widget-dialog";
@@ -178,7 +177,6 @@ export default function WidgetsPage() {
   ) || [];
   
   return (
-    <LayoutTemplate>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -331,6 +329,5 @@ export default function WidgetsPage() {
         />
       )}
       </div>
-    </LayoutTemplate>
   );
 }
