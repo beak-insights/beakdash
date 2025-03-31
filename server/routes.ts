@@ -563,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fetchOptions.method = config.method || 'GET';
           
           // Add body for POST, PUT, PATCH methods
-          if (['POST', 'PUT', 'PATCH'].includes(fetchOptions.method) && config.body) {
+          if (fetchOptions.method && ['POST', 'PUT', 'PATCH'].includes(fetchOptions.method) && config.body) {
             fetchOptions.body = JSON.stringify(config.body);
             fetchOptions.headers = {
               ...fetchOptions.headers,
