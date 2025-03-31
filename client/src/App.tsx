@@ -15,6 +15,7 @@ import Datasets from "@/pages/dashboard/datasets";
 import Settings from "@/pages/dashboard/settings";
 import Widgets from "@/pages/widgets";
 import Profile from "@/pages/dashboard/profile";
+import DashboardList from "@/pages/dashboard/list";
 
 function Router() {
   return (
@@ -22,7 +23,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/dashboard/new" component={Dashboard} />
       <ProtectedRoute path="/dashboard/:id" component={Dashboard} />
-      <ProtectedRoute path="/dashboard" component={HomePage} />
+      <ProtectedRoute path="/dashboard" component={DashboardList} />
       <ProtectedRoute path="/connections" component={Connections} />
       <ProtectedRoute path="/datasets" component={Datasets} />
       <ProtectedRoute path="/settings" component={Settings} />

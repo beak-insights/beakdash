@@ -7,14 +7,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, LineChart, BarChart3, PieChart, Activity, Clock, ArrowUpRight } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, PieChart, ArrowUpRight, Clock, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
 
-export default function HomePage() {
+export default function DashboardListPage() {
   const { user } = useAuth();
+  const [filter, setFilter] = useState<"all" | "mine">("all");
+  
   const { data: dashboards, isLoading } = useQuery<Dashboard[]>({
     queryKey: ["/api/dashboards"],
     enabled: !!user,
+  });
+  
+  // Filter dashboards based on the selected filter
+  const filteredDashboards = dashboards?.filter(dashboard => {
+    if (filter === "all") return true;
+    return dashboard.userId === user?.id;
   });
 
   return (
@@ -22,9 +32,9 @@ export default function HomePage() {
       <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.displayName || user?.username}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboards</h1>
             <p className="text-muted-foreground mt-1">
-              Here's a summary of your dashboards and recent activity.
+              View, filter, and manage all your dashboards
             </p>
           </div>
           <Link href="/dashboard/new">
@@ -35,89 +45,22 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Dashboards
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : dashboards?.length || 0}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <LineChart className="h-4 w-4 text-muted-foreground mr-1" />
-              <span className="text-xs text-muted-foreground">Updated just now</span>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Widgets
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : "12"}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <BarChart3 className="h-4 w-4 text-muted-foreground mr-1" />
-              <span className="text-xs text-muted-foreground">Across all dashboards</span>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Data Sources
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : "3"}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <PieChart className="h-4 w-4 text-muted-foreground mr-1" />
-              <span className="text-xs text-muted-foreground">Connected and active</span>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                AI Enhancements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : "8"}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Activity className="h-4 w-4 text-muted-foreground mr-1" />
-              <span className="text-xs text-muted-foreground">Suggestions applied</span>
-            </CardFooter>
-          </Card>
-        </div>
-
         <div className="flex justify-between items-center mt-6">
-          <h2 className="text-xl font-semibold">Recent Dashboards</h2>
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              View All Dashboards
-            </Button>
-          </Link>
+          <Tabs value={filter} onValueChange={(value) => setFilter(value as "all" | "mine")} className="mr-auto">
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="mine" className="flex items-center">
+                <User className="h-4 w-4 mr-2" />
+                Mine
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         <Separator />
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading ? (
-            Array(3).fill(0).map((_, i) => (
+            Array(6).fill(0).map((_, i) => (
               <Card key={i} className="overflow-hidden">
                 <CardHeader className="pb-3">
                   <Skeleton className="h-6 w-3/4 mb-2" />
@@ -132,8 +75,8 @@ export default function HomePage() {
                 </CardFooter>
               </Card>
             ))
-          ) : dashboards && dashboards.length > 0 ? (
-            dashboards.slice(0, 6).map((dashboard) => (
+          ) : filteredDashboards && filteredDashboards.length > 0 ? (
+            filteredDashboards.map((dashboard) => (
               <Card key={dashboard.id} className="overflow-hidden">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -175,9 +118,13 @@ export default function HomePage() {
               <div className="rounded-full bg-muted w-20 h-20 flex items-center justify-center mb-4">
                 <PieChart className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium mb-2">No dashboards yet</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {filter === "mine" ? "You don't have any dashboards yet" : "No dashboards available"}
+              </h3>
               <p className="text-muted-foreground max-w-md mb-4">
-                Create your first dashboard to start visualizing your data with powerful analytics and AI insights.
+                {filter === "mine" 
+                  ? "Create your first dashboard to start visualizing your data with powerful analytics and AI insights."
+                  : "Create a new dashboard or switch to 'Mine' to see only your dashboards."}
               </p>
               <Link href="/dashboard/new">
                 <Button>

@@ -35,7 +35,7 @@ export default function Header() {
           <h1 className="text-xl font-semibold">BeakDash</h1>
         </div>
         <div className="hidden md:flex items-center space-x-4">
-          <Link href="/">
+          <Link href="/dashboard">
             <Button variant="ghost" className="px-3 py-1.5 text-sm rounded-md">
               Dashboards
             </Button>

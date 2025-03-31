@@ -80,7 +80,8 @@ export default function Sidebar() {
       
       <div className="flex-1 px-3 py-4 space-y-1">
         <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MAIN</p>
-        <NavItem href="/dashboard" icon={Layers} label="Dashboards" active={isActive("/dashboard") || isActive("/")} />
+        <NavItem href="/" icon={LayoutDashboard} label="Overview" active={location === "/"} />
+        <NavItem href="/dashboard" icon={Layers} label="Dashboards" active={isActive("/dashboard") && location !== "/"} />
         <NavItem href="/widgets" icon={PanelRight} label="Widgets" active={isActive("/widgets")} />
         
         <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">DATA</p>
