@@ -849,6 +849,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dashboardId = Number(req.params.dashboardId);
       const widgetId = Number(req.params.widgetId);
       
+      // Validate numeric parameters
+      if (isNaN(dashboardId) || dashboardId <= 0) {
+        return res.status(400).json({ message: "Invalid dashboard ID" });
+      }
+      
+      if (isNaN(widgetId) || widgetId <= 0) {
+        return res.status(400).json({ message: "Invalid widget ID" });
+      }
+      
       const dashboard = await storage.getDashboard(dashboardId);
       if (!dashboard) {
         return res.status(404).json({ message: "Dashboard not found" });
@@ -859,10 +868,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Widget not found" });
       }
       
-      const position = req.body.position || {};
-      const dashboardWidget = await storage.addWidgetToDashboard(dashboardId, widgetId, position);
+      // Ensure we have a valid position object
+      const position = req.body.position || { x: 0, y: 0, w: 3, h: 2 };
       
-      return res.status(201).json(dashboardWidget);
+      try {
+        const dashboardWidget = await storage.addWidgetToDashboard(dashboardId, widgetId, position);
+        return res.status(201).json(dashboardWidget);
+      } catch (storageError: any) {
+        console.error("Storage error when adding widget to dashboard:", storageError);
+        return res.status(400).json({ 
+          message: "Failed to add widget to dashboard",
+          details: storageError.message || "Unknown error" 
+        });
+      }
     } catch (error) {
       console.error("Add widget to dashboard error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -875,6 +893,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dashboardId = Number(req.params.dashboardId);
       const widgetId = Number(req.params.widgetId);
       
+      // Validate numeric parameters
+      if (isNaN(dashboardId) || dashboardId <= 0) {
+        return res.status(400).json({ message: "Invalid dashboard ID" });
+      }
+      
+      if (isNaN(widgetId) || widgetId <= 0) {
+        return res.status(400).json({ message: "Invalid widget ID" });
+      }
+      
       const dashboard = await storage.getDashboard(dashboardId);
       if (!dashboard) {
         return res.status(404).json({ message: "Dashboard not found" });
@@ -885,13 +912,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Widget not found" });
       }
       
-      const success = await storage.removeWidgetFromDashboard(dashboardId, widgetId);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Widget is not in the specified dashboard" });
+      try {
+        const success = await storage.removeWidgetFromDashboard(dashboardId, widgetId);
+        
+        if (!success) {
+          return res.status(404).json({ message: "Widget is not in the specified dashboard" });
+        }
+        
+        return res.status(204).send();
+      } catch (storageError: any) {
+        console.error("Storage error when removing widget from dashboard:", storageError);
+        return res.status(400).json({ 
+          message: "Failed to remove widget from dashboard",
+          details: storageError.message || "Unknown error" 
+        });
       }
-      
-      return res.status(204).send();
     } catch (error) {
       console.error("Remove widget from dashboard error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -904,6 +939,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dashboardId = Number(req.params.dashboardId);
       const widgetId = Number(req.params.widgetId);
       
+      // Validate numeric parameters
+      if (isNaN(dashboardId) || dashboardId <= 0) {
+        return res.status(400).json({ message: "Invalid dashboard ID" });
+      }
+      
+      if (isNaN(widgetId) || widgetId <= 0) {
+        return res.status(400).json({ message: "Invalid widget ID" });
+      }
+      
       const dashboard = await storage.getDashboard(dashboardId);
       if (!dashboard) {
         return res.status(404).json({ message: "Dashboard not found" });
@@ -914,14 +958,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Widget not found" });
       }
       
-      const position = req.body.position;
-      if (!position) {
-        return res.status(400).json({ message: "Position data is required" });
+      const position = req.body.position || { x: 0, y: 0, w: 3, h: 2 };
+      
+      try {
+        const updatedDashboardWidget = await storage.updateWidgetPosition(dashboardId, widgetId, position);
+        return res.status(200).json(updatedDashboardWidget);
+      } catch (storageError: any) {
+        console.error("Storage error when updating widget position:", storageError);
+        return res.status(400).json({ 
+          message: "Failed to update widget position",
+          details: storageError.message || "Unknown error"
+        });
       }
-      
-      const updatedDashboardWidget = await storage.updateWidgetPosition(dashboardId, widgetId, position);
-      
-      return res.status(200).json(updatedDashboardWidget);
     } catch (error) {
       console.error("Update widget position error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -1046,12 +1094,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection ID is required" });
       }
       
+      // Validate numeric parameters
+      const connId = Number(connectionId);
+      if (isNaN(connId) || connId <= 0) {
+        return res.status(400).json({ message: "Invalid connection ID" });
+      }
+      
       if (!table || typeof table !== 'string') {
         return res.status(400).json({ message: "Table name is required" });
       }
       
       // Check if the connection exists
-      const connection = await storage.getConnection(connectionId);
+      const connection = await storage.getConnection(connId);
       if (!connection) {
         return res.status(404).json({ message: "Connection not found" });
       }
@@ -1131,6 +1185,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/connections/:id/tables`, async (req, res) => {
     try {
       const id = Number(req.params.id);
+      
+      // Validate numeric parameters
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid connection ID" });
+      }
       
       // Check if the connection exists
       const connection = await storage.getConnection(id);
@@ -1221,12 +1280,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Connection ID is required" });
       }
       
+      // Validate numeric parameters
+      const connId = Number(connectionId);
+      if (isNaN(connId) || connId <= 0) {
+        return res.status(400).json({ message: "Invalid connection ID" });
+      }
+      
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ message: "Valid SQL query is required" });
       }
       
       // Check if the connection exists
-      const connection = await storage.getConnection(connectionId);
+      const connection = await storage.getConnection(connId);
       if (!connection) {
         return res.status(404).json({ message: "Connection not found" });
       }
@@ -1266,7 +1331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tempPool = new pg.default.Pool({ connectionString });
         
         try {
-          console.log(`Executing SQL query on connection ${connectionId}: ${query}`);
+          console.log(`Executing SQL query on connection ${connId}: ${query}`);
           
           // Execute the query
           const result = await tempPool.query(query);

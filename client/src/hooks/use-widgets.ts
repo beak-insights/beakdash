@@ -49,18 +49,27 @@ export function useWidgets(dashboardId?: number) {
 
   // Create a new widget
   const createWidget = useMutation({
-    mutationFn: async (widget: InsertWidget) => {
+    mutationFn: async (widget: InsertWidget & { position?: any, dashboardId?: number }) => {
       // Extract dashboardId from widget data to handle it separately if provided
-      const { dashboardId: targetDashboardId, ...widgetData } = widget as any;
+      const { dashboardId: targetDashboardId, position, ...widgetData } = widget as any;
       
-      // Create the widget
-      const createdWidget = await apiRequest('POST', '/api/widgets', widgetData);
+      // Create the widget first
+      const response = await apiRequest('POST', '/api/widgets', widgetData);
+      const createdWidget = await response.json();
       
       // If dashboardId is provided, add the widget to that dashboard
-      if (targetDashboardId) {
-        await apiRequest('POST', `/api/dashboards/${targetDashboardId}/widgets/${createdWidget.id}`, {
-          position: widget.position || {}
-        });
+      if (targetDashboardId && createdWidget && typeof createdWidget.id === 'number') {
+        try {
+          const defaultPosition = { x: 0, y: 0, w: 3, h: 2 };
+          await apiRequest(
+            'POST', 
+            `/api/dashboards/${targetDashboardId}/widgets/${createdWidget.id}`, 
+            { position: position || defaultPosition }
+          );
+        } catch (err) {
+          console.error("Error adding widget to dashboard:", err);
+          // We'll still return the created widget even if adding it to dashboard fails
+        }
       }
       
       return createdWidget;
@@ -88,18 +97,24 @@ export function useWidgets(dashboardId?: number) {
 
   // Update a widget
   const updateWidget = useMutation({
-    mutationFn: async ({ id, widget }: { id: number; widget: Partial<Widget> }) => {
+    mutationFn: async ({ id, widget }: { id: number; widget: Partial<Widget> & { position?: any, dashboardId?: number } }) => {
       // Extract position and dashboardId if present to handle them separately
       const { position, dashboardId: targetDashboardId, ...widgetData } = widget as any;
       
       // Update the widget properties
-      const updatedWidget = await apiRequest('PUT', `/api/widgets/${id}`, widgetData);
+      const response = await apiRequest('PUT', `/api/widgets/${id}`, widgetData);
+      const updatedWidget = await response.json();
       
       // If position and dashboardId are provided, update the widget position in that dashboard
       if (position && targetDashboardId) {
-        await apiRequest('PATCH', `/api/dashboards/${targetDashboardId}/widgets/${id}/position`, {
-          position
-        });
+        try {
+          await apiRequest('PATCH', `/api/dashboards/${targetDashboardId}/widgets/${id}/position`, {
+            position
+          });
+        } catch (err) {
+          console.error("Error updating widget position:", err);
+          // We'll still return the updated widget even if position update fails
+        }
       }
       
       return updatedWidget;
@@ -156,7 +171,16 @@ export function useWidgets(dashboardId?: number) {
   // Add a widget to a dashboard
   const addWidgetToDashboard = useMutation({
     mutationFn: async ({ widgetId, dashboardId, position }: { widgetId: number; dashboardId: number; position?: any }) => {
-      return apiRequest('POST', `/api/dashboards/${dashboardId}/widgets/${widgetId}`, { position });
+      // Validate inputs before making the request
+      if (!widgetId || isNaN(widgetId) || !dashboardId || isNaN(dashboardId)) {
+        throw new Error(`Invalid parameters: widgetId=${widgetId}, dashboardId=${dashboardId}`);
+      }
+      
+      // Ensure we have a valid position object or set a default
+      const validPosition = position || { x: 0, y: 0, w: 3, h: 2 };
+      
+      const response = await apiRequest('POST', `/api/dashboards/${dashboardId}/widgets/${widgetId}`, { position: validPosition });
+      return response.json();
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries
@@ -180,7 +204,13 @@ export function useWidgets(dashboardId?: number) {
   // Remove a widget from a dashboard
   const removeWidgetFromDashboard = useMutation({
     mutationFn: async ({ widgetId, dashboardId }: { widgetId: number; dashboardId: number }) => {
-      return apiRequest('DELETE', `/api/dashboards/${dashboardId}/widgets/${widgetId}`);
+      // Validate inputs before making the request
+      if (!widgetId || isNaN(widgetId) || !dashboardId || isNaN(dashboardId)) {
+        throw new Error(`Invalid parameters: widgetId=${widgetId}, dashboardId=${dashboardId}`);
+      }
+      
+      const response = await apiRequest('DELETE', `/api/dashboards/${dashboardId}/widgets/${widgetId}`);
+      return response.json();
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries
@@ -206,10 +236,29 @@ export function useWidgets(dashboardId?: number) {
     mutationFn: async (widgets: { id: number; position: any }[]) => {
       if (!dashboardId) throw new Error("Dashboard ID is required to update positions");
       
+      // Validate all widget IDs before making any requests
+      for (const widget of widgets) {
+        if (!widget.id || isNaN(widget.id)) {
+          throw new Error(`Invalid widget ID: ${widget.id}`);
+        }
+      }
+      
       // Create a batch update request for the new endpoint
-      const promises = widgets.map(({ id, position }) => 
-        apiRequest('PATCH', `/api/dashboards/${dashboardId}/widgets/${id}/position`, { position })
-      );
+      const promises = widgets.map(async ({ id, position }) => {
+        try {
+          const response = await apiRequest(
+            'PATCH', 
+            `/api/dashboards/${dashboardId}/widgets/${id}/position`, 
+            { position: position || { x: 0, y: 0, w: 3, h: 2 } }
+          );
+          return response.json();
+        } catch (err) {
+          console.error(`Error updating position for widget ${id}:`, err);
+          // Continue with other widgets even if one fails
+          return null;
+        }
+      });
+      
       return Promise.all(promises);
     },
     onSuccess: () => {
