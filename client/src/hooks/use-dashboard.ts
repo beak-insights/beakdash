@@ -41,19 +41,31 @@ export function useDashboard(id?: number) {
   // Create a new dashboard
   const createDashboard = useMutation({
     mutationFn: async (dashboard: InsertDashboard) => {
+      // Require a space to be selected before creating a dashboard
+      if (!currentSpaceId) {
+        throw new Error("Please select a space first to create a dashboard");
+      }
+      
       // Ensure the dashboard is created in the current space
       const dashboardWithSpace = {
         ...dashboard,
-        spaceId: currentSpaceId || undefined
+        spaceId: currentSpaceId
       };
-      return apiRequest('POST', '/api/dashboards', dashboardWithSpace);
+      
+      // Make the API request
+      const response = await apiRequest('POST', '/api/dashboards', dashboardWithSpace);
+      // Parse the response to get the new dashboard
+      const newDashboard = await response.json();
+      return newDashboard;
     },
-    onSuccess: () => {
+    onSuccess: (dashboard) => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboards', { spaceId: currentSpaceId }] });
       toast({
         title: "Dashboard created",
         description: "Your dashboard has been successfully created.",
       });
+      
+      return dashboard;
     },
     onError: (error) => {
       toast({

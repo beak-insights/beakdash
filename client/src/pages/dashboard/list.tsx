@@ -35,12 +35,20 @@ export default function DashboardListPage() {
                 "View, filter, and manage all your dashboards"}
             </p>
           </div>
-          <Link href="/dashboard/new">
-            <Button>
+          <Link href={currentSpace ? "/dashboard/new" : "#"}>
+            <Button
+              disabled={!currentSpace}
+              title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+            >
               <Plus className="mr-2 h-4 w-4" />
               New Dashboard
             </Button>
           </Link>
+          {!currentSpace && (
+            <div className="absolute mt-2 right-6 bg-muted p-2 rounded-md text-sm animate-in fade-in">
+              Please select a space first to create a dashboard
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between items-center mt-6">
@@ -124,12 +132,20 @@ export default function DashboardListPage() {
                   ? "Create your first dashboard to start visualizing your data with powerful analytics and AI insights."
                   : "Create a new dashboard or switch to 'Mine' to see only your dashboards."}
               </p>
-              <Link href="/dashboard/new">
-                <Button>
+              <Link href={currentSpace ? "/dashboard/new" : "#"}>
+                <Button
+                  disabled={!currentSpace}
+                  title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Dashboard
                 </Button>
               </Link>
+              {!currentSpace && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Please select a space first to create a dashboard.
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -440,6 +440,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return handleZodError(dashboardData.error, res);
       }
       
+      // Validate that a spaceId is provided
+      if (!dashboardData.data.spaceId) {
+        return res.status(400).json({ 
+          message: "A space must be selected to create a dashboard" 
+        });
+      }
+      
       const newDashboard = await storage.createDashboard(dashboardData.data);
       return res.status(201).json(newDashboard);
     } catch (error) {

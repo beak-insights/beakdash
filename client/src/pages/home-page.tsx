@@ -26,8 +26,11 @@ export default function HomePage() {
                 "Here's a summary of your dashboards and recent activity."}
             </p>
           </div>
-          <Link href="/dashboard/new">
-            <Button>
+          <Link href={currentSpace ? "/dashboard/new" : "#"}>
+            <Button 
+              disabled={!currentSpace} 
+              title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+            >
               <Plus className="mr-2 h-4 w-4" />
               New Dashboard
             </Button>
@@ -178,12 +181,20 @@ export default function HomePage() {
               <p className="text-muted-foreground max-w-md mb-4">
                 Create your first dashboard to start visualizing your data with powerful analytics and AI insights.
               </p>
-              <Link href="/dashboard/new">
-                <Button>
+              <Link href={currentSpace ? "/dashboard/new" : "#"}>
+                <Button 
+                  disabled={!currentSpace}
+                  title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Dashboard
                 </Button>
               </Link>
+              {!currentSpace && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Please select a space first to create a dashboard.
+                </p>
+              )}
             </div>
           )}
         </div>
