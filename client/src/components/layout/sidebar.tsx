@@ -78,7 +78,7 @@ export default function Sidebar() {
   if (!user) {
     return (
       <aside className={`${collapsed ? 'w-20' : 'w-64'} flex flex-col border-r min-h-screen transition-all duration-300`}>
-        <div className={`px-6 py-5 flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}>
+        <div className={`px-6 h-14 flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}>
           {collapsed ? (
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">B</span>
           ) : (
@@ -104,7 +104,7 @@ export default function Sidebar() {
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} flex flex-col border-r min-h-screen transition-all duration-300 relative`}>
-      <div className={`px-6 py-5 flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}>
+      <div className={`px-6 h-14 flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}>
         {collapsed ? (
           <span className="text-2xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">B</span>
         ) : (
@@ -118,7 +118,7 @@ export default function Sidebar() {
         size="icon" 
         className="absolute -right-0 h-6 w-6 rounded-full border border-primary shadow-md z-50 hover:bg-primary hover:text-white transition-colors"
         onClick={toggleCollapsed}
-        style={{ transform: 'translateX(50%)', top: '20px' }}
+        style={{ transform: 'translateX(50%)', top: '28px' }}
       >
         {collapsed ? 
           <ChevronRight className="h-3 w-3" /> : 
