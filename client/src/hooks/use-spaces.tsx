@@ -234,6 +234,22 @@ export function useSpaces() {
     };
   }, [subscribe, setCurrentSpaceId, toast, queryClient]);
   
+  // Function to deselect the current space and show all content
+  const deselectCurrentSpace = () => {
+    // Set to null to indicate no specific space is selected
+    setCurrentSpaceId(null);
+    
+    // Invalidate related queries to show all content
+    queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
+    
+    toast({
+      title: "All spaces selected",
+      description: "Now showing content from all spaces.",
+    });
+  };
+
   // Function to switch spaces using WebSocket
   const switchToSpace = (spaceId: number) => {
     if (!user || !user.id) {
@@ -271,6 +287,7 @@ export function useSpaces() {
     currentSpace,
     setCurrentSpaceId,
     switchToSpace,
+    deselectCurrentSpace,
     switchingSpace
   };
 }

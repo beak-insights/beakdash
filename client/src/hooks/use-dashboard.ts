@@ -12,15 +12,19 @@ export function useDashboard(id?: number) {
   const { toast } = useToast();
   const { currentSpaceId } = useSpaceStore();
 
-  // Fetch all dashboards filtered by the current space
+  // Fetch all dashboards, filtered by space if a space is selected
   const dashboardsQuery = useQuery({
     queryKey: ['/api/dashboards', { spaceId: currentSpaceId }],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboards?spaceId=${currentSpaceId}`);
+      // If no space is selected, fetch all dashboards (no filter)
+      const url = currentSpaceId 
+        ? `/api/dashboards?spaceId=${currentSpaceId}` 
+        : '/api/dashboards';
+      
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch dashboards');
       return res.json();
     },
-    enabled: !!currentSpaceId,
   });
 
   // Fetch a specific dashboard if ID is provided

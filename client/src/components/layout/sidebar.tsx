@@ -106,6 +106,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
     isLoadingUserSpaces, 
     currentSpaceId, 
     setCurrentSpaceId, 
+    deselectCurrentSpace,
     createSpaceMutation 
   } = useSpaces();
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
@@ -165,6 +166,13 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                   <DropdownMenuContent align="center" className="w-48">
                     <div className="p-2 text-center font-medium text-sm">Spaces</div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => deselectCurrentSpace()}
+                      className={cn(!currentSpaceId && "bg-muted")}
+                    >
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span className="truncate">All Spaces</span>
+                    </DropdownMenuItem>
                     {safeUserSpaces.map((space: Space) => (
                       <DropdownMenuItem 
                         key={space.id}
@@ -187,7 +195,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               </TooltipTrigger>
               <TooltipContent side="right">
                 <p className="font-medium">Current Space:</p>
-                <p>{currentSpace && 'name' in currentSpace ? currentSpace.name : "Default"}</p>
+                <p>{currentSpace && 'name' in currentSpace ? currentSpace.name : "All Spaces"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -212,7 +220,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                 <span className="truncate">
                   {Array.isArray(userSpaces) && userSpaces.length > 0 && currentSpaceId ? 
                     userSpaces.find((space: Space) => space && space.id === currentSpaceId && 'name' in space)?.name || "Default" : 
-                    "Default"
+                    "All Spaces"
                   }
                 </span>
               </div>
@@ -227,6 +235,16 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               Select Space
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => deselectCurrentSpace()}
+              className={cn(!currentSpaceId && "bg-muted")}
+            >
+              <div className="flex items-center w-full">
+                <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">All Spaces</span>
+              </div>
+            </DropdownMenuItem>
+            
             {Array.isArray(userSpaces) && userSpaces.length > 0 ? userSpaces
               .filter((space: Space) => space && 'id' in space && 'name' in space)
               .map((space: Space) => (
