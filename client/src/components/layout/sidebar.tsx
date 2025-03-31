@@ -116,7 +116,7 @@ export default function Sidebar() {
       <Button 
         variant="outline" 
         size="icon" 
-        className="absolute -right-1 h-6 w-6 rounded-full border border-primary shadow-md z-50 hover:bg-primary hover:text-white transition-colors"
+        className="absolute -right-0 h-6 w-6 rounded-full border border-primary shadow-md z-50 hover:bg-primary hover:text-white transition-colors"
         onClick={toggleCollapsed}
         style={{ transform: 'translateX(50%)', top: '20px' }}
       >
