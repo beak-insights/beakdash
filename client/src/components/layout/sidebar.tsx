@@ -187,7 +187,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               </TooltipTrigger>
               <TooltipContent side="right">
                 <p className="font-medium">Current Space:</p>
-                <p>{currentSpace?.name || "Default"}</p>
+                <p>{currentSpace && 'name' in currentSpace ? currentSpace.name : "Default"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -210,7 +210,10 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               <div className="flex items-center gap-2 truncate">
                 <Globe className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">
-                  {Array.isArray(userSpaces) ? userSpaces.find((space: Space) => space.id === currentSpaceId)?.name || "Default" : "Default"}
+                  {Array.isArray(userSpaces) && userSpaces.length > 0 && currentSpaceId ? 
+                    userSpaces.find((space: Space) => space && space.id === currentSpaceId && 'name' in space)?.name || "Default" : 
+                    "Default"
+                  }
                 </span>
               </div>
               <ChevronDown className="h-4 w-4 opacity-50" />
@@ -224,18 +227,20 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               Select Space
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {Array.isArray(userSpaces) ? userSpaces.map((space: Space) => (
-              <DropdownMenuItem 
-                key={space.id} 
-                onClick={() => setCurrentSpaceId(space.id)}
-                className={cn(space.id === currentSpaceId && "bg-muted")}
-              >
-                <div className="flex items-center w-full">
-                  <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{space.name}</span>
-                </div>
-              </DropdownMenuItem>
-            )) : null}
+            {Array.isArray(userSpaces) && userSpaces.length > 0 ? userSpaces
+              .filter((space: Space) => space && 'id' in space && 'name' in space)
+              .map((space: Space) => (
+                <DropdownMenuItem 
+                  key={space.id} 
+                  onClick={() => setCurrentSpaceId(space.id)}
+                  className={cn(space.id === currentSpaceId && "bg-muted")}
+                >
+                  <div className="flex items-center w-full">
+                    <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{space.name}</span>
+                  </div>
+                </DropdownMenuItem>
+              )) : null}
             <DropdownMenuSeparator />
             <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
               <DropdownMenuItem>

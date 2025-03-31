@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Response } from "express";
+import { Request } from "express-serve-static-core";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
@@ -8,6 +9,7 @@ import {
   insertDatasetSchema, 
   insertWidgetSchema,
   insertUserSchema,
+  insertSpaceSchema,
   chartTypes
 } from "@shared/schema";
 import { ZodError } from "zod";
@@ -211,6 +213,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(updatedUser.settings);
     } catch (error) {
       console.error("Update user settings error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Space routes
+  app.get(`${apiPrefix}/spaces`, async (req, res) => {
+    try {
+      const spaces = await storage.getSpaces();
+      return res.status(200).json(spaces);
+    } catch (error) {
+      console.error("Get spaces error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(`${apiPrefix}/spaces/user`, async (req, res) => {
+    try {
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required as a query parameter" });
+      }
+      
+      const spaces = await storage.getUserSpaces(userId);
+      return res.status(200).json(spaces);
+    } catch (error) {
+      console.error("Get user spaces error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(`${apiPrefix}/spaces/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const space = await storage.getSpace(id);
+      
+      if (!space) {
+        return res.status(404).json({ message: "Space not found" });
+      }
+      
+      return res.status(200).json(space);
+    } catch (error) {
+      console.error("Get space error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post(`${apiPrefix}/spaces`, async (req, res) => {
+    try {
+      const spaceData = insertSpaceSchema.safeParse(req.body);
+      
+      if (!spaceData.success) {
+        return handleZodError(spaceData.error, res);
+      }
+      
+      const newSpace = await storage.createSpace(spaceData.data);
+      
+      // If a user ID is provided, automatically add that user to the space
+      if (req.body.userId) {
+        await storage.joinSpace(req.body.userId, newSpace.id, "admin");
+      }
+      
+      return res.status(201).json(newSpace);
+    } catch (error) {
+      console.error("Create space error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put(`${apiPrefix}/spaces/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const space = await storage.getSpace(id);
+      
+      if (!space) {
+        return res.status(404).json({ message: "Space not found" });
+      }
+      
+      const updatedSpace = await storage.updateSpace(id, req.body);
+      return res.status(200).json(updatedSpace);
+    } catch (error) {
+      console.error("Update space error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete(`${apiPrefix}/spaces/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const space = await storage.getSpace(id);
+      
+      if (!space) {
+        return res.status(404).json({ message: "Space not found" });
+      }
+      
+      await storage.deleteSpace(id);
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Delete space error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post(`${apiPrefix}/spaces/:id/join`, async (req, res) => {
+    try {
+      const spaceId = Number(req.params.id);
+      const { userId, role = "member" } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required in the request body" });
+      }
+      
+      const space = await storage.getSpace(spaceId);
+      
+      if (!space) {
+        return res.status(404).json({ message: "Space not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if user is already in the space
+      const isInSpace = await storage.isUserInSpace(userId, spaceId);
+      
+      if (isInSpace) {
+        return res.status(400).json({ message: "User is already a member of this space" });
+      }
+      
+      await storage.joinSpace(userId, spaceId, role);
+      
+      return res.status(200).json({ 
+        message: "User added to space successfully",
+        userId,
+        spaceId,
+        role
+      });
+    } catch (error) {
+      console.error("Join space error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post(`${apiPrefix}/spaces/:id/leave`, async (req, res) => {
+    try {
+      const spaceId = Number(req.params.id);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      const space = await storage.getSpace(spaceId);
+      
+      if (!space) {
+        return res.status(404).json({ message: "Space not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if user is in the space
+      const isInSpace = await storage.isUserInSpace(userId, spaceId);
+      
+      if (!isInSpace) {
+        return res.status(400).json({ message: "User is not a member of this space" });
+      }
+      
+      const success = await storage.leaveSpace(userId, spaceId);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Failed to remove user from space" });
+      }
+      
+      return res.status(200).json({ 
+        message: "User removed from space successfully",
+        userId,
+        spaceId
+      });
+    } catch (error) {
+      console.error("Leave space error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });

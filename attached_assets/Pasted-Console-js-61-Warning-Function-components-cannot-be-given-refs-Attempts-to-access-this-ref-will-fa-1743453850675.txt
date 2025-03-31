@@ -1,0 +1,35 @@
+Console.js:61 Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?
+
+Check the render method of `SlotClone`.
+    at Badge (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/components/ui/badge.tsx:35:18)
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-D3CTYCI6.js?v=88193e81:52:11
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-D3CTYCI6.js?v=88193e81:33:11
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=88193e81:41:13
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-D3CTYCI6.js?v=88193e81:52:11
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-D3CTYCI6.js?v=88193e81:33:11
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=88193e81:41:13
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…ner/workspace/node_modules/.vite/deps/chunk-5I4RE5FG.js?v=88193e81:1980:13
+    at https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…space/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=88193e81:189:13
+    at Provider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-ICA7ZJMY.js?v=88193e81:38:15)
+    at Provider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…ner/workspace/node_modules/.vite/deps/chunk-5I4RE5FG.js?v=88193e81:1915:15)
+    at Popper (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…ner/workspace/node_modules/.vite/deps/chunk-5I4RE5FG.js?v=88193e81:1972:11)
+    at Tooltip (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…kspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=88193e81:107:5)
+    at Provider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-ICA7ZJMY.js?v=88193e81:38:15)
+    at TooltipProvider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=88193e81:63:5)
+    at WebSocketStatus (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/components/ui/websocket-status.tsx:25:37)
+    at div
+    at div
+    at header
+    at Header (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/components/layout/header.tsx:35:36)
+    at div
+    at div
+    at UnifiedLayout (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/components/layout/unified-layout.tsx:21:41)
+    at WrappedComponent
+    at Route (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=88193e81:323:16)
+    at ProtectedRoute (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/lib/protected-route.tsx:23:3)
+    at Switch (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=88193e81:379:17)
+    at Router
+    at AuthProvider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://701097e9-9fc8-4bc8-9c2c-3069bd0e5f67-00-24qse5gsn5jpu.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=88193e81:2882:3)
+    at App
+Mt.forEach.n.<computed>	@	Console.js:61

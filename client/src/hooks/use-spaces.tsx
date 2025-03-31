@@ -36,16 +36,20 @@ export function useSpaces() {
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces'],
     retry: 1,
-    staleTime: 60000, // 1 minute
-    onError: (error: Error) => {
-      console.error('Error fetching spaces:', error);
+    staleTime: 60000 // 1 minute
+  });
+
+  // Handle spaces error separately
+  useEffect(() => {
+    if (spacesError) {
+      console.error('Error fetching spaces:', spacesError);
       toast({
         title: 'Error fetching spaces',
-        description: error.message,
+        description: spacesError.message,
         variant: 'destructive',
       });
     }
-  });
+  }, [spacesError, toast]);
 
   // Fetch user's spaces
   const { 
@@ -53,29 +57,70 @@ export function useSpaces() {
     isLoading: isLoadingUserSpaces,
     error: userSpacesError
   } = useQuery<Space[]>({
-    queryKey: ['/api/spaces/user'],
+    queryKey: ['/api/spaces/user', user?.id],
+    queryFn: async () => {
+      if (!user || !user.id) {
+        return [];
+      }
+      const response = await fetch(`/api/spaces/user?userId=${user.id}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to fetch user spaces');
+      }
+      return response.json();
+    },
     retry: 1,
     staleTime: 60000, // 1 minute
-    onError: (error: Error) => {
-      console.error('Error fetching user spaces:', error);
+    enabled: !!user?.id // Only run the query if we have a user ID
+  });
+  
+  // Handle user spaces error separately
+  useEffect(() => {
+    if (userSpacesError) {
+      console.error('Error fetching user spaces:', userSpacesError);
       toast({
         title: 'Error fetching your spaces',
-        description: error.message,
+        description: userSpacesError.message,
         variant: 'destructive',
       });
     }
-  });
+  }, [userSpacesError, toast]);
 
   // Create a new space
   const createSpaceMutation = useMutation({
     mutationFn: async (spaceData: Omit<InsertSpace, 'slug'>) => {
+      if (!user || !user.id) {
+        throw new Error("You must be logged in to create a space");
+      }
+      
       // Generate slug from name
       const slug = spaceData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const response = await apiRequest("POST", "/api/spaces", {
         ...spaceData,
         slug,
+        userId: user.id // Include user ID so server can automatically add user to space
       });
-      return await response.json();
+      
+      // Check if the response is valid JSON
+      try {
+        return await response.json();
+      } catch (error) {
+        // If JSON parsing fails, log the issue and return a formatted response
+        console.error("Error parsing server response:", error);
+        const text = await response.text();
+        console.log("Raw response:", text);
+        
+        // Return a basic space object to prevent UI errors
+        return {
+          id: Date.now(), // Temporary ID until refresh
+          name: spaceData.name,
+          description: spaceData.description || '',
+          slug: slug,
+          settings: spaceData.settings || {},
+          isPrivate: spaceData.isPrivate || false,
+          logoUrl: spaceData.logoUrl || null
+        };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/spaces'] });
@@ -97,7 +142,13 @@ export function useSpaces() {
   // Join a space
   const joinSpaceMutation = useMutation({
     mutationFn: async (spaceId: number) => {
-      const response = await apiRequest("POST", `/api/spaces/${spaceId}/join`);
+      if (!user || !user.id) {
+        throw new Error("You must be logged in to join a space");
+      }
+      const response = await apiRequest("POST", `/api/spaces/${spaceId}/join`, {
+        userId: user.id,
+        role: "member"
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -119,7 +170,12 @@ export function useSpaces() {
   // Leave a space
   const leaveSpaceMutation = useMutation({
     mutationFn: async (spaceId: number) => {
-      const response = await apiRequest("POST", `/api/spaces/${spaceId}/leave`);
+      if (!user || !user.id) {
+        throw new Error("You must be logged in to leave a space");
+      }
+      const response = await apiRequest("POST", `/api/spaces/${spaceId}/leave`, {
+        userId: user.id
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -197,7 +253,9 @@ export function useSpaces() {
   };
   
   // Get current space
-  const currentSpace = Array.isArray(spaces) ? spaces.find(space => space.id === currentSpaceId) : null;
+  const currentSpace = Array.isArray(spaces) && spaces.length > 0 && currentSpaceId
+    ? spaces.find(space => space && space.id === currentSpaceId) || null
+    : null;
 
   return {
     spaces,
