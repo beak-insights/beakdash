@@ -9,7 +9,15 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  email: text("email"),
+  theme: text("theme").default("light"),
+  language: text("language").default("en"),
+  timeZone: text("time_zone"),
+  settings: jsonb("settings").default({}),
+  role: text("role").default("user"),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -17,6 +25,17 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   displayName: true,
   avatarUrl: true,
+  email: true,
+});
+
+export const updateUserSchema = createInsertSchema(users).pick({
+  displayName: true,
+  avatarUrl: true,
+  email: true,
+  theme: true,
+  language: true,
+  timeZone: true,
+  settings: true,
 });
 
 // Dashboards schema
@@ -135,6 +154,7 @@ export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
 
 export type Dashboard = typeof dashboards.$inferSelect;
 export type InsertDashboard = z.infer<typeof insertDashboardSchema>;

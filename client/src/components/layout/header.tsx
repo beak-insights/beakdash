@@ -11,14 +11,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, Bell, Settings, LogOut, User, LayoutTemplate } from "lucide-react";
 import { WebSocketStatus } from "@/components/ui/websocket-status";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Header() {
-  // In a real application, this would come from an auth context/hook
-  const user = {
-    displayName: "Demo User",
-    initials: "DU",
-    avatarUrl: "",
-  };
+  const { user, logoutMutation } = useAuth();
 
   return (
     <header className="bg-white border-b border-border flex items-center justify-between px-4 h-14 sticky top-0 z-30">
@@ -72,35 +68,43 @@ export default function Header() {
         <Button variant="ghost" size="icon" className="rounded-full">
           <Bell className="h-5 w-5" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="rounded-full h-8 w-8 p-0">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                <AvatarFallback>{user.initials}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-            <Link href="/settings">
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="rounded-full h-8 w-8 p-0">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.avatarUrl || ""} alt={user.displayName || user.username} />
+                  <AvatarFallback>
+                    {user.displayName?.[0] || user.username[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                {user.displayName || user.username}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <Link href="/profile">
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/settings">
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
               </DropdownMenuItem>
-            </Link>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Logout</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </header>
   );

@@ -4,22 +4,30 @@ import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import { useWebSocket } from "./lib/websocket-service";
 import { useEffect } from "react";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home-page";
+import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import Connections from "@/pages/dashboard/connections";
 import Datasets from "@/pages/dashboard/datasets";
 import Settings from "@/pages/dashboard/settings";
 import Widgets from "@/pages/widgets";
+import Profile from "@/pages/dashboard/profile";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/dashboard/:id" component={Dashboard} />
-      <Route path="/connections" component={Connections} />
-      <Route path="/datasets" component={Datasets} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/widgets" component={Widgets} />
+      <ProtectedRoute path="/" component={HomePage} />
+      <ProtectedRoute path="/dashboards" component={HomePage} />
+      <ProtectedRoute path="/dashboard/:id" component={Dashboard} />
+      <ProtectedRoute path="/connections" component={Connections} />
+      <ProtectedRoute path="/datasets" component={Datasets} />
+      <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/profile" component={Profile} />
+      <ProtectedRoute path="/widgets" component={Widgets} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -41,8 +49,10 @@ function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

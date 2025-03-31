@@ -1,5 +1,5 @@
 import {
-  users, type User, type InsertUser,
+  users, type User, type InsertUser, type UpdateUser,
   dashboards, type Dashboard, type InsertDashboard,
   connections, type Connection, type InsertConnection,
   datasets, type Dataset, type InsertDataset,
@@ -20,6 +20,9 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<UpdateUser>): Promise<User>;
+  updateLastLogin(id: number): Promise<boolean>;
+  getUserSettings(id: number): Promise<Record<string, any> | undefined>;
 
   // Dashboard operations
   getDashboards(userId?: number): Promise<Dashboard[]>;
@@ -74,9 +77,51 @@ export class DatabaseStorage implements IStorage {
       username: insertUser.username,
       password: insertUser.password,
       displayName: insertUser.displayName || null,
-      avatarUrl: insertUser.avatarUrl || null
+      avatarUrl: insertUser.avatarUrl || null,
+      email: insertUser.email || null
     }).returning();
     return result[0];
+  }
+  
+  async updateUser(id: number, userData: Partial<UpdateUser>): Promise<User> {
+    const result = await db.update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error(`User with id ${id} not found`);
+    }
+    
+    return result[0];
+  }
+  
+  async updateLastLogin(id: number): Promise<boolean> {
+    const result = await db.update(users)
+      .set({
+        lastLogin: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
+  
+  async getUserSettings(id: number): Promise<Record<string, any> | undefined> {
+    const result = await db.select({
+      settings: users.settings
+    })
+    .from(users)
+    .where(eq(users.id, id));
+    
+    if (result.length === 0) {
+      return undefined;
+    }
+    
+    return result[0].settings as Record<string, any>;
   }
 
   // Dashboard operations

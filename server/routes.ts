@@ -56,11 +56,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Update last login time
+      await storage.updateLastLogin(user.id);
+      
       // In a real application, you'd use proper authentication with JWT or sessions
       return res.status(200).json({ 
         id: user.id,
         username: user.username,
-        displayName: user.displayName
+        displayName: user.displayName,
+        email: user.email,
+        theme: user.theme,
+        language: user.language,
+        timeZone: user.timeZone,
+        role: user.role,
+        avatarUrl: user.avatarUrl
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -84,13 +93,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const newUser = await storage.createUser(userData.data);
       
+      // Set the last login time for the new user
+      await storage.updateLastLogin(newUser.id);
+      
       return res.status(201).json({ 
         id: newUser.id,
         username: newUser.username,
-        displayName: newUser.displayName
+        displayName: newUser.displayName,
+        email: newUser.email,
+        theme: newUser.theme,
+        language: newUser.language,
+        timeZone: newUser.timeZone,
+        role: newUser.role,
+        avatarUrl: newUser.avatarUrl
       });
     } catch (error) {
       console.error("Registration error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get user profile
+  app.get(`${apiPrefix}/user/profile/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        theme: user.theme,
+        language: user.language,
+        timeZone: user.timeZone,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt
+      });
+    } catch (error) {
+      console.error("Get user profile error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update user profile
+  app.put(`${apiPrefix}/user/profile/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, req.body);
+      
+      return res.status(200).json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        displayName: updatedUser.displayName,
+        email: updatedUser.email,
+        theme: updatedUser.theme,
+        language: updatedUser.language,
+        timeZone: updatedUser.timeZone,
+        role: updatedUser.role,
+        avatarUrl: updatedUser.avatarUrl
+      });
+    } catch (error) {
+      console.error("Update user profile error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get user settings
+  app.get(`${apiPrefix}/user/settings/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const settings = await storage.getUserSettings(id);
+      
+      if (!settings) {
+        return res.status(404).json({ message: "User settings not found" });
+      }
+      
+      return res.status(200).json(settings);
+    } catch (error) {
+      console.error("Get user settings error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update user settings
+  app.put(`${apiPrefix}/user/settings/:id`, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, {
+        settings: req.body
+      });
+      
+      return res.status(200).json(updatedUser.settings);
+    } catch (error) {
+      console.error("Update user settings error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });

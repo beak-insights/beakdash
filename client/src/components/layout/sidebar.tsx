@@ -1,173 +1,109 @@
-import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Database, 
-  Settings,
-  LogOut,
-  Plus
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dashboard } from "@shared/schema";
+import {
+  BarChart3,
+  Database,
+  Home,
+  LogOut,
+  Settings,
+  Share2,
+  User,
+  PanelRight,
+  Layers,
+} from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+
+interface NavItemProps {
+  href: string;
+  icon: any;
+  label: string;
+  active?: boolean;
+}
+
+function NavItem({ href, icon: Icon, label, active }: NavItemProps) {
+  return (
+    <Link to={href}>
+      <Button
+        variant="ghost"
+        className={cn(
+          "w-full justify-start gap-3 rounded-lg px-3 py-2 text-left",
+          active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        )}
+      >
+        <Icon className="h-5 w-5" />
+        <span>{label}</span>
+      </Button>
+    </Link>
+  );
+}
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const [isAddingDashboard, setIsAddingDashboard] = useState(false);
-  const [newDashboardName, setNewDashboardName] = useState("");
-  const queryClient = useQueryClient();
+  const { user, logoutMutation } = useAuth();
 
-  // Fetch dashboards
-  const { data: dashboards = [] } = useQuery<Dashboard[]>({
-    queryKey: ['/api/dashboards'],
-  });
-
-  const [, navigate] = useLocation();
-  const { mutate: createDashboard, isPending } = useMutation({
-    mutationFn: async (name: string) => {
-      const response = await fetch('/api/dashboards', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, userId: 1 }), // Default to user 1 for now
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create dashboard');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data: Dashboard) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
-      navigate(`/dashboard/${data.id}`);
-    },
-  });
-  
-  const handleAddDashboard = () => {
-    if (isAddingDashboard && newDashboardName.trim()) {
-      createDashboard(newDashboardName);
-      setNewDashboardName("");
-      setIsAddingDashboard(false);
-    } else {
-      setIsAddingDashboard(true);
+  const handleLogout = () => {
+    if (confirm("Are you sure you want to log out?")) {
+      logoutMutation.mutate();
     }
   };
 
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return location === "/";
+    }
+    return location.startsWith(path);
+  };
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <aside className="w-64 bg-white border-r border-border hidden md:block overflow-y-auto">
-      <div className="p-4">
-        <Button className="w-full flex items-center justify-between" onClick={handleAddDashboard}>
-          <span>+ New Dashboard</span>
-        </Button>
-        
-        {isAddingDashboard && (
-          <div className="mt-2">
-            <input
-              type="text"
-              value={newDashboardName}
-              onChange={(e) => setNewDashboardName(e.target.value)}
-              className="w-full p-2 text-sm border border-border rounded-md"
-              placeholder="Dashboard name"
-              autoFocus
-            />
-            <div className="flex mt-2 space-x-2">
-              <Button 
-                size="sm" 
-                className="flex-1" 
-                onClick={handleAddDashboard}
-                disabled={!newDashboardName}
-              >
-                Create
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => setIsAddingDashboard(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
+    <aside className="w-64 flex flex-col border-r min-h-screen">
+      <div className="px-6 py-5 flex items-center">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">BeakDash</h2>
       </div>
-
-      <ScrollArea className="h-[calc(100vh-theme(spacing.20))]">
-        <div className="px-2 py-2">
-          <h3 className="px-3 py-2 text-sm font-medium text-muted-foreground">Dashboards</h3>
-          <div className="space-y-1">
-            {dashboards.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No dashboards</p>
-            ) : (
-              dashboards.map((dashboard) => (
-                <Link key={dashboard.id} href={`/dashboard/${dashboard.id}`}>
-                  <Button
-                    variant={location === `/dashboard/${dashboard.id}` || location === "/" ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                  >
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    {dashboard.name}
-                  </Button>
-                </Link>
-              ))
-            )}
+      
+      <div className="p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar>
+            <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
+            <AvatarFallback>{user.displayName?.[0] || user.username[0]}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{user.displayName || user.username}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email || ""}</p>
           </div>
         </div>
-
-        <div className="px-2 py-2">
-          <h3 className="px-3 py-2 text-sm font-medium text-muted-foreground">Data</h3>
-          <div className="space-y-1">
-            <Link href="/connections">
-              <Button
-                variant={location === "/connections" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Connections
-              </Button>
-            </Link>
-            <Link href="/datasets">
-              <Button
-                variant={location === "/datasets" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-              >
-                <Database className="mr-2 h-4 w-4" />
-                Datasets
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        <Separator className="my-2" />
-
-        <div className="px-2 py-2">
-          <h3 className="px-3 py-2 text-sm font-medium text-muted-foreground">Settings</h3>
-          <div className="space-y-1">
-            <Link href="/settings">
-              <Button
-                variant={location === "/settings" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                General
-              </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </ScrollArea>
+      </div>
+      
+      <Separator />
+      
+      <div className="flex-1 px-3 py-4 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MAIN</p>
+        <NavItem href="/" icon={Home} label="Dashboard" active={isActive("/")} />
+        <NavItem href="/dashboards" icon={Layers} label="My Dashboards" active={isActive("/dashboards")} />
+        <NavItem href="/widgets" icon={PanelRight} label="Widgets" active={isActive("/widgets")} />
+        
+        <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">DATA</p>
+        <NavItem href="/connections" icon={Database} label="Connections" active={isActive("/connections")} />
+        <NavItem href="/datasets" icon={BarChart3} label="Datasets" active={isActive("/datasets")} />
+        <NavItem href="/share" icon={Share2} label="Shared" active={isActive("/share")} />
+        
+        <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">ACCOUNT</p>
+        <NavItem href="/profile" icon={User} label="Profile" active={isActive("/profile")} />
+        <NavItem href="/settings" icon={Settings} label="Settings" active={isActive("/settings")} />
+      </div>
+      
+      <div className="px-3 py-4 border-t">
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={handleLogout}>
+          <LogOut className="h-5 w-5" />
+          <span>Log out</span>
+        </Button>
+      </div>
     </aside>
   );
 }
