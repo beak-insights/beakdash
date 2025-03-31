@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
-  Share2,
   User,
   PanelRight,
   Layers,
@@ -88,7 +87,6 @@ export default function Sidebar() {
         <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">DATA</p>
         <NavItem href="/connections" icon={Database} label="Connections" active={isActive("/connections")} />
         <NavItem href="/datasets" icon={BarChart3} label="Datasets" active={isActive("/datasets")} />
-        <NavItem href="/share" icon={Share2} label="Shared" active={isActive("/share")} />
         
         <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">ACCOUNT</p>
         <NavItem href="/profile" icon={User} label="Profile" active={isActive("/profile")} />
