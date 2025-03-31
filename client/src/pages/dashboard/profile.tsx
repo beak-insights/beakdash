@@ -8,7 +8,6 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Save, Camera } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { DashboardLayout } from "@/components/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -101,18 +100,15 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <p>Please log in to view your profile</p>
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Please log in to view your profile</p>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-6">My Profile</h1>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">My Profile</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-1">
@@ -310,6 +306,5 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }
