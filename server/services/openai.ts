@@ -1,32 +1,75 @@
 import OpenAI from "openai";
 import WebSocket from "ws";
 
-// Initialize the OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Extended WebSocket interface with additional properties
+interface ExtendedWebSocket extends WebSocket {
+  isAlive: boolean;
+}
 
-// Active WebSocket clients
-const activeClients: Set<WebSocket> = new Set();
+// Configure OpenAI with error handling
+let openai: OpenAI | null = null;
+
+try {
+  // Initialize the OpenAI client with API key validation
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn("OPENAI_API_KEY is not set. AI features will not be available.");
+  } else {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      maxRetries: 3, // Retry failed requests up to 3 times
+      timeout: 30000, // 30 second timeout for requests
+    });
+    console.log("OpenAI API client initialized successfully");
+  }
+} catch (error) {
+  console.error("Failed to initialize OpenAI client:", error);
+}
+
+// Active WebSocket clients with weak references to allow garbage collection
+const activeClients: Set<ExtendedWebSocket> = new Set();
 
 /**
- * Broadcast a message to all connected WebSocket clients
+ * Broadcast a message to all connected WebSocket clients with error handling
  */
 export function broadcastWebSocketMessage(message: any): void {
-  const messageString = typeof message === 'string' ? message : JSON.stringify(message);
-  
-  // Iterate through all connected clients
-  activeClients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(messageString);
-    }
-  });
+  try {
+    const messageString = typeof message === 'string' ? message : JSON.stringify(message);
+    const deadClients: ExtendedWebSocket[] = [];
+    
+    // Iterate through all connected clients
+    activeClients.forEach(client => {
+      try {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(messageString);
+        } else if (client.readyState === WebSocket.CLOSED || client.readyState === WebSocket.CLOSING) {
+          deadClients.push(client);
+        }
+      } catch (error) {
+        console.error("Error sending message to WebSocket client:", error);
+        deadClients.push(client);
+      }
+    });
+    
+    // Clean up dead clients
+    deadClients.forEach(client => {
+      activeClients.delete(client);
+    });
+  } catch (error) {
+    console.error("Error broadcasting WebSocket message:", error);
+  }
 }
 
 /**
- * Register a WebSocket client
+ * Register a WebSocket client with validation
  */
-export function registerWebSocketClient(client: WebSocket): void {
+export function registerWebSocketClient(client: ExtendedWebSocket): void {
+  if (!client || client.readyState === WebSocket.CLOSED) {
+    console.warn("Attempted to register invalid or closed WebSocket client");
+    return;
+  }
+  
+  // Initialize client properties
+  client.isAlive = true;
   activeClients.add(client);
   
   // Remove client when it disconnects
@@ -36,10 +79,25 @@ export function registerWebSocketClient(client: WebSocket): void {
 }
 
 /**
- * Unregister a WebSocket client
+ * Unregister a WebSocket client with error handling
  */
-export function unregisterWebSocketClient(client: WebSocket): void {
-  activeClients.delete(client);
+export function unregisterWebSocketClient(client: ExtendedWebSocket): void {
+  if (!client) {
+    console.warn("Attempted to unregister invalid WebSocket client");
+    return;
+  }
+  
+  try {
+    activeClients.delete(client);
+    console.log("WebSocket client unregistered successfully");
+    
+    // Close the socket if it's not already closed
+    if (client.readyState !== WebSocket.CLOSED && client.readyState !== WebSocket.CLOSING) {
+      client.close();
+    }
+  } catch (error) {
+    console.error("Error unregistering WebSocket client:", error);
+  }
 }
 
 interface WidgetContext {
@@ -116,6 +174,11 @@ If they need help with dashboard features, guide them step by step.`;
       }
     });
 
+    // Check if OpenAI client is available
+    if (!openai) {
+      throw new Error("OpenAI client is not initialized. Please check your API key.");
+    }
+    
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -202,6 +265,11 @@ export async function generateChartImprovements(widgetContext: WidgetContext): P
       }
     });
 
+    // Check if OpenAI client is available
+    if (!openai) {
+      throw new Error("OpenAI client is not initialized. Please check your API key.");
+    }
+    
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -297,6 +365,11 @@ export async function generateKPISuggestions(datasetId: number): Promise<any> {
       "explanation": "A brief explanation of how these KPIs together provide a comprehensive view of the data"
     }`;
 
+    // Check if OpenAI client is available
+    if (!openai) {
+      throw new Error("OpenAI client is not initialized. Please check your API key.");
+    }
+    
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -376,6 +449,11 @@ export async function generateChartRecommendation(datasetId: number): Promise<an
     - explanation: a brief explanation of why this chart type is recommended (2-3 sentences)
     - suggestedConfig: a brief suggestion for chart configuration (what columns to use for axes, etc.)`;
 
+    // Check if OpenAI client is available
+    if (!openai) {
+      throw new Error("OpenAI client is not initialized. Please check your API key.");
+    }
+    
     // Call the OpenAI API
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

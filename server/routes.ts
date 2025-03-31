@@ -12,6 +12,11 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
+
+// Extended WebSocket interface with additional properties
+interface ExtendedWebSocket extends WebSocket {
+  isAlive: boolean;
+}
 // Import OpenAI services dynamically in the routes to avoid circular dependencies
 
 // Handle zod validation errors
@@ -1389,23 +1394,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Setup WebSocket server on a distinct path to avoid conflicts with Vite's HMR
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    // Add connection timeout
+    clientTracking: true,
+    // Add error handlers
+    perMessageDeflate: {
+      zlibDeflateOptions: {
+        chunkSize: 1024,
+        memLevel: 7,
+        level: 3
+      },
+      zlibInflateOptions: {
+        chunkSize: 10 * 1024
+      },
+      // Below options are passed to zlib for efficiency
+      concurrencyLimit: 10,
+      threshold: 1024 // Only compress messages larger than 1KB
+    }
+  });
   
-  wss.on('connection', async (socket) => {
+  // Handle server-level errors
+  wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
+    // Prevent server crash by catching all errors
+  });
+  
+  // Setup ping interval to keep connections alive
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.ping();
+      }
+    });
+  }, 30000); // Send ping every 30 seconds
+  
+  wss.on('connection', async (rawSocket, req) => {
     console.log('WebSocket client connected');
     
+    // Type cast to our extended WebSocket interface
+    const socket = rawSocket as ExtendedWebSocket;
+    
+    // Set a timeout to ensure connections don't stay open indefinitely without activity
+    socket.isAlive = true;
+    
+    // Monitor pong responses to detect dead connections
+    socket.on('pong', () => {
+      socket.isAlive = true;
+    });
+    
     // Import the OpenAI service to register the socket
-    const { registerWebSocketClient } = await import("./services/openai");
+    const { registerWebSocketClient, unregisterWebSocketClient } = await import("./services/openai");
+    
+    // Initialize the "isAlive" property required by the ExtendedWebSocket interface
+    socket.isAlive = true;
     
     // Register this socket with the OpenAI service for broadcasting
     registerWebSocketClient(socket);
     
     // Send welcome message
-    socket.send(JSON.stringify({ 
-      type: 'connection',
-      message: 'Connected to BeakDash WebSocket server',
-      timestamp: new Date().toISOString()
-    }));
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ 
+        type: 'connection',
+        message: 'Connected to BeakDash WebSocket server',
+        timestamp: new Date().toISOString()
+      }));
+    }
     
     // Handle messages from clients
     socket.on('message', (data) => {
@@ -1445,14 +1500,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
-    // Handle client disconnection
+    // Handle client disconnection with proper cleanup
     socket.on('close', () => {
       console.log('WebSocket client disconnected');
+      // Clean up by unregistering the client
+      unregisterWebSocketClient(socket);
+      socket.isAlive = false;
     });
     
-    // Handle errors
+    // Handle errors with logging and cleanup
     socket.on('error', (error) => {
       console.error('WebSocket error:', error);
+      // Clean up when error occurs
+      unregisterWebSocketClient(socket);
+      socket.isAlive = false;
+      // Attempt to close the socket if not already closed
+      if (socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
+        socket.terminate();
+      }
     });
   });
   

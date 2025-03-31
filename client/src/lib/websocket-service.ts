@@ -41,15 +41,35 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     }
     
     try {
-      // Use current window protocol and host for WebSocket connection
-      // This ensures it works in any environment including Replit
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
+      // Create a more robust WebSocket URL
+      const isSecure = window.location.protocol === 'https:';
+      const protocol = isSecure ? 'wss:' : 'ws:';
+      
+      // Get the host from the current URL or default to localhost for development
+      const host = window.location.host || 'localhost:5000';
+      
+      // Ensure the WebSocket path is correctly formatted
       const wsUrl = `${protocol}//${host}/ws`;
       
       console.log(`Connecting to WebSocket at: ${wsUrl}`);
       
+      // Create the WebSocket connection with specific options
       const newSocket = new WebSocket(wsUrl);
+      
+      // Set a connection timeout to prevent hanging connections
+      const connectionTimeout = setTimeout(() => {
+        if (newSocket.readyState !== WebSocket.OPEN) {
+          console.warn('WebSocket connection timeout, closing socket');
+          newSocket.close();
+          set({ isConnected: false });
+        }
+      }, 10000); // 10 second timeout
+      
+      // Clear the timeout once connected
+      newSocket.addEventListener('open', () => {
+        clearTimeout(connectionTimeout);
+      });
+      
       set({ socket: newSocket });
       
       // Socket event handlers are set up in the useWebSocket hook
@@ -236,14 +256,38 @@ export function useWebSocket() {
     };
   }, [addEventListenerToSet, removeEventListenerFromSet]);
   
-  // Send message to websocket
+  // Send message to websocket with improved error handling
   const send = useCallback((message: any) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
+    if (!socket) {
+      console.warn('WebSocket not initialized, attempting to reconnect');
+      connect();
+      return false;
+    }
+    
+    if (socket.readyState === WebSocket.CONNECTING) {
+      console.log('WebSocket is connecting, will retry sending message');
+      // Queue the message to be sent when connection is established
+      setTimeout(() => send(message), 1000);
       return true;
     }
+    
+    if (socket.readyState === WebSocket.OPEN) {
+      try {
+        const serializedMessage = JSON.stringify(message);
+        socket.send(serializedMessage);
+        return true;
+      } catch (error) {
+        console.error('Error sending WebSocket message:', error);
+        return false;
+      }
+    } else if (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED) {
+      console.warn('WebSocket is closed or closing, attempting to reconnect');
+      connect();
+      return false;
+    }
+    
     return false;
-  }, [socket]);
+  }, [socket, connect]);
   
   return useMemo(() => ({
     isConnected,
