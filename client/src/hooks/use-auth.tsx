@@ -74,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
+    staleTime: 300000, // 5 minutes - keep data fresh for longer
+    gcTime: 3600000, // 1 hour - keep in cache longer (formerly cacheTime in v4)
+    refetchOnWindowFocus: false, // Prevent refetching when window gets focus
+    refetchOnMount: false // Prevent refetching when component mounts
   });
 
   // Login mutation
@@ -210,10 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Create a properly typed user value to avoid type errors
+  const typedUser = user as User | null;
+  
   return (
     <AuthContext.Provider
       value={{
-        user: user || null,
+        user: typedUser,
         isLoading,
         error,
         loginMutation,

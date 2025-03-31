@@ -66,8 +66,29 @@ export default function Sidebar() {
     return location.startsWith(path);
   };
 
+  // Instead of returning null, render a loading state with minimal width
+  // This will prevent layout shifts and keep the sidebar structure intact
   if (!user) {
-    return null;
+    return (
+      <aside className="w-64 flex flex-col border-r min-h-screen">
+        <div className="px-6 py-5 flex items-center">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">BeakDash</h2>
+        </div>
+        <Separator />
+        <div className="flex-1 px-3 py-4">
+          {/* Skeleton loading state */}
+          <div className="animate-pulse space-y-3">
+            <div className="h-3 w-24 bg-muted rounded"></div>
+            <div className="h-8 w-full bg-muted rounded"></div>
+            <div className="h-8 w-full bg-muted rounded"></div>
+            <div className="h-8 w-full bg-muted rounded"></div>
+            <div className="h-3 w-24 bg-muted rounded mt-4"></div>
+            <div className="h-8 w-full bg-muted rounded"></div>
+            <div className="h-8 w-full bg-muted rounded"></div>
+          </div>
+        </div>
+      </aside>
+    );
   }
 
   return (

@@ -499,6 +499,7 @@ export default function WidgetEditor({
       "dual-axes": "Dual Axes Chart",
       counter: "Counter",
       "stat-card": "Stat Card",
+      table: "Data Table", // Add missing table type
     };
     return displayNames[type] || type;
   };
