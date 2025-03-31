@@ -41,12 +41,11 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     }
     
     try {
-      // Create a more robust WebSocket URL
-      const isSecure = window.location.protocol === 'https:';
-      const protocol = isSecure ? 'wss:' : 'ws:';
+      // Create a robust WebSocket URL based on current window location
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // Get the host from the current URL or default to localhost for development
-      const host = window.location.host || 'localhost:5000';
+      // Use the current host which includes port if needed
+      const host = window.location.host;
       
       // Ensure the WebSocket path is correctly formatted
       const wsUrl = `${protocol}//${host}/ws`;

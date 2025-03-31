@@ -36,12 +36,13 @@ export function useSpaces() {
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces'],
     retry: 1,
+    staleTime: 60000, // 1 minute
     onError: (error: Error) => {
-      console.error("Error fetching spaces:", error);
+      console.error('Error fetching spaces:', error);
       toast({
-        title: "Failed to load spaces",
-        description: "There was an error loading spaces. Please try again later.",
-        variant: "destructive",
+        title: 'Error fetching spaces',
+        description: error.message,
+        variant: 'destructive',
       });
     }
   });
@@ -54,12 +55,13 @@ export function useSpaces() {
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces/user'],
     retry: 1,
+    staleTime: 60000, // 1 minute
     onError: (error: Error) => {
-      console.error("Error fetching user spaces:", error);
+      console.error('Error fetching user spaces:', error);
       toast({
-        title: "Failed to load your spaces",
-        description: "There was an error loading your spaces. Please try again later.",
-        variant: "destructive",
+        title: 'Error fetching your spaces',
+        description: error.message,
+        variant: 'destructive',
       });
     }
   });
@@ -195,7 +197,7 @@ export function useSpaces() {
   };
   
   // Get current space
-  const currentSpace = spaces.find(space => space.id === currentSpaceId) || null;
+  const currentSpace = Array.isArray(spaces) ? spaces.find(space => space.id === currentSpaceId) : null;
 
   return {
     spaces,

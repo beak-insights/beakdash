@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { Space } from "@shared/schema";
 import {
   BarChart3,
   Database,
@@ -142,7 +143,8 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
 
   // If collapsed, show just the current space with a tooltip
   if (collapsed) {
-    const currentSpace = userSpaces.find(space => space.id === currentSpaceId);
+    const safeUserSpaces = Array.isArray(userSpaces) ? userSpaces : [];
+    const currentSpace = safeUserSpaces.find((space: Space) => space.id === currentSpaceId);
     
     return (
       <div className="space-y-1 mt-2 mb-4">
@@ -163,7 +165,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                   <DropdownMenuContent align="center" className="w-48">
                     <div className="p-2 text-center font-medium text-sm">Spaces</div>
                     <DropdownMenuSeparator />
-                    {userSpaces.map(space => (
+                    {safeUserSpaces.map((space: Space) => (
                       <DropdownMenuItem 
                         key={space.id}
                         className={cn(space.id === currentSpaceId && "bg-muted")}
@@ -208,7 +210,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               <div className="flex items-center gap-2 truncate">
                 <Globe className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">
-                  {userSpaces.find(space => space.id === currentSpaceId)?.name || "Default"}
+                  {Array.isArray(userSpaces) ? userSpaces.find((space: Space) => space.id === currentSpaceId)?.name || "Default" : "Default"}
                 </span>
               </div>
               <ChevronDown className="h-4 w-4 opacity-50" />
@@ -222,7 +224,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               Select Space
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {userSpaces.map(space => (
+            {Array.isArray(userSpaces) ? userSpaces.map((space: Space) => (
               <DropdownMenuItem 
                 key={space.id} 
                 onClick={() => setCurrentSpaceId(space.id)}
@@ -233,7 +235,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                   <span className="truncate">{space.name}</span>
                 </div>
               </DropdownMenuItem>
-            ))}
+            )) : null}
             <DropdownMenuSeparator />
             <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
               <DropdownMenuItem>
