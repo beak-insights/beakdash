@@ -166,12 +166,14 @@ export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
   datasetId: integer("dataset_id").references(() => datasets.id),
   connectionId: integer("connection_id").references(() => connections.id),
+  spaceId: integer("space_id").references(() => spaces.id), // Nullable to allow global widgets
   name: text("name").notNull(),
   type: text("type").notNull(),
   config: jsonb("config").default({}),
   customQuery: text("custom_query"),
   isTemplate: boolean("is_template").default(false),
   sourceWidgetId: integer("source_widget_id").references((): any => widgets.id),
+  isGlobal: boolean("is_global").default(false), // Flag to explicitly mark widgets as global
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -190,12 +192,14 @@ export const dashboardWidgets = pgTable("dashboard_widgets", {
 export const insertWidgetSchema = createInsertSchema(widgets).pick({
   datasetId: true,
   connectionId: true,
+  spaceId: true,
   name: true,
   type: true,
   config: true,
   customQuery: true,
   isTemplate: true,
   sourceWidgetId: true,
+  isGlobal: true,
 });
 
 export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).pick({
@@ -271,6 +275,7 @@ export const spacesRelations = relations(spaces, ({ many }) => ({
   dashboards: many(dashboards),
   connections: many(connections),
   userSpaces: many(userSpaces),
+  widgets: many(widgets), // Add widgets relation
 }));
 
 // UserSpace relations
@@ -343,6 +348,10 @@ export const widgetsRelations = relations(widgets, ({ one, many }) => {
     connection: one(connections, {
       fields: [widgets.connectionId],
       references: [connections.id],
+    }),
+    space: one(spaces, {
+      fields: [widgets.spaceId],
+      references: [spaces.id],
     }),
     sourceWidget: one(widgets, {
       fields: [widgets.sourceWidgetId],

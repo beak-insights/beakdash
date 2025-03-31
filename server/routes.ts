@@ -955,25 +955,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const dashboardId = req.query.dashboardId ? Number(req.query.dashboardId) : undefined;
       const spaceId = req.query.spaceId ? Number(req.query.spaceId) : undefined;
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      const globalOnly = req.query.globalOnly === 'true';
       
-      // If spaceId is provided but dashboardId is not, get all widgets associated with dashboards in this space
-      if (spaceId && !dashboardId) {
-        // Get all dashboards for this space
-        const dashboards = await storage.getDashboards(undefined, spaceId);
-        
-        if (dashboards.length > 0) {
-          // Get all widgets for the first dashboard (simplified approach)
-          // In a production app, you might want to get widgets for all dashboards and merge
-          const widgets = await storage.getWidgets(dashboards[0].id);
-          return res.status(200).json(widgets);
-        }
-        // No dashboards in this space
-        return res.status(200).json([]);
-      } else {
-        // Normal case - get widgets directly by dashboard ID
+      // If dashboardId is provided, return widgets for that dashboard
+      if (dashboardId) {
         const widgets = await storage.getWidgets(dashboardId);
         return res.status(200).json(widgets);
       }
+      
+      // If globalOnly is true, filter only global widgets
+      if (globalOnly) {
+        const allWidgets = await storage.getWidgets();
+        const globalWidgets = allWidgets.filter(widget => widget.isGlobal);
+        return res.status(200).json(globalWidgets);
+      }
+      
+      // Get widgets with space and user-based permissions using our new hybrid approach
+      const widgets = await storage.getWidgets(undefined, userId, spaceId);
+      return res.status(200).json(widgets);
     } catch (error) {
       console.error("Get widgets error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -1004,7 +1004,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return handleZodError(widgetData.error, res);
       }
       
-      const newWidget = await storage.createWidget(widgetData.data);
+      // Handle the hybrid approach for widget creation
+      const data = widgetData.data;
+      
+      // Ensure consistent behavior: If isGlobal is true, remove any spaceId
+      if (data.isGlobal && data.spaceId) {
+        data.spaceId = null;
+      }
+      
+      // Log widget creation request
+      console.log("Creating widget:", {
+        name: data.name,
+        type: data.type, 
+        isGlobal: data.isGlobal,
+        spaceId: data.spaceId
+      });
+      
+      const newWidget = await storage.createWidget(data);
       return res.status(201).json(newWidget);
     } catch (error) {
       console.error("Create widget error:", error);
@@ -1042,6 +1058,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.connectionId = null;
       }
       
+      // Handle the hybrid approach for isGlobal/spaceId relationship
+      if (updateData.isGlobal !== undefined || updateData.spaceId !== undefined) {
+        // If isGlobal is being set to true, ensure spaceId is null
+        if (updateData.isGlobal === true) {
+          updateData.spaceId = null;
+        } 
+        // If spaceId is being set and not null, ensure isGlobal is false
+        else if (updateData.spaceId !== null && updateData.spaceId !== undefined) {
+          updateData.isGlobal = false;
+        }
+      }
+      
       // Ensure type is one of the allowed chart types
       if (updateData.type && !chartTypes.includes(updateData.type)) {
         return res.status(400).json({ 
@@ -1050,7 +1078,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log("Updating widget with data:", updateData);
+      console.log("Updating widget with data:", {
+        id,
+        ...updateData,
+        isGlobal: updateData.isGlobal,
+        spaceId: updateData.spaceId
+      });
       const updatedWidget = await storage.updateWidget(id, updateData);
       return res.status(200).json(updatedWidget);
     } catch (error) {

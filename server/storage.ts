@@ -9,7 +9,7 @@ import {
   dashboardWidgets, type DashboardWidget, type InsertDashboardWidget
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, inArray } from "drizzle-orm";
 
 // Extended interface for Widget with dashboard-related properties
 interface ExtendedWidget extends Widget {
@@ -59,7 +59,7 @@ export interface IStorage {
   deleteDataset(id: number): Promise<boolean>;
 
   // Widget operations
-  getWidgets(dashboardId?: number): Promise<Widget[]>;
+  getWidgets(dashboardId?: number, userId?: number, spaceId?: number): Promise<Widget[]>;
   getWidget(id: number): Promise<Widget | undefined>;
   createWidget(widget: InsertWidget): Promise<Widget>;
   updateWidget(id: number, widget: Partial<Widget>): Promise<Widget>;
@@ -414,14 +414,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Widget operations
-  async getWidgets(dashboardId?: number): Promise<Widget[]> {
+  async getWidgets(dashboardId?: number, userId?: number, spaceId?: number): Promise<Widget[]> {
     if (dashboardId) {
       // Use the many-to-many relationship through dashboardWidgets
       return this.getDashboardWidgets(dashboardId);
     }
-    // Get all widgets
-    const result = await db.select().from(widgets).orderBy(desc(widgets.createdAt));
-    return result as Widget[];
+    
+    // Build conditions for filtering widgets
+    const conditions = [];
+    
+    if (spaceId) {
+      // For a specific space, get widgets that belong to this space OR are global
+      conditions.push(
+        or(
+          eq(widgets.spaceId, spaceId),
+          eq(widgets.isGlobal, true)
+        )
+      );
+    }
+    
+    if (userId && !spaceId) {
+      // If we have a userId but no spaceId, 
+      // get global widgets OR widgets from spaces the user has access to
+      const userSpaces = await this.getUserSpaces(userId);
+      const spaceIds = userSpaces.map(space => space.id);
+      
+      if (spaceIds.length > 0) {
+        conditions.push(
+          or(
+            eq(widgets.isGlobal, true),
+            inArray(widgets.spaceId, spaceIds)
+          )
+        );
+      } else {
+        // If user is not in any spaces, only show global widgets
+        conditions.push(eq(widgets.isGlobal, true));
+      }
+    }
+    
+    // Execute the query with conditions
+    const baseQuery = db.select().from(widgets);
+    
+    if (conditions.length > 0) {
+      const result = await baseQuery.where(and(...conditions)).orderBy(desc(widgets.createdAt));
+      return result;
+    }
+    
+    const result = await baseQuery.orderBy(desc(widgets.createdAt));
+    return result;
   }
 
   async getWidget(id: number): Promise<Widget | undefined> {
@@ -443,11 +483,18 @@ export class DatabaseStorage implements IStorage {
       type: typedWidget.type,
       datasetId: typedWidget.datasetId || null,
       connectionId: typedWidget.connectionId || null,
+      spaceId: typedWidget.spaceId || null, // Add spaceId support
       config: typedWidget.config || {},
       customQuery: typedWidget.customQuery || null,
       isTemplate: typedWidget.isTemplate || false,
-      sourceWidgetId: typedWidget.sourceWidgetId || null
+      sourceWidgetId: typedWidget.sourceWidgetId || null,
+      isGlobal: typedWidget.isGlobal || false // Add isGlobal support
     };
+    
+    // Ensure mutual exclusivity: a widget can't be both global and belong to a space
+    if (values.isGlobal && values.spaceId) {
+      values.spaceId = null; // If marked as global, remove space association
+    }
     
     const result = await db.insert(widgets).values(values).returning();
     
