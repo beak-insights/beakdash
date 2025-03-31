@@ -1,22 +1,95 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, PieChart, ArrowUpRight, Clock, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import useDashboard from "@/hooks/use-dashboard";
 import { useSpaces } from "@/hooks/use-spaces";
-import { Dashboard } from "@shared/schema";
+import { Dashboard, InsertDashboard } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardListPage() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "mine">("all");
-  const { dashboards, isLoading } = useDashboard();
+  const { dashboards, isLoading, createDashboard, isPending } = useDashboard();
   const { currentSpace } = useSpaces();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  
+  // Create dashboard modal state
+  const [isCreateDashboardOpen, setIsCreateDashboardOpen] = useState(false);
+  const [newDashboard, setNewDashboard] = useState<InsertDashboard>({
+    name: "",
+    description: "",
+    userId: user?.id || 0,
+    spaceId: 0,
+    layout: {}
+  });
+  
+  // Handle input changes for the dashboard creation form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewDashboard(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Handle dashboard creation
+  const handleCreateDashboard = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newDashboard.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Dashboard name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Set the current space ID
+    const dashboardWithSpace = {
+      ...newDashboard,
+      spaceId: currentSpace?.id || 0,
+      userId: user?.id || 0
+    };
+    
+    // Create the dashboard
+    createDashboard(dashboardWithSpace, {
+      onSuccess: (dashboard) => {
+        setIsCreateDashboardOpen(false);
+        // Reset the form
+        setNewDashboard({
+          name: "",
+          description: "",
+          userId: user?.id || 0,
+          spaceId: 0,
+          layout: {}
+        });
+        // Navigate to the new dashboard
+        setTimeout(() => {
+          setLocation(`/dashboard/${dashboard.id}`);
+        }, 500);
+      }
+    });
+  };
   
   // Filter dashboards based on the selected filter
   const filteredDashboards = dashboards?.filter((dashboard: Dashboard) => {
@@ -25,6 +98,7 @@ export default function DashboardListPage() {
   });
 
   return (
+    <div>
       <div className="flex flex-col space-y-6 p-6 md:p-8">
         <div className="flex justify-between items-center">
           <div>
@@ -35,15 +109,16 @@ export default function DashboardListPage() {
                 "View, filter, and manage all your dashboards"}
             </p>
           </div>
-          <Link to={currentSpace ? "/dashboard/new" : "#"}>
-            <Button
-              disabled={!currentSpace}
-              title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Dashboard
-            </Button>
-          </Link>
+          <Button
+            disabled={!currentSpace}
+            title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+            onClick={() => {
+              if (currentSpace) setIsCreateDashboardOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Dashboard
+          </Button>
           {!currentSpace && (
             <div className="absolute mt-2 right-6 bg-muted p-2 rounded-md text-sm animate-in fade-in">
               Please select a space first to create a dashboard
@@ -132,15 +207,16 @@ export default function DashboardListPage() {
                   ? "Create your first dashboard to start visualizing your data with powerful analytics and AI insights."
                   : "Create a new dashboard or switch to 'Mine' to see only your dashboards."}
               </p>
-              <Link to={currentSpace ? "/dashboard/new" : "#"}>
-                <Button
-                  disabled={!currentSpace}
-                  title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Dashboard
-                </Button>
-              </Link>
+              <Button
+                disabled={!currentSpace}
+                title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+                onClick={() => {
+                  if (currentSpace) setIsCreateDashboardOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Dashboard
+              </Button>
               {!currentSpace && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Please select a space first to create a dashboard.
@@ -150,5 +226,56 @@ export default function DashboardListPage() {
           )}
         </div>
       </div>
+      
+      <Dialog open={isCreateDashboardOpen} onOpenChange={setIsCreateDashboardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Dashboard</DialogTitle>
+            <DialogDescription>
+              {currentSpace ? 
+                `Creating a dashboard in ${currentSpace?.name} space` : 
+                "Please select a space before creating a dashboard"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateDashboard}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Dashboard Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Enter dashboard name"
+                  value={newDashboard.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Enter dashboard description"
+                  value={newDashboard.description || ''}
+                  onChange={handleInputChange}
+                  rows={4}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateDashboardOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !currentSpace}>
+                {isPending ? "Creating..." : "Create Dashboard"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

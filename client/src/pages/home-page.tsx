@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,16 +6,84 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, LineChart, BarChart3, PieChart, Activity, Clock, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Dashboard } from "@shared/schema";
+import { Dashboard, InsertDashboard } from "@shared/schema";
 import useDashboard from "@/hooks/use-dashboard";
 import { useSpaces } from "@/hooks/use-spaces";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { dashboards, isLoading } = useDashboard();
+  const { dashboards, isLoading, createDashboard, isPending } = useDashboard();
   const { currentSpace } = useSpaces();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  
+  // Create dashboard modal state
+  const [isCreateDashboardOpen, setIsCreateDashboardOpen] = useState(false);
+  const [newDashboard, setNewDashboard] = useState<InsertDashboard>({
+    name: "",
+    description: "",
+    userId: user?.id || 0,
+    spaceId: 0,
+    layout: {}
+  });
+  
+  // Handle input changes for the dashboard creation form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewDashboard(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Handle dashboard creation
+  const handleCreateDashboard = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newDashboard.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Dashboard name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Set the current space ID
+    const dashboardWithSpace = {
+      ...newDashboard,
+      spaceId: currentSpace?.id || 0,
+      userId: user?.id || 0
+    };
+    
+    // Create the dashboard
+    createDashboard(dashboardWithSpace, {
+      onSuccess: (dashboard) => {
+        setIsCreateDashboardOpen(false);
+        // Reset the form
+        setNewDashboard({
+          name: "",
+          description: "",
+          userId: user?.id || 0,
+          spaceId: 0,
+          layout: {}
+        });
+        // Navigate to the new dashboard
+        setTimeout(() => {
+          setLocation(`/dashboard/${dashboard.id}`);
+        }, 500);
+      }
+    });
+  };
 
   return (
+    <div>
       <div className="flex flex-col space-y-6 p-6 md:p-8">
         <div className="flex justify-between items-center">
           <div>
@@ -26,15 +94,16 @@ export default function HomePage() {
                 "Here's a summary of your dashboards and recent activity."}
             </p>
           </div>
-          <Link href={currentSpace ? "/dashboard/new" : "#"}>
-            <Button 
-              disabled={!currentSpace} 
-              title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Dashboard
-            </Button>
-          </Link>
+          <Button 
+            disabled={!currentSpace} 
+            title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+            onClick={() => {
+              if (currentSpace) setIsCreateDashboardOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Dashboard
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -109,7 +178,7 @@ export default function HomePage() {
 
         <div className="flex justify-between items-center mt-6">
           <h2 className="text-xl font-semibold">Recent Dashboards</h2>
-          <Link href="/dashboard">
+          <Link to="/dashboard">
             <Button variant="outline" size="sm">
               View All Dashboards
             </Button>
@@ -163,7 +232,7 @@ export default function HomePage() {
                     <Clock className="h-4 w-4 mr-1" />
                     <span>Updated {new Date((dashboard.updatedAt || dashboard.createdAt || new Date()) as Date).toLocaleDateString()}</span>
                   </div>
-                  <Link href={`/dashboard/${dashboard.id}`}>
+                  <Link to={`/dashboard/${dashboard.id}`}>
                     <Button variant="outline" size="sm">
                       <ArrowUpRight className="h-4 w-4 mr-1" />
                       View
@@ -181,15 +250,16 @@ export default function HomePage() {
               <p className="text-muted-foreground max-w-md mb-4">
                 Create your first dashboard to start visualizing your data with powerful analytics and AI insights.
               </p>
-              <Link href={currentSpace ? "/dashboard/new" : "#"}>
-                <Button 
-                  disabled={!currentSpace}
-                  title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Dashboard
-                </Button>
-              </Link>
+              <Button 
+                disabled={!currentSpace}
+                title={!currentSpace ? "Select a space to create a dashboard" : "Create a new dashboard"}
+                onClick={() => {
+                  if (currentSpace) setIsCreateDashboardOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Dashboard
+              </Button>
               {!currentSpace && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Please select a space first to create a dashboard.
@@ -199,5 +269,56 @@ export default function HomePage() {
           )}
         </div>
       </div>
+      
+      <Dialog open={isCreateDashboardOpen} onOpenChange={setIsCreateDashboardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Dashboard</DialogTitle>
+            <DialogDescription>
+              {currentSpace ? 
+                `Creating a dashboard in ${currentSpace?.name} space` : 
+                "Please select a space before creating a dashboard"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateDashboard}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Dashboard Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Enter dashboard name"
+                  value={newDashboard.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Enter dashboard description"
+                  value={newDashboard.description || ''}
+                  onChange={handleInputChange}
+                  rows={4}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateDashboardOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !currentSpace}>
+                {isPending ? "Creating..." : "Create Dashboard"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
