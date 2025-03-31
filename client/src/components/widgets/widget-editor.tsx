@@ -425,19 +425,34 @@ export default function WidgetEditor({
       return;
     }
 
-    // Create widget data object
+    // Make sure we explicitly set the fields that should be null
+    // This ensures fields are properly cleared when switching between custom query and dataset modes
     const widgetData = {
       name,
       dashboardId: selectedDashboardId,
-      datasetId: useCustomQuery ? null : selectedDatasetId,
-      connectionId: useCustomQuery ? selectedConnectionId : null,
-      customQuery: useCustomQuery ? customQuery : null,
       type: chartType,
       config,
       position: widget?.position || { x: 0, y: 0, w: 3, h: 2 },
       isTemplate: isTemplate,
       sourceWidgetId: widget?.sourceWidgetId || null,
     };
+    
+    // When using custom query, explicitly set these fields
+    if (useCustomQuery) {
+      Object.assign(widgetData, {
+        datasetId: null,  // Explicitly set to null when using custom query
+        connectionId: selectedConnectionId,
+        customQuery: customQuery
+      });
+    } else {
+      Object.assign(widgetData, {
+        datasetId: selectedDatasetId,
+        connectionId: null,  // Explicitly set to null when using dataset
+        customQuery: null    // Explicitly set to null when using dataset
+      });
+    }
+
+    console.log("Submitting widget data:", widgetData);
 
     // Handle save callbacks if provided
     if (onSave && widget) {
@@ -457,7 +472,17 @@ export default function WidgetEditor({
 
     // Default save behavior
     if (widget) {
-      updateWidget({ id: widget.id, widget: widgetData });
+      // When updating, explicitly include the ID to ensure we're updating the right widget
+      const widgetId = widget.id;
+      if (!widgetId) {
+        toast({
+          title: "Error",
+          description: "Widget ID is missing.",
+          variant: "destructive",
+        });
+        return;
+      }
+      updateWidget({ id: widgetId, widget: widgetData });
     } else {
       createWidget(widgetData);
     }

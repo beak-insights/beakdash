@@ -41,8 +41,13 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     }
     
     try {
+      // Use current window protocol and host for WebSocket connection
+      // This ensures it works in any environment including Replit
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws`;
+      
+      console.log(`Connecting to WebSocket at: ${wsUrl}`);
       
       const newSocket = new WebSocket(wsUrl);
       set({ socket: newSocket });

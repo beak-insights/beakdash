@@ -7,7 +7,8 @@ import {
   insertConnectionSchema, 
   insertDatasetSchema, 
   insertWidgetSchema,
-  insertUserSchema
+  insertUserSchema,
+  chartTypes
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
@@ -774,13 +775,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${apiPrefix}/widgets/:id`, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const widget = await storage.getWidget(id);
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid widget ID" });
+      }
       
+      const widget = await storage.getWidget(id);
       if (!widget) {
         return res.status(404).json({ message: "Widget not found" });
       }
       
-      const updatedWidget = await storage.updateWidget(id, req.body);
+      // Handle the case where we're switching between dataset and custom query
+      const updateData = { ...req.body };
+      
+      // If we're using a custom query, make sure datasetId is null and vice versa
+      if (updateData.customQuery && updateData.customQuery.trim() !== '') {
+        // Using custom query - ensure proper fields are set
+        if (updateData.connectionId === undefined && widget.connectionId) {
+          // Keep existing connectionId if not provided
+          updateData.connectionId = widget.connectionId;
+        }
+        // Ensure datasetId is null when using custom query
+        updateData.datasetId = null;
+      } else if (updateData.datasetId) {
+        // Using dataset - ensure proper fields are set
+        updateData.customQuery = null;
+        updateData.connectionId = null;
+      }
+      
+      // Ensure type is one of the allowed chart types
+      if (updateData.type && !chartTypes.includes(updateData.type)) {
+        return res.status(400).json({ 
+          message: "Invalid chart type", 
+          allowedTypes: chartTypes 
+        });
+      }
+      
+      console.log("Updating widget with data:", updateData);
+      const updatedWidget = await storage.updateWidget(id, updateData);
       return res.status(200).json(updatedWidget);
     } catch (error) {
       console.error("Update widget error:", error);
