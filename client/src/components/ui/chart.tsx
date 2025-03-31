@@ -14,6 +14,7 @@ import { ChartType } from "@shared/schema";
 import { cn, getRandomColor } from "@/lib/utils";
 import CounterWidget from "@/components/widgets/counter-widget";
 import StatCardWidget from "@/components/widgets/stat-card-widget";
+import TableWidget from "@/components/widgets/table-widget";
 
 type CommonChartProps = {
   data: Record<string, any>[];
@@ -439,6 +440,14 @@ export function Chart({
     case "stat-card":
       return (
         <StatCardWidget
+          data={data}
+          config={config}
+          className={className}
+        />
+      );
+    case "table":
+      return (
+        <TableWidget
           data={data}
           config={config}
           className={className}

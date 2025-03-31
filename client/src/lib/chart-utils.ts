@@ -47,6 +47,8 @@ export interface ChartConfig {
   colorCodeChange?: boolean;
   trend?: 'up' | 'down' | 'neutral';
   connectNulls?: boolean;
+  // Table widget fields
+  headers?: string[];
 }
 
 export interface ChartFilter {
@@ -128,6 +130,15 @@ export function getDefaultChartConfig(chartType: ChartType): ChartConfig {
         showChange: true,
         colorCodeChange: true,
         trend: 'neutral',
+      };
+    case 'table':
+      return {
+        ...baseConfig,
+        limit: 20,
+        sortBy: '',
+        sortOrder: 'asc',
+        headers: [],
+        filters: [],
       };
     default:
       return baseConfig;
@@ -269,6 +280,11 @@ export function suggestChartType(data: Record<string, any>[]): ChartType {
     if (timeFields.length > 0 || (numericCount === 2 && categoricalCount <= 1)) {
       return 'stat-card';
     }
+  }
+  
+  // If data has many columns or complex structure, suggest table view
+  if (fields.length >= 6 || (numericCount >= 4 && categoricalCount >= 2)) {
+    return 'table';
   }
   
   // If there are multiple numeric fields and at least one categorical
@@ -427,6 +443,16 @@ export function suggestAxisMappings(
       const compareField = timeFields[0] || categoricalFields[0];
       
       return { primaryValueField, secondaryValueField, compareField } as any;
+    }
+
+    case 'table': {
+      // For tables, suggest all fields as headers and first field as sortBy
+      return { 
+        headers: fields,
+        sortBy: fields[0],
+        sortOrder: 'asc',
+        limit: 20
+      } as any;
     }
     
     default:
