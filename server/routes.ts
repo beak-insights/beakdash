@@ -219,7 +219,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/dashboards`, async (req, res) => {
     try {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
-      const dashboards = await storage.getDashboards(userId);
+      const spaceId = req.query.spaceId ? Number(req.query.spaceId) : undefined;
+      const dashboards = await storage.getDashboards(userId, spaceId);
       return res.status(200).json(dashboards);
     } catch (error) {
       console.error("Get dashboards error:", error);
@@ -297,7 +298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/connections`, async (req, res) => {
     try {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
-      const connections = await storage.getConnections(userId);
+      const spaceId = req.query.spaceId ? Number(req.query.spaceId) : undefined;
+      const connections = await storage.getConnections(userId, spaceId);
       return res.status(200).json(connections);
     } catch (error) {
       console.error("Get connections error:", error);
@@ -376,8 +378,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
       const connectionId = req.query.connectionId ? Number(req.query.connectionId) : undefined;
-      const datasets = await storage.getDatasets(userId, connectionId);
-      return res.status(200).json(datasets);
+      const spaceId = req.query.spaceId ? Number(req.query.spaceId) : undefined;
+      
+      // First get connections if spaceId is specified but connectionId is not
+      if (spaceId && !connectionId) {
+        // Get all connections for this space
+        const spaceConnections = await storage.getConnections(userId, spaceId);
+        // Extract connection IDs
+        const connectionIds = spaceConnections.map(conn => conn.id);
+        // Get datasets for these connections
+        if (connectionIds.length > 0) {
+          // For simplicity, we'll get datasets for the first connection only
+          // In a production app, you might want to get for all connections and merge
+          const datasets = await storage.getDatasets(userId, connectionIds[0]);
+          return res.status(200).json(datasets);
+        }
+        // No connections in this space
+        return res.status(200).json([]);
+      } else {
+        // Normal case - get datasets directly
+        const datasets = await storage.getDatasets(userId, connectionId);
+        return res.status(200).json(datasets);
+      }
     } catch (error) {
       console.error("Get datasets error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -737,8 +759,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/widgets`, async (req, res) => {
     try {
       const dashboardId = req.query.dashboardId ? Number(req.query.dashboardId) : undefined;
-      const widgets = await storage.getWidgets(dashboardId);
-      return res.status(200).json(widgets);
+      const spaceId = req.query.spaceId ? Number(req.query.spaceId) : undefined;
+      
+      // If spaceId is provided but dashboardId is not, get all widgets associated with dashboards in this space
+      if (spaceId && !dashboardId) {
+        // Get all dashboards for this space
+        const dashboards = await storage.getDashboards(undefined, spaceId);
+        
+        if (dashboards.length > 0) {
+          // Get all widgets for the first dashboard (simplified approach)
+          // In a production app, you might want to get widgets for all dashboards and merge
+          const widgets = await storage.getWidgets(dashboards[0].id);
+          return res.status(200).json(widgets);
+        }
+        // No dashboards in this space
+        return res.status(200).json([]);
+      } else {
+        // Normal case - get widgets directly by dashboard ID
+        const widgets = await storage.getWidgets(dashboardId);
+        return res.status(200).json(widgets);
+      }
     } catch (error) {
       console.error("Get widgets error:", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -1463,7 +1503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     // Handle messages from clients
-    socket.on('message', (data) => {
+    socket.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
         console.log('Received message:', message);
@@ -1477,6 +1517,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
               pingTime: message.timestamp
             }));
             return;
+          }
+        }
+        
+        // Handle space-related messages
+        if (message.type === 'space_switch') {
+          // Client is switching to a different space
+          const { userId, spaceId } = message;
+          
+          if (userId && spaceId) {
+            try {
+              // Verify user has access to this space
+              const hasAccess = await storage.isUserInSpace(userId, spaceId);
+              
+              if (hasAccess) {
+                // Get space details
+                const space = await storage.getSpace(spaceId);
+                
+                if (space) {
+                  // Send space data back to client
+                  if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                      type: 'space_switch_success',
+                      space,
+                      timestamp: new Date().toISOString()
+                    }));
+                  }
+                  return;
+                }
+              }
+              
+              // Space not found or user doesn't have access
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                  type: 'space_switch_error',
+                  message: 'Space not found or access denied',
+                  timestamp: new Date().toISOString()
+                }));
+              }
+              return;
+            } catch (error) {
+              console.error('Error processing space switch:', error);
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                  type: 'space_switch_error',
+                  message: 'Failed to switch space',
+                  timestamp: new Date().toISOString()
+                }));
+              }
+              return;
+            }
           }
         }
         

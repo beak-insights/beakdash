@@ -289,12 +289,23 @@ export function useWebSocket() {
     return false;
   }, [socket, connect]);
   
+  // Space-related methods
+  const switchSpace = useCallback((userId: number, spaceId: number) => {
+    return send({
+      type: 'space_switch',
+      userId,
+      spaceId,
+      timestamp: Date.now()
+    });
+  }, [send]);
+
   return useMemo(() => ({
     isConnected,
     lastPing,
     connect,
     disconnect,
     subscribe,
-    send
-  }), [isConnected, lastPing, connect, disconnect, subscribe, send]);
+    send,
+    switchSpace
+  }), [isConnected, lastPing, connect, disconnect, subscribe, send, switchSpace]);
 }

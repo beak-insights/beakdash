@@ -11,9 +11,15 @@ import {
   Layers,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Globe,
+  Users,
+  Clock,
+  Plus,
+  FolderPlus
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSpaces } from "@/hooks/use-spaces";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +30,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { useState } from "react";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -51,6 +87,230 @@ function NavItem({ href, icon: Icon, label, active, collapsed }: NavItemProps) {
         {!collapsed && <span>{label}</span>}
       </Button>
     </Link>
+  );
+}
+
+// Form schema for creating a new space
+const createSpaceSchema = z.object({
+  name: z.string().min(1, { message: "Space name is required" }).max(50),
+  description: z.string().max(500).optional(),
+});
+
+type CreateSpaceForm = z.infer<typeof createSpaceSchema>;
+
+// Create a component for space selection in sidebar
+function SpaceSelector({ collapsed }: { collapsed: boolean }) {
+  const { 
+    userSpaces, 
+    isLoadingUserSpaces, 
+    currentSpaceId, 
+    setCurrentSpaceId, 
+    createSpaceMutation 
+  } = useSpaces();
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
+  
+  const form = useForm<CreateSpaceForm>({
+    resolver: zodResolver(createSpaceSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
+
+  function onSubmit(data: CreateSpaceForm) {
+    createSpaceMutation.mutate({
+      name: data.name,
+      description: data.description || "",
+      logoUrl: null,
+      settings: {},
+      isPrivate: false,
+    });
+    setCreateSpaceOpen(false);
+    form.reset();
+  }
+
+  if (isLoadingUserSpaces) {
+    return (
+      <div className="space-y-2 mt-2 mb-4">
+        {!collapsed && <p className="text-xs font-medium text-muted-foreground px-4 mb-2">SPACES</p>}
+        <div className="px-3">
+          <Skeleton className="h-9 w-full rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  // If collapsed, show just the current space with a tooltip
+  if (collapsed) {
+    const currentSpace = userSpaces.find(space => space.id === currentSpaceId);
+    
+    return (
+      <div className="space-y-1 mt-2 mb-4">
+        <div className="flex justify-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      className="h-9 w-9 rounded-full"
+                    >
+                      <Globe className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-48">
+                    <div className="p-2 text-center font-medium text-sm">Spaces</div>
+                    <DropdownMenuSeparator />
+                    {userSpaces.map(space => (
+                      <DropdownMenuItem 
+                        key={space.id}
+                        className={cn(space.id === currentSpaceId && "bg-muted")}
+                        onClick={() => setCurrentSpaceId(space.id)}
+                      >
+                        <Globe className="mr-2 h-4 w-4" />
+                        <span className="truncate">{space.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
+                      <DropdownMenuItem>
+                        <FolderPlus className="mr-2 h-4 w-4" />
+                        <span>New Space</span>
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="font-medium">Current Space:</p>
+                <p>{currentSpace?.name || "Default"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    );
+  }
+
+  // If expanded, show the space selection dropdown
+  return (
+    <div className="space-y-1 my-3">
+      <p className="text-xs font-medium text-muted-foreground px-4 mb-2">SPACES</p>
+      <div className="px-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Globe className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">
+                  {userSpaces.find(space => space.id === currentSpaceId)?.name || "Default"}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuItem 
+              className="font-medium"
+              disabled
+            >
+              Select Space
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {userSpaces.map(space => (
+              <DropdownMenuItem 
+                key={space.id} 
+                onClick={() => setCurrentSpaceId(space.id)}
+                className={cn(space.id === currentSpaceId && "bg-muted")}
+              >
+                <div className="flex items-center w-full">
+                  <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{space.name}</span>
+                </div>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
+              <DropdownMenuItem>
+                <FolderPlus className="mr-2 h-4 w-4" />
+                <span>New Space</span>
+              </DropdownMenuItem>
+            </DialogTrigger>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Create Space Dialog */}
+      <Dialog open={createSpaceOpen} onOpenChange={setCreateSpaceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a new space</DialogTitle>
+            <DialogDescription>
+              Spaces help you organize dashboards and share them with your team.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="My Space" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Give your space a descriptive name.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="A space for marketing dashboards..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional description to help others understand the purpose of this space.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setCreateSpaceOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createSpaceMutation.isPending}
+                >
+                  {createSpaceMutation.isPending ? "Creating..." : "Create Space"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -129,6 +389,10 @@ export default function Sidebar() {
       <Separator />
       
       <div className="flex-1 px-3 py-4 space-y-1">
+        <Dialog>
+          <SpaceSelector collapsed={collapsed} />
+        </Dialog>
+        
         {!collapsed && <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MAIN</p>}
         {collapsed && <div className="h-5"></div>}
         <NavItem 

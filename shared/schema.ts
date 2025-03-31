@@ -2,6 +2,55 @@ import { pgTable, text, serial, integer, boolean, jsonb, timestamp, primaryKey }
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Spaces schema
+export const spaces = pgTable("spaces", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  slug: text("slug").notNull(),
+  logoUrl: text("logo_url"),
+  settings: jsonb("settings").default({}),
+  isPrivate: boolean("is_private").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSpaceSchema = createInsertSchema(spaces).pick({
+  name: true,
+  description: true,
+  slug: true,
+  logoUrl: true,
+  settings: true,
+  isPrivate: true,
+});
+
+export const updateSpaceSchema = createInsertSchema(spaces).pick({
+  name: true,
+  description: true,
+  slug: true,
+  logoUrl: true,
+  settings: true,
+  isPrivate: true,
+});
+
+// User-Spaces many-to-many relationship
+export const userSpaces = pgTable("user_spaces", {
+  userId: integer("user_id").notNull().references(() => users.id),
+  spaceId: integer("space_id").notNull().references(() => spaces.id),
+  role: text("role").notNull().default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.userId, table.spaceId] }),
+  };
+});
+
+export const insertUserSpaceSchema = createInsertSchema(userSpaces).pick({
+  userId: true,
+  spaceId: true,
+  role: true,
+});
+
 // Users schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -42,6 +91,7 @@ export const updateUserSchema = createInsertSchema(users).pick({
 export const dashboards = pgTable("dashboards", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  spaceId: integer("space_id").references(() => spaces.id),
   name: text("name").notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true),
@@ -52,6 +102,7 @@ export const dashboards = pgTable("dashboards", {
 
 export const insertDashboardSchema = createInsertSchema(dashboards).pick({
   userId: true,
+  spaceId: true,
   name: true,
   description: true,
   layout: true,
@@ -65,6 +116,7 @@ export const connectionTypeSchema = z.enum(connectionTypes);
 export const connections = pgTable("connections", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  spaceId: integer("space_id").references(() => spaces.id),
   name: text("name").notNull(),
   type: text("type").notNull(),
   config: jsonb("config").notNull(),
@@ -74,6 +126,7 @@ export const connections = pgTable("connections", {
 
 export const insertConnectionSchema = createInsertSchema(connections).pick({
   userId: true,
+  spaceId: true,
   name: true,
   type: true,
   config: true,
@@ -156,6 +209,13 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 
+export type Space = typeof spaces.$inferSelect;
+export type InsertSpace = z.infer<typeof insertSpaceSchema>;
+export type UpdateSpace = z.infer<typeof updateSpaceSchema>;
+
+export type UserSpace = typeof userSpaces.$inferSelect;
+export type InsertUserSpace = z.infer<typeof insertUserSpaceSchema>;
+
 export type Dashboard = typeof dashboards.$inferSelect;
 export type InsertDashboard = z.infer<typeof insertDashboardSchema>;
 
@@ -206,11 +266,31 @@ export const chartConfigSchema = z.object({
 // Define relationships between tables
 import { relations } from "drizzle-orm";
 
+// Space relations
+export const spacesRelations = relations(spaces, ({ many }) => ({
+  dashboards: many(dashboards),
+  connections: many(connections),
+  userSpaces: many(userSpaces),
+}));
+
+// UserSpace relations
+export const userSpacesRelations = relations(userSpaces, ({ one }) => ({
+  user: one(users, {
+    fields: [userSpaces.userId],
+    references: [users.id],
+  }),
+  space: one(spaces, {
+    fields: [userSpaces.spaceId],
+    references: [spaces.id],
+  }),
+}));
+
 // User relations
 export const usersRelations = relations(users, ({ many }) => ({
   dashboards: many(dashboards),
   connections: many(connections),
   datasets: many(datasets),
+  userSpaces: many(userSpaces),
 }));
 
 // Dashboard relations
@@ -218,6 +298,10 @@ export const dashboardsRelations = relations(dashboards, ({ one, many }) => ({
   user: one(users, {
     fields: [dashboards.userId],
     references: [users.id],
+  }),
+  space: one(spaces, {
+    fields: [dashboards.spaceId],
+    references: [spaces.id],
   }),
   dashboardWidgets: many(dashboardWidgets),
 }));
@@ -227,6 +311,10 @@ export const connectionsRelations = relations(connections, ({ one, many }) => ({
   user: one(users, {
     fields: [connections.userId],
     references: [users.id],
+  }),
+  space: one(spaces, {
+    fields: [connections.spaceId],
+    references: [spaces.id],
   }),
   datasets: many(datasets),
   widgets: many(widgets),

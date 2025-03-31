@@ -1,5 +1,7 @@
 import {
   users, type User, type InsertUser, type UpdateUser,
+  spaces, type Space, type InsertSpace, type UpdateSpace,
+  userSpaces, type UserSpace, type InsertUserSpace,
   dashboards, type Dashboard, type InsertDashboard,
   connections, type Connection, type InsertConnection,
   datasets, type Dataset, type InsertDataset,
@@ -23,16 +25,27 @@ export interface IStorage {
   updateUser(id: number, user: Partial<UpdateUser>): Promise<User>;
   updateLastLogin(id: number): Promise<boolean>;
   getUserSettings(id: number): Promise<Record<string, any> | undefined>;
+  
+  // Space operations
+  getSpaces(): Promise<Space[]>;
+  getSpace(id: number): Promise<Space | undefined>;
+  getUserSpaces(userId: number): Promise<Space[]>;
+  createSpace(space: InsertSpace): Promise<Space>;
+  updateSpace(id: number, space: Partial<UpdateSpace>): Promise<Space>;
+  deleteSpace(id: number): Promise<boolean>;
+  joinSpace(userId: number, spaceId: number, role?: string): Promise<void>;
+  leaveSpace(userId: number, spaceId: number): Promise<boolean>;
+  isUserInSpace(userId: number, spaceId: number): Promise<boolean>;
 
   // Dashboard operations
-  getDashboards(userId?: number): Promise<Dashboard[]>;
+  getDashboards(userId?: number, spaceId?: number): Promise<Dashboard[]>;
   getDashboard(id: number): Promise<Dashboard | undefined>;
   createDashboard(dashboard: InsertDashboard): Promise<Dashboard>;
   updateDashboard(id: number, dashboard: Partial<Dashboard>): Promise<Dashboard>;
   deleteDashboard(id: number): Promise<boolean>;
 
   // Connection operations
-  getConnections(userId?: number): Promise<Connection[]>;
+  getConnections(userId?: number, spaceId?: number): Promise<Connection[]>;
   getConnection(id: number): Promise<Connection | undefined>;
   createConnection(connection: InsertConnection): Promise<Connection>;
   updateConnection(id: number, connection: Partial<Connection>): Promise<Connection>;
@@ -123,12 +136,129 @@ export class DatabaseStorage implements IStorage {
     
     return result[0].settings as Record<string, any>;
   }
+  
+  // Space operations
+  async getSpaces(): Promise<Space[]> {
+    return await db.select().from(spaces).orderBy(desc(spaces.createdAt));
+  }
+  
+  async getSpace(id: number): Promise<Space | undefined> {
+    const result = await db.select().from(spaces).where(eq(spaces.id, id));
+    return result[0];
+  }
+  
+  async getUserSpaces(userId: number): Promise<Space[]> {
+    const result = await db
+      .select({
+        space: spaces
+      })
+      .from(userSpaces)
+      .innerJoin(spaces, eq(userSpaces.spaceId, spaces.id))
+      .where(eq(userSpaces.userId, userId))
+      .orderBy(desc(spaces.createdAt));
+    
+    return result.map(row => row.space);
+  }
+  
+  async createSpace(space: InsertSpace): Promise<Space> {
+    const result = await db.insert(spaces).values({
+      name: space.name,
+      description: space.description || null,
+      slug: space.slug,
+      logoUrl: space.logoUrl || null,
+      settings: space.settings || {},
+      isPrivate: space.isPrivate || false
+    }).returning();
+    
+    return result[0];
+  }
+  
+  async updateSpace(id: number, space: Partial<UpdateSpace>): Promise<Space> {
+    const result = await db.update(spaces)
+      .set({
+        ...space,
+        updatedAt: new Date()
+      })
+      .where(eq(spaces.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error(`Space with id ${id} not found`);
+    }
+    
+    return result[0];
+  }
+  
+  async deleteSpace(id: number): Promise<boolean> {
+    const result = await db.delete(spaces).where(eq(spaces.id, id)).returning();
+    return result.length > 0;
+  }
+  
+  async joinSpace(userId: number, spaceId: number, role: string = "member"): Promise<void> {
+    // Check if already joined
+    const existingMembership = await db
+      .select()
+      .from(userSpaces)
+      .where(
+        and(
+          eq(userSpaces.userId, userId),
+          eq(userSpaces.spaceId, spaceId)
+        )
+      );
+    
+    if (existingMembership.length === 0) {
+      await db.insert(userSpaces).values({
+        userId,
+        spaceId,
+        role
+      });
+    }
+  }
+  
+  async leaveSpace(userId: number, spaceId: number): Promise<boolean> {
+    const result = await db
+      .delete(userSpaces)
+      .where(
+        and(
+          eq(userSpaces.userId, userId),
+          eq(userSpaces.spaceId, spaceId)
+        )
+      )
+      .returning();
+    
+    return result.length > 0;
+  }
+  
+  async isUserInSpace(userId: number, spaceId: number): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(userSpaces)
+      .where(
+        and(
+          eq(userSpaces.userId, userId),
+          eq(userSpaces.spaceId, spaceId)
+        )
+      );
+    
+    return result.length > 0;
+  }
 
   // Dashboard operations
-  async getDashboards(userId?: number): Promise<Dashboard[]> {
+  async getDashboards(userId?: number, spaceId?: number): Promise<Dashboard[]> {
+    let conditions = [];
+    
     if (userId) {
-      return await db.select().from(dashboards).where(eq(dashboards.userId, userId)).orderBy(desc(dashboards.createdAt));
+      conditions.push(eq(dashboards.userId, userId));
     }
+    
+    if (spaceId) {
+      conditions.push(eq(dashboards.spaceId, spaceId));
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(dashboards).where(and(...conditions)).orderBy(desc(dashboards.createdAt));
+    }
+    
     return await db.select().from(dashboards).orderBy(desc(dashboards.createdAt));
   }
 
@@ -141,6 +271,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db.insert(dashboards).values({
       name: dashboard.name,
       userId: dashboard.userId || null,
+      spaceId: dashboard.spaceId || null,
       description: dashboard.description || null,
       layout: dashboard.layout || {}
     }).returning();
@@ -169,10 +300,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Connection operations
-  async getConnections(userId?: number): Promise<Connection[]> {
+  async getConnections(userId?: number, spaceId?: number): Promise<Connection[]> {
+    let conditions = [];
+    
     if (userId) {
-      return await db.select().from(connections).where(eq(connections.userId, userId)).orderBy(desc(connections.createdAt));
+      conditions.push(eq(connections.userId, userId));
     }
+    
+    if (spaceId) {
+      conditions.push(eq(connections.spaceId, spaceId));
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(connections).where(and(...conditions)).orderBy(desc(connections.createdAt));
+    }
+    
     return await db.select().from(connections).orderBy(desc(connections.createdAt));
   }
 
@@ -182,12 +324,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createConnection(connection: InsertConnection): Promise<Connection> {
-    const result = await db.insert(connections).values({
+    const values = {
       name: connection.name,
       type: connection.type,
       config: connection.config,
-      userId: connection.userId || null
-    }).returning();
+      userId: connection.userId || null,
+      spaceId: connection.spaceId || null
+    };
+    const result = await db.insert(connections).values(values as any).returning();
     return result[0];
   }
 
