@@ -155,7 +155,7 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
 });
 
 // Widget types
-export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card", "table"] as const;
+export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card", "table", "text"] as const;
 export const chartTypeSchema = z.enum(chartTypes);
 
 // Widgets schema
@@ -258,6 +258,13 @@ export const chartConfigSchema = z.object({
   colors: z.array(z.string()).optional(),
   showLegend: z.boolean().optional(),
   labelFormat: z.string().optional(),
+  // Text widget specific properties
+  textContent: z.string().optional(),
+  textAlign: z.enum(["left", "center", "right", "justify"]).optional(),
+  fontSize: z.string().optional(),
+  fontWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
+  textColor: z.string().optional(),
+  backgroundColor: z.string().optional(),
   filters: z.array(
     z.object({
       field: z.string(),

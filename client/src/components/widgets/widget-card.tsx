@@ -114,6 +114,14 @@ export default function WidgetCard({
         chartConfig.colorCodeChange = config.colorCodeChange !== false;
         chartConfig.chartTitle = config.chartTitle || "Stats";
         break;
+      case "text":
+        chartConfig.textContent = config.textContent || "Add text content...";
+        chartConfig.textAlign = config.textAlign || "left";
+        chartConfig.fontSize = config.fontSize || "medium";
+        chartConfig.fontWeight = config.fontWeight || "normal";
+        chartConfig.textColor = config.textColor;
+        chartConfig.backgroundColor = config.backgroundColor;
+        break;
     }
     
     return (
@@ -189,6 +197,9 @@ export default function WidgetCard({
         return [
           { current: 8400, previous: 7200, period: "Q1", label: "Revenue" }
         ];
+      case "text":
+        // Text widgets don't actually need data, but return an empty array for consistency
+        return [];
       default:
         return [];
     }

@@ -49,6 +49,13 @@ export interface ChartConfig {
   connectNulls?: boolean;
   // Table widget fields
   headers?: string[];
+  // Text widget fields
+  textContent?: string;
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  fontSize?: string;
+  fontWeight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  textColor?: string;
+  backgroundColor?: string;
 }
 
 export interface ChartFilter {
@@ -139,6 +146,16 @@ export function getDefaultChartConfig(chartType: ChartType): ChartConfig {
         sortOrder: 'asc',
         headers: [],
         filters: [],
+      };
+    case 'text':
+      return {
+        ...baseConfig,
+        textContent: 'Add your text content here...',
+        textAlign: 'left',
+        fontSize: 'medium',
+        fontWeight: 'normal',
+        textColor: undefined,
+        backgroundColor: undefined,
       };
     default:
       return baseConfig;
@@ -452,6 +469,16 @@ export function suggestAxisMappings(
         sortBy: fields[0],
         sortOrder: 'asc',
         limit: 20
+      } as any;
+    }
+    
+    case 'text': {
+      // Text widget doesn't need axis mappings from data
+      return {
+        textContent: 'Add your text content here...',
+        textAlign: 'left',
+        fontSize: 'medium',
+        fontWeight: 'normal'
       } as any;
     }
     

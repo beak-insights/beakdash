@@ -15,6 +15,7 @@ import { cn, getRandomColor } from "@/lib/utils";
 import CounterWidget from "@/components/widgets/counter-widget";
 import StatCardWidget from "@/components/widgets/stat-card-widget";
 import TableWidget from "@/components/widgets/table-widget";
+import TextWidget from "@/components/widgets/text-widget";
 
 type CommonChartProps = {
   data: Record<string, any>[];
@@ -329,7 +330,8 @@ export function Chart({
   // Calculate the final height - convert string "100%" to actual numeric height
   const finalHeight = height === "100%" ? "100%" : height;
   
-  if (!data || !data.length) {
+  // Skip data validation for text widgets as they don't require data
+  if (type !== "text" && (!data || !data.length)) {
     return <div className="flex items-center justify-center h-full text-muted-foreground">No data available</div>;
   }
   
@@ -448,6 +450,14 @@ export function Chart({
     case "table":
       return (
         <TableWidget
+          data={data}
+          config={config}
+          className={className}
+        />
+      );
+    case "text":
+      return (
+        <TextWidget
           data={data}
           config={config}
           className={className}
