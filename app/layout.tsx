@@ -1,9 +1,7 @@
 import { Metadata } from 'next';
 import React from 'react';
-import { QueryProvider } from '@/providers/query-provider';
-import { AuthProvider } from '@/providers/auth-provider';
-import { WebSocketProvider } from '@/providers/websocket-provider';
 import '@/styles/globals.css';
+import ClientLayout from './client-layout';
 
 export const metadata: Metadata = {
   title: 'BeakDash - AI-Powered Dashboard Creator',
@@ -18,13 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <QueryProvider>
-          <AuthProvider>
-            <WebSocketProvider>
-              {children}
-            </WebSocketProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
