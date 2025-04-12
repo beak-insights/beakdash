@@ -61,14 +61,14 @@
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
     "nanoid": "^5.1.5",
-    "next": "^13.5.5",
+    "next": "^15.0.3",
     "openai": "^4.90.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.14.1",
-    "react": "^18.3.1",
+    "react": "^19.0",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.0",
     "react-grid-layout": "^1.5.1",
     "react-hook-form": "^7.53.1",
     "react-icons": "^5.4.0",
@@ -109,5 +109,6 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
-  }
+  },
+  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
 }
