@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import React from 'react';
-import '@/styles/globals.css';
+import './styles/globals.css';
 import ClientLayout from './client-layout';
 
 export const metadata: Metadata = {

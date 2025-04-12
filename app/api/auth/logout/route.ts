@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     console.error('Logout error:', error);
     
     // Even if there's an error, we still want to clear the cookie
-    cookies().delete('authToken');
+    const cookieStore = await cookies();
+    cookieStore.delete('authToken');
     
     return NextResponse.json(
       { message: 'Logged out (with server error)' },
