@@ -4,6 +4,7 @@ import '../styles/globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
+import { WebSocketProvider } from '@/providers/websocket-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,8 +23,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <AuthProvider>
-            {children}
-            <Toaster />
+            <WebSocketProvider>
+              {children}
+              <Toaster />
+            </WebSocketProvider>
           </AuthProvider>
         </QueryProvider>
       </body>
