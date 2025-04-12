@@ -2,14 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { SignIn } from '@clerk/nextjs';
-import { usePathname, useRouter } from 'next/navigation';
+import { SignUp } from '@clerk/nextjs';
 
-export default function AuthPage() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const isSignUp = pathname.includes('sign-up');
-  
+export default function SignUpPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Left side with illustration/branding */}
@@ -19,10 +14,10 @@ export default function AuthPage() {
             BeakDash
           </Link>
           <h1 className="mt-12 text-4xl font-bold tracking-tight text-foreground">
-            Welcome to your dashboard creation platform
+            Create your BeakDash account
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Create powerful, interactive dashboards with AI assistance
+            Join thousands of users building powerful dashboards with AI assistance
           </p>
         </div>
         <div className="text-sm text-muted-foreground">
@@ -40,7 +35,7 @@ export default function AuthPage() {
           </div>
           
           {/* Clerk authentication UI */}
-          <SignIn 
+          <SignUp 
             appearance={{
               elements: {
                 formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -49,10 +44,10 @@ export default function AuthPage() {
                 headerSubtitle: 'text-sm text-muted-foreground'
               }
             }}
-            path="/auth"
+            path="/auth/sign-up"
             routing="path"
-            signUpUrl="/auth/sign-up"
-            afterSignInUrl="/dashboard"
+            signInUrl="/auth"
+            afterSignUpUrl="/dashboard"
           />
         </div>
       </div>

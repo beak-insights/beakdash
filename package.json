@@ -14,6 +14,7 @@
     "check": "tsc"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.14.3",
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@monaco-editor/react": "^4.7.0",
@@ -65,6 +66,7 @@
     "memorystore": "^1.6.7",
     "nanoid": "^5.1.5",
     "next": "^15.0.3",
+    "nextjs]": "link:[@clerk/nextjs]",
     "openai": "^4.90.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
