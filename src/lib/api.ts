@@ -2,104 +2,97 @@
  * Utility functions for making API requests
  */
 
-/**
- * Default fetch options for API requests
- */
-const defaultOptions: RequestInit = {
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  credentials: 'include', // Include cookies for authentication
+// Default base URL for API requests
+const API_BASE_URL = '/api';
+
+// Type definition for request options
+type RequestOptions = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: any;
+  credentials?: RequestCredentials;
+  cache?: RequestCache;
 };
 
 /**
- * Generic API request function
+ * Make an API request with proper error handling
+ * 
+ * @param url The API endpoint URL (without the base URL)
+ * @param options Request options including method, headers, and body
+ * @returns Promise resolving to the API response data
+ * @throws Error if the request fails
  */
-export async function apiRequest<T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = endpoint.startsWith('http') 
-    ? endpoint 
-    : `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+export async function apiRequest<T = any>(url: string, options: RequestOptions = {}): Promise<T> {
+  // Build full URL
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
   
-  const response = await fetch(url, {
+  // Set default options
+  const defaultOptions: RequestOptions = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'same-origin',
+  };
+  
+  // Merge options
+  const fetchOptions: RequestInit = {
     ...defaultOptions,
     ...options,
     headers: {
       ...defaultOptions.headers,
       ...options.headers,
     },
-  });
-
-  // Check if the response is JSON
-  const contentType = response.headers.get('content-type');
-  const isJson = contentType && contentType.includes('application/json');
+  };
   
-  // Parse the response
-  const data = isJson ? await response.json() : await response.text();
-  
-  // Handle error responses
-  if (!response.ok) {
-    const error = new Error(
-      isJson && data.message ? data.message : 'API request failed'
-    );
-    
-    // Attach the status code and data to the error
-    Object.assign(error, {
-      status: response.status,
-      data,
-    });
-    
-    throw error;
+  // Convert body to JSON string if it's an object
+  if (fetchOptions.body && typeof fetchOptions.body === 'object') {
+    fetchOptions.body = JSON.stringify(fetchOptions.body);
   }
   
-  return data;
+  try {
+    // Make the request
+    const response = await fetch(fullUrl, fetchOptions);
+    
+    // Parse the response
+    const data = await response.json();
+    
+    // Handle unsuccessful responses
+    if (!response.ok) {
+      throw new Error(data.message || `API request failed with status ${response.status}`);
+    }
+    
+    return data as T;
+  } catch (error: any) {
+    console.error(`API request error for ${fullUrl}:`, error);
+    throw error;
+  }
 }
 
 /**
- * GET request helper
+ * Make a GET request
  */
-export function get<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  return apiRequest<T>(endpoint, { ...options, method: 'GET' });
+export function get<T = any>(url: string, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+  return apiRequest<T>(url, { ...options, method: 'GET' });
 }
 
 /**
- * POST request helper
+ * Make a POST request
  */
-export function post<T = any>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> {
-  return apiRequest<T>(endpoint, {
-    ...options,
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+export function post<T = any>(url: string, data: any, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+  return apiRequest<T>(url, { ...options, method: 'POST', body: data });
 }
 
 /**
- * PUT request helper
+ * Make a PUT request
  */
-export function put<T = any>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> {
-  return apiRequest<T>(endpoint, {
-    ...options,
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+export function put<T = any>(url: string, data: any, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+  return apiRequest<T>(url, { ...options, method: 'PUT', body: data });
 }
 
 /**
- * PATCH request helper
+ * Make a DELETE request
  */
-export function patch<T = any>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> {
-  return apiRequest<T>(endpoint, {
-    ...options,
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-/**
- * DELETE request helper
- */
-export function del<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  return apiRequest<T>(endpoint, { ...options, method: 'DELETE' });
+export function del<T = any>(url: string, options: Omit<RequestOptions, 'method'> = {}): Promise<T> {
+  return apiRequest<T>(url, { ...options, method: 'DELETE' });
 }

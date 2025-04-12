@@ -1,125 +1,167 @@
-'use client';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { useAuth } from './auth-provider';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-
-type WebSocketMessage = {
+// Define WebSocket message types
+interface WebSocketMessage {
   type: string;
   payload: any;
-};
-
-interface WebSocketContextType {
-  isConnected: boolean;
-  sendMessage: (message: WebSocketMessage) => void;
-  lastMessage: WebSocketMessage | null;
 }
 
+// Define WebSocketContextType
+interface WebSocketContextType {
+  connected: boolean;
+  send: (message: WebSocketMessage) => void;
+  messages: WebSocketMessage[];
+}
+
+// Create WebSocket context
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
-export function WebSocketProvider({ 
-  children,
-  endpoint = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://localhost:5000/ws'
-}: { 
-  children: React.ReactNode;
-  endpoint?: string;
-}) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+// Define WebSocketProviderProps
+interface WebSocketProviderProps {
+  children: ReactNode;
+}
 
-  // Initialize WebSocket connection
-  const connect = useCallback(() => {
-    if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
+// WebSocketProvider component
+export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState<WebSocketMessage[]>([]);
+  const websocketRef = useRef<WebSocket | null>(null);
+  const { user } = useAuth();
 
+  // Reconnect timer
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Connect to WebSocket server
+  const connectWebSocket = () => {
+    // Get WebSocket URL from environment or use default
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || `${wsProtocol}//${window.location.host}/ws`;
+    
     try {
-      const socket = new WebSocket(endpoint);
+      // Close existing connection if it exists
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
       
-      socket.onopen = () => {
-        console.log('WebSocket connection established');
-        setIsConnected(true);
+      // Create new WebSocket connection
+      const ws = new WebSocket(wsUrl);
+      websocketRef.current = ws;
+      
+      // Configure WebSocket event handlers
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setConnected(true);
         
-        // Clear any pending reconnect timeouts
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-          reconnectTimeoutRef.current = null;
+        // Clear reconnect timer if it exists
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+        
+        // Send authentication message if user is logged in
+        if (user) {
+          send({
+            type: 'auth',
+            payload: {
+              userId: user.id,
+            },
+          });
         }
       };
       
-      socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          setLastMessage(message);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message', error);
-        }
-      };
-      
-      socket.onclose = (event) => {
-        console.log(`WebSocket connection closed (${event.code}): ${event.reason}`);
-        setIsConnected(false);
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setConnected(false);
         
-        // Schedule reconnection
-        if (!event.wasClean) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect WebSocket...');
-            connect();
+        // Set reconnect timer if it doesn't exist
+        if (!reconnectTimerRef.current) {
+          reconnectTimerRef.current = setTimeout(() => {
+            console.log('Reconnecting WebSocket...');
+            connectWebSocket();
           }, 5000);
         }
       };
       
-      socket.onerror = (error) => {
-        console.error('WebSocket error', error);
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
       };
       
-      socketRef.current = socket;
+      ws.onmessage = (event) => {
+        try {
+          // Parse message data
+          const message = JSON.parse(event.data);
+          console.log('WebSocket message received:', message);
+          
+          // Add message to messages array
+          setMessages((prev) => [...prev, message]);
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
     } catch (error) {
-      console.error('Failed to establish WebSocket connection', error);
-      
-      // Schedule reconnection
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting to reconnect WebSocket...');
-        connect();
-      }, 5000);
+      console.error('Failed to connect to WebSocket server:', error);
     }
-  }, [endpoint]);
+  };
 
-  // Send a message through WebSocket
-  const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(message));
+  // Send message to WebSocket server
+  const send = (message: WebSocketMessage) => {
+    if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+      websocketRef.current.send(JSON.stringify(message));
     } else {
-      console.warn('WebSocket not connected, unable to send message');
+      console.warn('WebSocket not connected, cannot send message');
     }
-  }, []);
+  };
 
-  // Connect on mount, disconnect on unmount
+  // Connect on component mount
   useEffect(() => {
-    connect();
+    connectWebSocket();
     
+    // Clean up on component unmount
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
+      if (websocketRef.current) {
+        websocketRef.current.close();
       }
       
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
       }
     };
-  }, [connect]);
+  }, []);
+
+  // Reconnect when user changes
+  useEffect(() => {
+    if (connected && user) {
+      send({
+        type: 'auth',
+        payload: {
+          userId: user.id,
+        },
+      });
+    }
+  }, [user, connected]);
+
+  // Create context value
+  const value: WebSocketContextType = {
+    connected,
+    send,
+    messages,
+  };
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, sendMessage, lastMessage }}>
+    <WebSocketContext.Provider value={value}>
       {children}
     </WebSocketContext.Provider>
   );
-}
+};
 
-export function useWebSocket() {
+// Hook to use WebSocket context
+export const useWebSocket = (): WebSocketContextType => {
   const context = useContext(WebSocketContext);
+  
   if (context === undefined) {
     throw new Error('useWebSocket must be used within a WebSocketProvider');
   }
+  
   return context;
-}
+};

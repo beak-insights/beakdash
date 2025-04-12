@@ -1,134 +1,193 @@
-'use client';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { get, post } from '@/lib/api';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-
+// Define the user type based on your application's user model
 interface User {
   id: number;
   username: string;
-  displayName?: string;
   email?: string;
-  isAdmin?: boolean;
+  name?: string;
+  role?: string;
+  settings?: Record<string, any>;
+  [key: string]: any;
 }
 
+// Define the login credentials type
+interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+// Define the registration data type
+interface RegisterData {
+  username: string;
+  password: string;
+  email?: string;
+  name?: string;
+}
+
+// Define the authentication context type
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string, email?: string) => Promise<void>;
+  error: string | null;
+  login: (credentials: LoginCredentials) => Promise<User>;
+  register: (data: RegisterData) => Promise<User>;
   logout: () => Promise<void>;
+  clearError: () => void;
 }
 
+// Create the authentication context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
+// Define the authentication provider props
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
+// Authentication provider component
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Clear the error
+  const clearError = () => setError(null);
+
+  // Load the user on component mount
   useEffect(() => {
-    // Check for authenticated user on mount
+    // Check if the user is authenticated
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/auth/me');
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          setUser(null);
-          // Redirect to login if on a protected route
-          if (pathname !== '/auth' && !pathname.includes('/_next')) {
-            router.push('/auth');
-          }
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+        // Get the user's profile
+        const userData = await get<User>('auth/me');
+        setUser(userData);
+      } catch (err: any) {
+        // Handle authentication errors
+        console.log('Not authenticated');
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     checkAuth();
-  }, [pathname, router]);
+  }, []);
 
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
+  // Login the user
+  const login = async (credentials: LoginCredentials): Promise<User> => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
+      setIsLoading(true);
+      clearError();
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
+      // Send the login request
+      const userData = await post<User>('auth/login', credentials);
       
-      const userData = await response.json();
+      // Set the user data
       setUser(userData);
-      router.push('/');
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      
+      return userData;
+    } catch (err: any) {
+      // Handle login errors
+      const errMessage = err.message || 'Failed to login';
+      setError(errMessage);
+      throw new Error(errMessage);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const register = async (username: string, password: string, email?: string) => {
-    setIsLoading(true);
+
+  // Register a new user
+  const register = async (data: RegisterData): Promise<User> => {
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, email }),
-      });
+      setIsLoading(true);
+      clearError();
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
-      }
+      // Send the registration request
+      const userData = await post<User>('auth/register', data);
       
-      const userData = await response.json();
+      // Set the user data
       setUser(userData);
-      router.push('/');
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+      
+      return userData;
+    } catch (err: any) {
+      // Handle registration errors
+      const errMessage = err.message || 'Failed to register';
+      setError(errMessage);
+      throw new Error(errMessage);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const logout = async () => {
-    setIsLoading(true);
+
+  // Logout the user
+  const logout = async (): Promise<void> => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      setIsLoading(true);
+      
+      // Send the logout request
+      await post('auth/logout', {});
+      
+      // Clear the user data
       setUser(null);
+      
+      // Redirect to the login page
       router.push('/auth');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      
+      // Even if there's an error, clear the user data
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  // Create the context value
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    error,
+    login,
+    register,
+    logout,
+    clearError,
+  };
 
-export function useAuth() {
+  // Provide the authentication context
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Hook to use the authentication context
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
+  
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+  
   return context;
-}
+};
+
+// Higher-order component to require authentication
+export const withAuth = <P extends object>(Component: React.ComponentType<P>): React.FC<P> => {
+  return (props: P) => {
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!isLoading && !user) {
+        router.push('/auth');
+      }
+    }, [user, isLoading, router]);
+
+    if (isLoading || !user) {
+      return <div>Loading...</div>;
+    }
+
+    return <Component {...props} />;
+  };
+};
