@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET(request: NextRequest) {
+// Define the GET function with explicit typing
+export async function GET(
+  request: NextRequest,
+  context: { params: {} }
+) {
   try {
     // Get the auth token from cookies
     const authToken = cookies().get('authToken')?.value;
