@@ -1,20 +1,13 @@
-import { authMiddleware } from "@clerk/nextjs";
+// Simple middleware without Clerk for now
  
-// This example protects all routes including api/trpc routes
-// Please edit this to allow other routes to be public as needed.
-// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
-export default authMiddleware({
-  publicRoutes: [
-    "/",
-    "/auth",
-    "/auth/sign-up",
-    "/api/auth/me",
-    "/api/health",
-    "/api/auth/login",
-    "/api/auth/register",
-    "/api/auth/logout"
-  ],
-});
+// We'll implement a simpler middleware that doesn't rely on Clerk for now
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+ 
+export function middleware(request: NextRequest) {
+  // Return early so we don't conflict with Clerk's middleware
+  return NextResponse.next();
+}
  
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
