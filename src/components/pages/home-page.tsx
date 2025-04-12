@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, LineChart, BarChart3, PieChart, Activity, Clock, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Dashboard, InsertDashboard } from "@shared/schema";
+import { Dashboard, InsertDashboard } from "@schema";
 import useDashboard from "@/hooks/use-dashboard";
 import { useSpaces } from "@/hooks/use-spaces";
 import { useState } from "react";

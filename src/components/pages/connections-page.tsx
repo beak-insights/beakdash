@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Database, Trash2, Edit, FileText, Link as LinkIcon, Globe, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ConnectionType, Connection } from "@shared/schema";
+import { ConnectionType, Connection } from "@schema";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 

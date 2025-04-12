@@ -15,7 +15,7 @@ import { useWidgets } from "@/hooks/use-widgets";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { queryClient } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
-import { Widget } from "@shared/schema";
+import { Widget } from "@schema";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Dialog,

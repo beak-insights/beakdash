@@ -1,4 +1,4 @@
-import { ChartType } from "@shared/schema";
+import { ChartType } from "@schema";
 import { Label } from "@/components/ui/label";
 import { 
   Select, 

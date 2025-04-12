@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useSpaces } from "@/hooks/use-spaces";
-import { User, Dashboard, Space } from "@shared/schema";
+import { User, Dashboard, Space } from "@schema";
 
 export default function Settings() {
   const { toast } = useToast();

@@ -42,7 +42,7 @@ import {
   chartTypes,
   Dashboard,
   positionSchema,
-} from "@shared/schema";
+} from "@schema";
 import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
 import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";

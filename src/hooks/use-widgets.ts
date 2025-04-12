@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Widget, InsertWidget, Dashboard } from "@shared/schema";
+import { Widget, InsertWidget, Dashboard } from "@schema";
 
 /**
  * Hook for widget-related operations

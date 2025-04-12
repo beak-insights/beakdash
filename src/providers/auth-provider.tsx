@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { get, post } from '@/lib/api';
-import { User } from '@shared/schema';
+import { User } from '@schema';
 
 interface AuthContextType {
   user: User | null;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Widget, ChartType } from "@shared/schema";
+import { Widget, ChartType } from "@schema";
 import { 
   Card, 
   CardContent, 

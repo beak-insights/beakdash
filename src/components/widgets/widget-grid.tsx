@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
-import { Widget } from "@shared/schema";
+import { Widget } from "@schema";
 import WidgetCard from "@/components/widgets/widget-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, AlertCircle } from "lucide-react";

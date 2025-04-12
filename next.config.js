@@ -15,6 +15,10 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  // Configure development server port for Replit compatibility
+  devIndicators: {
+    buildActivity: true,
+  },
 };
 
 export default nextConfig;

@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import useDashboard from "@/hooks/use-dashboard";
 import { useSpaces } from "@/hooks/use-spaces";
-import { Dashboard, InsertDashboard } from "@shared/schema";
+import { Dashboard, InsertDashboard } from "@schema";
 import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardListPage() {

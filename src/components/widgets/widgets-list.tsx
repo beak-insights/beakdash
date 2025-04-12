@@ -1,5 +1,5 @@
 import React from "react";
-import { Widget } from "@shared/schema";
+import { Widget } from "@schema";
 import WidgetCard from "@/components/widgets/widget-card";
 
 interface WidgetsListProps {

@@ -42,7 +42,7 @@ import { Card } from "@/components/ui/card";
 import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Dataset, Connection } from "@shared/schema";
+import { Dataset, Connection } from "@schema";
 import { PlayCircle, FileDown, RefreshCw, ChevronDown, ChevronUp, Code, Table2 } from "lucide-react";
 
 interface DatasetDialogProps {

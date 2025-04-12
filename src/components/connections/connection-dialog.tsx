@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Connection, ConnectionType, connectionTypes } from "@shared/schema";
+import { Connection, ConnectionType, connectionTypes } from "@schema";
 import CSVForm from "./connection-forms/csv-form";
 import RESTForm from "./connection-forms/rest-form";
 import SQLForm from "./connection-forms/sql-form";

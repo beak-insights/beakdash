@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Home',
-  description: 'AI-powered dashboard creation platform',
+  description: 'Create customized, data-driven dashboards with AI assistance',
 };
 
 export default function Home() {

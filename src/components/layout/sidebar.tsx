@@ -1,6 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { Space } from "@shared/schema";
+import { Space } from "@schema";
 import {
   BarChart3,
   Database,

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Database, Trash2, Edit, PlusCircle, RefreshCw, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Dataset, Connection } from "@shared/schema";
+import { Dataset, Connection } from "@schema";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 

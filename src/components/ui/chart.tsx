@@ -10,7 +10,7 @@ import {
   CartesianGrid, Tooltip, Legend,
   LabelList, ReferenceLine
 } from "recharts";
-import { ChartType } from "@shared/schema";
+import { ChartType } from "@schema";
 import { cn, getRandomColor } from "@/lib/utils";
 import CounterWidget from "@/components/widgets/counter-widget";
 import StatCardWidget from "@/components/widgets/stat-card-widget";

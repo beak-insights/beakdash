@@ -6,7 +6,7 @@ import WidgetEditor from "@/components/widgets/widget-editor";
 import AICopilot from "@/components/ai/ai-copilot";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, MessageSquare, Layers, LayoutTemplate, ArrowLeft } from "lucide-react";
-import { Widget, InsertDashboard } from "@shared/schema";
+import { Widget, InsertDashboard } from "@schema";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

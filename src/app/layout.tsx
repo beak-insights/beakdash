@@ -6,8 +6,8 @@ import { WebSocketProvider } from '@/providers/websocket-provider';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'BeakDash - Dashboard Creator',
-  description: 'AI-powered dashboard creation platform',
+  title: 'BeakDash - AI-Powered Dashboard Creator',
+  description: 'Create customized, data-driven dashboards with AI assistance',
 };
 
 export default function RootLayout({
