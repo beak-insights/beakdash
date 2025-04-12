@@ -66,6 +66,7 @@
     "memorystore": "^1.6.7",
     "nanoid": "^5.1.5",
     "next": "^15.0.3",
+    "next-auth": "^4.24.11",
     "nextjs]": "link:[@clerk/nextjs]",
     "openai": "^4.90.0",
     "passport": "^0.7.0",
