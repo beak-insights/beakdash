@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthForms } from './auth-forms';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Authentication',
@@ -36,59 +37,9 @@ export default function AuthPage() {
               BeakDash
             </Link>
           </div>
-
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Sign in to your account</h2>
-              <p className="text-sm text-muted-foreground mt-2">
-                Enter your credentials below to access your dashboards
-              </p>
-            </div>
-
-            <form className="space-y-4">
-              <div className="space-y-2">
-                <label 
-                  htmlFor="username" 
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Username
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Enter your username"
-                />
-              </div>
-              <div className="space-y-2">
-                <label 
-                  htmlFor="password" 
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Enter your password"
-                />
-              </div>
-              <button 
-                type="submit"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium"
-              >
-                Sign In
-              </button>
-            </form>
-
-            <div className="mt-4 text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account? </span>
-              <a href="#" className="text-primary hover:underline">
-                Register
-              </a>
-            </div>
-          </div>
+          
+          {/* Auth forms component with login/register functionality */}
+          <AuthForms defaultView="login" />
         </div>
       </div>
     </div>
