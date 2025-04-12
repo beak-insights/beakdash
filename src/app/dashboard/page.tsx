@@ -1,11 +1,13 @@
 import { Metadata } from 'next';
-import DashboardList from '@/components/pages/dashboard-list';
+import DashboardListPage from '@/components/pages/dashboard-list';
 
+// Define metadata for the dashboards page
 export const metadata: Metadata = {
-  title: 'Dashboards - AI Dashboard Creator',
-  description: 'View and manage your dashboards',
+  title: 'BeakDash - Your Dashboards',
+  description: 'View and manage your analytics dashboards',
 };
 
-export default function DashboardPage() {
-  return <DashboardList />;
+// Dashboards page component
+export default function Dashboards() {
+  return <DashboardListPage />;
 }

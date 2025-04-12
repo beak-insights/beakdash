@@ -1,11 +1,13 @@
 import { Metadata } from 'next';
 import AuthPage from '@/components/pages/auth-page';
 
+// Define metadata for the auth page
 export const metadata: Metadata = {
-  title: 'Authentication - AI Dashboard Creator',
-  description: 'Log in or register to access your dashboards',
+  title: 'BeakDash - Login or Register',
+  description: 'Login or create a new account to access BeakDash analytics platform',
 };
 
+// Auth page component
 export default function Auth() {
   return <AuthPage />;
 }
