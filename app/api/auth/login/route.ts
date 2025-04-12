@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     // Set the authentication cookie
     // This assumes the backend provides a token
     if (data.token) {
-      cookies().set({
+      const cookieStore = await cookies();
+      cookieStore.set({
         name: 'authToken',
         value: data.token,
         httpOnly: true,

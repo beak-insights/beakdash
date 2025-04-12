@@ -4,7 +4,8 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
   try {
     // Clear the authentication cookie
-    cookies().delete('authToken');
+    const cookieStore = await cookies();
+    cookieStore.delete('authToken');
     
     // Forward the logout request to the existing backend for any session cleanup
     const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/logout`, {

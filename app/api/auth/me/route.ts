@@ -7,8 +7,9 @@ export async function GET(
   context: { params: {} }
 ) {
   try {
-    // Get the auth token from cookies
-    const authToken = cookies().get('authToken')?.value;
+    // Get the auth token from cookies - await in Next.js 15
+    const cookieStore = await cookies();
+    const authToken = cookieStore.get('authToken')?.value;
     
     if (!authToken) {
       return NextResponse.json(
@@ -29,7 +30,8 @@ export async function GET(
     if (!response.ok) {
       // If the backend says the token is invalid, clear it from cookies
       if (response.status === 401) {
-        cookies().delete('authToken');
+        const cookieStore = await cookies();
+        cookieStore.delete('authToken');
       }
       
       const errorData = await response.json();
