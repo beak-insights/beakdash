@@ -1,5 +1,5 @@
-import { FC, ComponentType, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { ComponentType, FC } from 'react';
+import { redirect } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 
 interface ProtectedRouteProps {
@@ -16,30 +16,20 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: FC<ProtectedRouteProps> = ({ component: Component, props = {} }) => {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isClient, setIsClient] = useState(false);
-  
-  // Handle client-side rendering
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
-  // Handle unauthenticated access
-  useEffect(() => {
-    if (isClient && !isLoading && !user) {
-      // Redirect to login page
-      router.push(`/auth?callbackUrl=${encodeURIComponent(pathname)}`);
-    }
-  }, [isClient, isLoading, user, router, pathname]);
-
-  // Show loading during authentication check
-  if (isLoading || !isClient || !user) {
+  // Show loading state while auth is being checked
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-pulse text-primary font-semibold">Loading...</div>
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    redirect('/auth');
+    return null;
   }
 
   // Render the protected component
@@ -54,6 +44,6 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({ component: Component, 
  */
 export function withProtection<P extends object>(Component: ComponentType<P>): FC<P> {
   return (props: P) => (
-    <ProtectedRoute component={Component} props={props} />
+    <ProtectedRoute component={Component} props={props as Record<string, any>} />
   );
 }

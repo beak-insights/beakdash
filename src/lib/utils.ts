@@ -1,48 +1,46 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 /**
  * Combines multiple class names with Tailwind CSS
  */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 /**
  * Generates a random ID with optional prefix
  */
 export function generateId(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).substring(2, 11)}`;
+  return `${prefix}_${Math.random().toString(36).substr(2, 9)}`
 }
 
 /**
  * Formats numbers with commas for thousands separators
  */
 export function formatNumber(value: number, options: Intl.NumberFormatOptions = {}) {
-  return new Intl.NumberFormat("en-US", options).format(value);
+  return new Intl.NumberFormat("en-US", options).format(value)
 }
 
 /**
  * Formats date to a string using the specified format options
  */
 export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = {}) {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  const dateObj = typeof date === "string" ? new Date(date) : date
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
     ...options,
-  }).format(dateObj);
+  }).format(dateObj)
 }
 
 /**
  * Truncates a string to the specified length
  */
 export function truncateString(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return `${str.substring(0, maxLength)}...`;
+  if (str.length <= maxLength) return str
+  return str.slice(0, maxLength) + "..."
 }
 
 /**
@@ -51,14 +49,14 @@ export function truncateString(str: string, maxLength: number): string {
 export function snakeToCamel(str: string): string {
   return str.replace(/([-_][a-z])/g, (group) =>
     group.toUpperCase().replace("-", "").replace("_", "")
-  );
+  )
 }
 
 /**
  * Converts camelCase to snake_case
  */
 export function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
 }
 
 /**
@@ -68,27 +66,22 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null
   
-  return function(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
+  return function(...args: Parameters<T>): void {
+    if (timeout) clearTimeout(timeout)
     
-    if (timeout !== null) {
-      clearTimeout(timeout);
-    }
-    
-    timeout = setTimeout(later, wait);
-  };
+    timeout = setTimeout(() => {
+      func(...args)
+    }, wait)
+  }
 }
 
 /**
  * Deep clones an object
  */
 export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(JSON.stringify(obj))
 }
 
 /**
@@ -96,23 +89,23 @@ export function deepClone<T>(obj: T): T {
  */
 export function getRandomColor(index?: number): string {
   const colors = [
-    "#3B82F6", // blue
-    "#10B981", // emerald
-    "#F59E0B", // amber
-    "#EF4444", // red
-    "#8B5CF6", // violet
-    "#EC4899", // pink
-    "#06B6D4", // cyan
-    "#F97316", // orange
-    "#84CC16", // lime
-    "#6366F1", // indigo
-  ];
+    "#3B82F6", // Blue
+    "#10B981", // Green
+    "#F59E0B", // Amber
+    "#6366F1", // Indigo
+    "#EC4899", // Pink
+    "#8B5CF6", // Purple
+    "#EF4444", // Red
+    "#14B8A6", // Teal
+    "#F97316", // Orange
+    "#06B6D4", // Cyan
+  ]
   
   if (typeof index === "number") {
-    return colors[index % colors.length];
+    return colors[index % colors.length]
   }
   
-  return colors[Math.floor(Math.random() * colors.length)];
+  return colors[Math.floor(Math.random() * colors.length)]
 }
 
 /**
@@ -120,10 +113,10 @@ export function getRandomColor(index?: number): string {
  */
 export function isValidUrl(url: string): boolean {
   try {
-    new URL(url);
-    return true;
+    new URL(url)
+    return true
   } catch (error) {
-    return false;
+    return false
   }
 }
 
@@ -131,15 +124,15 @@ export function isValidUrl(url: string): boolean {
  * Downloads data as a file
  */
 export function downloadFile(data: string, filename: string, type: string): void {
-  const blob = new Blob([data], { type });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const blob = new Blob([data], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
   
-  link.href = url;
-  link.download = filename;
-  link.click();
+  link.download = filename
+  link.href = url
+  link.click()
   
-  setTimeout(() => URL.revokeObjectURL(url), 100);
+  URL.revokeObjectURL(url)
 }
 
 /**
@@ -147,10 +140,9 @@ export function downloadFile(data: string, filename: string, type: string): void
  */
 export function safeJsonParse<T>(json: string, fallback: T): T {
   try {
-    return JSON.parse(json) as T;
+    return JSON.parse(json) as T
   } catch (error) {
-    console.error("Error parsing JSON:", error);
-    return fallback;
+    return fallback
   }
 }
 
@@ -158,6 +150,6 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
  * Extracts column names from data array
  */
 export function extractColumns(data: Record<string, any>[]): string[] {
-  if (!data || !data.length) return [];
-  return Object.keys(data[0]);
+  if (!data.length) return []
+  return Object.keys(data[0])
 }

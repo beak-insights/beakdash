@@ -1,11 +1,3 @@
-/**
- * Utility functions for making API requests
- */
-
-// Default base URL for API requests
-const API_BASE_URL = '/api';
-
-// Type definition for request options
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
@@ -23,10 +15,6 @@ type RequestOptions = {
  * @throws Error if the request fails
  */
 export async function apiRequest<T = any>(url: string, options: RequestOptions = {}): Promise<T> {
-  // Build full URL
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
-  
-  // Set default options
   const defaultOptions: RequestOptions = {
     method: 'GET',
     headers: {
@@ -34,8 +22,7 @@ export async function apiRequest<T = any>(url: string, options: RequestOptions =
     },
     credentials: 'same-origin',
   };
-  
-  // Merge options
+
   const fetchOptions: RequestInit = {
     ...defaultOptions,
     ...options,
@@ -44,29 +31,34 @@ export async function apiRequest<T = any>(url: string, options: RequestOptions =
       ...options.headers,
     },
   };
-  
-  // Convert body to JSON string if it's an object
-  if (fetchOptions.body && typeof fetchOptions.body === 'object') {
-    fetchOptions.body = JSON.stringify(fetchOptions.body);
+
+  if (options.body && typeof options.body !== 'string') {
+    fetchOptions.body = JSON.stringify(options.body);
   }
-  
-  try {
-    // Make the request
-    const response = await fetch(fullUrl, fetchOptions);
+
+  const response = await fetch(url, fetchOptions);
+
+  if (!response.ok) {
+    let errorMessage = `Request failed with status ${response.status}`;
     
-    // Parse the response
-    const data = await response.json();
-    
-    // Handle unsuccessful responses
-    if (!response.ok) {
-      throw new Error(data.message || `API request failed with status ${response.status}`);
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // If parsing JSON fails, use the default error message
     }
     
-    return data as T;
-  } catch (error: any) {
-    console.error(`API request error for ${fullUrl}:`, error);
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
     throw error;
   }
+
+  // Check if response is empty or JSON
+  if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+    return {} as T;
+  }
+
+  return response.json();
 }
 
 /**

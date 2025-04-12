@@ -1,52 +1,63 @@
-import { ReactNode } from 'react';
+import React from 'react';
 import {
   QueryClient,
   QueryClientProvider,
-  QueryCache,
-  MutationCache,
+  DefaultOptions,
 } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/api';
+import { get, post, put, del } from '@/lib/api';
 
-// Define the provider props
-interface QueryProviderProps {
-  children: ReactNode;
-}
-
-// Create a client with default options
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
+const defaultQueryConfig: DefaultOptions = {
+  queries: {
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   },
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      console.error(`Query error: ${error.message}`, query);
-    },
-  }),
-  mutationCache: new MutationCache({
-    onError: (error) => {
-      console.error(`Mutation error: ${error.message}`);
-    },
-  }),
-});
-
-// Configure the default fetcher for all queries
-export const queryFetcher = async <T,>({ queryKey }: { queryKey: string | string[] }) => {
-  // Format the query key as a path
-  const path = Array.isArray(queryKey) ? queryKey.join('/') : queryKey;
-  return apiRequest<T>(path);
 };
 
-// Query provider component
-export function QueryProvider({ children }: QueryProviderProps) {
+const queryClient = new QueryClient({
+  defaultOptions: defaultQueryConfig,
+});
+
+export const fetcher = async (url: string) => {
+  return get(url);
+};
+
+export const mutationFetcher = {
+  post: async (url: string, data: any) => {
+    return post(url, data);
+  },
+  put: async (url: string, data: any) => {
+    return put(url, data);
+  },
+  delete: async (url: string) => {
+    return del(url);
+  },
+};
+
+export const queryKeys = {
+  users: 'users',
+  user: (id: number) => ['users', id],
+  dashboards: 'dashboards',
+  dashboard: (id: number) => ['dashboards', id],
+  spaces: 'spaces',
+  space: (id: number) => ['spaces', id],
+  connections: 'connections',
+  connection: (id: number) => ['connections', id],
+  datasets: 'datasets',
+  dataset: (id: number) => ['datasets', id],
+  widgets: 'widgets',
+  widget: (id: number) => ['widgets', id],
+  dashboardWidgets: (dashboardId: number) => ['dashboards', dashboardId, 'widgets'],
+};
+
+/**
+ * React Query Provider with pre-configured client
+ */
+export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
     </QueryClientProvider>
   );
 }
-
-export { queryClient };
