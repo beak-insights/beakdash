@@ -11,7 +11,17 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        baseTheme: undefined,
+        elements: {
+          formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+          card: 'shadow-md',
+          headerTitle: 'text-2xl font-bold',
+          headerSubtitle: 'text-sm text-muted-foreground'
+        }
+      }}
+    >
       <QueryProvider>
         <WebSocketProvider>
           {children}

@@ -1,14 +1,17 @@
-// Simple middleware without Clerk for now
- 
-// We'll implement a simpler middleware that doesn't rely on Clerk for now
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
- 
+
+// Simple middleware for path-based protection
 export function middleware(request: NextRequest) {
-  // Return early so we don't conflict with Clerk's middleware
+  const { pathname } = request.nextUrl;
+  const isAuthRoute = pathname.startsWith('/auth');
+  const isPublicRoute = isAuthRoute || pathname === '/' || pathname.startsWith('/api/health');
+  
+  // For now, just pass through all requests
+  // Later we can implement proper authentication checks
   return NextResponse.next();
 }
- 
+
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
