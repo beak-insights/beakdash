@@ -3,15 +3,15 @@ import type { NextRequest } from "next/server";
 
 // Simple middleware for path-based protection
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isAuthRoute = pathname.startsWith('/auth');
-  const isPublicRoute = isAuthRoute || pathname === '/' || pathname.startsWith('/api/health');
-  
   // For now, just pass through all requests
   // Later we can implement proper authentication checks
   return NextResponse.next();
 }
 
+// See https://nextjs.org/docs/app/building-your-application/routing/middleware
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    // Skip all internal paths (_next)
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

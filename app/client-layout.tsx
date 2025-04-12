@@ -12,13 +12,7 @@ export default function ClientLayout({
 }) {
   return (
     <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       appearance={{
-        layout: {
-          showOptionalFields: true,
-          socialButtonsVariant: "iconButton",
-          socialButtonsPlacement: "bottom"
-        },
         elements: {
           formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
           card: 'shadow-md',
