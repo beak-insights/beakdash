@@ -187,18 +187,99 @@ export function ConnectionCreateClient({ defaultTab = 'sql' }: { defaultTab?: st
     setIsCreatingConnection(true);
     
     try {
-      // In a real app, this would call an API to create the connection
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      // Prepare the data to send based on active tab
+      let connectionData;
       
-      // Show success message
-      toast({
-        title: "Connection created",
-        description: "Your connection has been successfully created.",
-        variant: "default",
+      if (activeTab === 'sql') {
+        if (!sqlFormData.name) {
+          toast({
+            title: "Missing connection name",
+            description: "Please provide a name for your connection.",
+            variant: "destructive",
+          });
+          setIsCreatingConnection(false);
+          return;
+        }
+        
+        connectionData = {
+          name: sqlFormData.name,
+          type: sqlFormData.type,
+          hostname: sqlFormData.hostname,
+          port: sqlFormData.port,
+          database: sqlFormData.database,
+          username: sqlFormData.username,
+          password: sqlFormData.password,
+          sslMode: sqlFormData.sslMode
+        };
+      } else if (activeTab === 'rest') {
+        if (!restFormData.name) {
+          toast({
+            title: "Missing connection name",
+            description: "Please provide a name for your connection.",
+            variant: "destructive",
+          });
+          setIsCreatingConnection(false);
+          return;
+        }
+        
+        connectionData = {
+          name: restFormData.name,
+          type: 'rest',
+          baseUrl: restFormData.baseUrl,
+          authType: restFormData.authType,
+          apiKey: restFormData.apiKey,
+          headerName: restFormData.headerName
+        };
+      } else {
+        // CSV
+        if (!csvFormData.name) {
+          toast({
+            title: "Missing connection name",
+            description: "Please provide a name for your CSV connection.",
+            variant: "destructive",
+          });
+          setIsCreatingConnection(false);
+          return;
+        }
+        
+        connectionData = {
+          name: csvFormData.name,
+          type: 'csv',
+          delimiter: csvFormData.delimiter,
+          encoding: csvFormData.encoding,
+          hasHeaderRow: csvFormData.hasHeaderRow
+        };
+      }
+      
+      // Make API call to create connection
+      const response = await fetch('/api/connections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(connectionData),
       });
       
-      // Redirect to connections page
-      router.push('/connections');
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Show success message
+        toast({
+          title: "Connection created",
+          description: "Your connection has been successfully created.",
+          variant: "default",
+        });
+        
+        // Redirect to connections page
+        router.push('/connections');
+      } else {
+        // Show error message with details from the API
+        toast({
+          title: "Failed to create connection",
+          description: data.error || "There was an error creating your connection. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       // Show error message
       toast({

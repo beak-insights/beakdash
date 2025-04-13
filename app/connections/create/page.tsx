@@ -8,13 +8,14 @@ export const metadata: Metadata = {
   description: 'Create a new data connection',
 };
 
-export default function CreateConnectionPage({ 
+export default async function CreateConnectionPage({ 
   searchParams,
 }: { 
   searchParams: { type?: string } 
 }) {
   // Get the type from URL params, using nullish coalescing to handle undefined
-  const defaultTab = searchParams?.type ? searchParams.type : 'sql';
+  const params = await Promise.resolve(searchParams);
+  const defaultTab = params?.type || 'sql';
   
   return (
     <AppLayout>

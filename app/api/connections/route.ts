@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     } else {
       // By default, get connections accessible to the user
       connectionData = await db.select().from(connections)
-        .where(eq(connections.userId, parseInt(userId)));
+        .where(eq(connections.userId, typeof userId === 'string' ? parseInt(userId) : userId));
     }
     
     return NextResponse.json(connectionData);
@@ -69,24 +69,44 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create new connection
-    const newConnection = {
-      name: body.name,
+    // Create connection configuration from the body
+    const config = {
       type: body.type || 'sql',
-      userId: userId,
-      spaceId: body.spaceId || null,
-      config: body,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      hostname: body.hostname,
+      port: body.port,
+      database: body.database,
+      username: body.username,
+      // Don't store password directly in DB in production
+      // This is just for demo purposes
+      password: body.password ? '********' : undefined,
+      sslMode: body.sslMode,
+      baseUrl: body.baseUrl,
+      authType: body.authType,
+      apiKey: body.apiKey ? '********' : undefined, // For REST APIs
+      headerName: body.headerName,
+      delimiter: body.delimiter, // For CSV
+      encoding: body.encoding,
+      hasHeaderRow: body.hasHeaderRow
     };
     
-    const result = await db.insert(connections).values(newConnection);
+    // Create new connection
+    const result = await db.insert(connections).values({
+      name: body.name,
+      type: body.type || 'sql',
+      userId: typeof userId === 'string' ? parseInt(userId) : userId,
+      spaceId: body.spaceId ? parseInt(body.spaceId) : null,
+      config: config,
+    });
+    
+    // Get inserted connection ID
+    const insertedConnection = await db.select().from(connections)
+      .where(eq(connections.name, body.name))
+      .limit(1);
     
     return NextResponse.json({
       success: true,
       message: 'Connection created successfully',
-      connectionId: result.insertId
+      connection: insertedConnection[0]
     });
   } catch (error) {
     console.error('Connection creation error:', error);
