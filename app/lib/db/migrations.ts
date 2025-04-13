@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { db } from './index';
 import * as schema from './schema';
 import bcrypt from 'bcryptjs';
+import { migrateSpacesTable } from './migrate-spaces';
 
 /**
  * Applies all Drizzle migrations to the database
@@ -228,6 +229,9 @@ export async function runMigrations() {
     } else {
       console.log('Database schema already exists, skipping creation');
     }
+    
+    // Run additional migrations to update existing tables
+    await migrateSpacesTable();
     
     console.log('Database migrations completed successfully');
     return true;
