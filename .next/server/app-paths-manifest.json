@@ -1,10 +1,4 @@
 {
-  "/api/dashboards/[id]/widgets/route": "app/api/dashboards/[id]/widgets/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/spaces/route": "app/api/spaces/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/api/widgets/[id]/route": "app/api/widgets/[id]/route.js",
-  "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
   "/page": "app/page.js"
 }
