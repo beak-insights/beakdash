@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Database, Trash2, Edit, PlusCircle, RefreshCw, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dataset, Connection } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";

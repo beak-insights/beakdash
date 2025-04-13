@@ -4,7 +4,7 @@ import ConnectionDialog from "@/components/connections/connection-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Database, Trash2, Edit, FileText, Link as LinkIcon, Globe, PlusCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ConnectionType, Connection } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";

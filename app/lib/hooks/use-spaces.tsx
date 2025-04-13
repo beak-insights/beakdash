@@ -1,11 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Space, InsertSpace } from "@/lib/db/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { useWebSocket } from "@/lib/websocket-service";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 // Spaces store to maintain the currently selected space
 interface SpaceStore {

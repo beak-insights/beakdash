@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useSpaces } from "@/hooks/use-spaces";
+import { useToast } from "@/lib/hooks/use-toast";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useSpaces } from "@/lib/hooks/use-spaces";
 import { User, Dashboard, Space } from "@/lib/db/schema";
 
 export default function Settings() {

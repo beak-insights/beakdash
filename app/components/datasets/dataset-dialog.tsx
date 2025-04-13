@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dataset, Connection } from "@/lib/db/schema";
 import { PlayCircle, FileDown, RefreshCw, ChevronDown, ChevronUp, Code, Table2 } from "lucide-react";

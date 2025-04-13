@@ -5,16 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, LineChart, BarChart3, PieChart, Activity, Clock, ArrowUpRight } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Dashboard, InsertDashboard } from "@/lib/db/schema";
-import useDashboard from "@/hooks/use-dashboard";
-import { useSpaces } from "@/hooks/use-spaces";
+import useDashboard from "@/lib/hooks/use-dashboard";
+import { useSpaces } from "@/lib/hooks/use-spaces";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 
 export default function HomePage() {
   const { user } = useAuth();

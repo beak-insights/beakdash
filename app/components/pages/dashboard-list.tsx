@@ -17,12 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, PieChart, ArrowUpRight, Clock, User } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { useState } from "react";
-import useDashboard from "@/hooks/use-dashboard";
-import { useSpaces } from "@/hooks/use-spaces";
+import useDashboard from "@/lib/hooks/use-dashboard";
+import { useSpaces } from "@/lib/hooks/use-spaces";
 import { Dashboard, InsertDashboard } from "@/lib/db/schema";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 
 export default function DashboardListPage() {
   const { user } = useAuth();

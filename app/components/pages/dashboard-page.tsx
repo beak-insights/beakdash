@@ -11,9 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
-import useDashboard from "@/hooks/use-dashboard";
-import { useSpaces } from "@/hooks/use-spaces";
+import { toast } from "@/lib/hooks/use-toast";
+import useDashboard from "@/lib/hooks/use-dashboard";
+import { useSpaces } from "@/lib/hooks/use-spaces";
 
 export default function Dashboard() {
   const [isWidgetEditorOpen, setIsWidgetEditorOpen] = useState(false);

@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Dashboard, InsertDashboard } from "@/lib/db/schema";
-import { useSpaceStore } from "@/hooks/use-spaces";
+import { useSpaceStore } from "@/lib/hooks/use-spaces";
 
 /**
  * Hook for dashboard-related operations

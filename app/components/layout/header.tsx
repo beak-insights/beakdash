@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { UserMenu } from '@/components/auth/user-menu';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/lib/hooks/use-auth';
 
 export function Header() {
   const { isAuthenticated } = useAuth();

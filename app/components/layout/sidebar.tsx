@@ -19,8 +19,8 @@ import {
   Plus,
   FolderPlus
 } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { useSpaces } from "@/hooks/use-spaces";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useSpaces } from "@/lib/hooks/use-spaces";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";

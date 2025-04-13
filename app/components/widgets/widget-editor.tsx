@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlayIcon } from "lucide-react";
-import { useDashboard } from "@/hooks/use-dashboard";
-import { useWidgets } from "@/hooks/use-widgets";
+import { useDashboard } from "@/lib/hooks/use-dashboard";
+import { useWidgets } from "@/lib/hooks/use-widgets";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import ChartConfig from "./chart-config";
 import AxisMapping from "./axis-mapping";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ChartType,
