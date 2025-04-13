@@ -24,15 +24,18 @@ export default function AuthPage() {
     setSuccess('');
 
     try {
+      // Handle input as either username or email
+      const usernameOrEmail = email; // Using the email state variable
+      
       const result = await signIn('credentials', {
-        email,
+        username: usernameOrEmail, // Send as username for auth handler
         password,
         redirect: false,
         callbackUrl,
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError('Invalid username or password');
       } else {
         // Redirect to dashboard on successful login
         router.push(callbackUrl);
@@ -69,15 +72,16 @@ export default function AuthPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium">
-            Email
+            Username or Email
           </label>
           <input
             id="email"
-            type="email"
+            type="text"
+            inputMode="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            placeholder="name@example.com"
+            placeholder="Enter your username or email"
             required
           />
         </div>

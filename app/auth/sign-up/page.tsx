@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function SignUpPage() {
   const router = useRouter();
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,12 +27,17 @@ export default function SignUpPage() {
 
     try {
       // In a real implementation, this would make an API call to create a user
-      // For now, we'll redirect to the sign-in page after "registration"
+      console.log('Registering user with:', {
+        name,
+        username,
+        email,
+        password
+      });
       
-      // Simulate successful registration
+      // Simulate API call to create a user
       setTimeout(() => {
         // After successful registration, redirect to sign in
-        router.push('/auth?registered=true');
+        router.push(`/auth?registered=true&username=${encodeURIComponent(username)}`);
       }, 1000);
       
     } catch (err) {
@@ -69,6 +75,21 @@ export default function SignUpPage() {
             onChange={(e) => setName(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             placeholder="John Doe"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="username" className="text-sm font-medium">
+            Username
+          </label>
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="johndoe"
             required
           />
         </div>
