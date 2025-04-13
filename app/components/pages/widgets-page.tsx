@@ -13,10 +13,10 @@ import WidgetEditor from "@/components/widgets/widget-editor";
 import ShareWidgetDialog from "@/components/widgets/share-widget-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useWidgets } from "@/hooks/use-widgets";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useWidgets } from "@/lib/hooks/use-widgets";
+import { useDashboard } from "@/lib/hooks/use-dashboard";
 import { queryClient } from "@/lib/queryClient";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/hooks/use-toast";
 import { Widget } from "@/lib/db/schema";
 import { apiRequest } from "@/lib/queryClient";
 import {
