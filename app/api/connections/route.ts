@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { connections } from '@/lib/db/schema';
+import { connections, type Connection } from '@/lib/db/schema';
+import { sql } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -25,13 +26,19 @@ export async function GET(request: NextRequest) {
     // Query connections based on filters
     let connectionData;
     
+    // Make sure userId is a number
+    const userIdNum = typeof userId === 'string' ? parseInt(userId) : userId;
+    
     if (spaceId) {
-      connectionData = await db.select().from(connections)
-        .where(eq(connections.spaceId, parseInt(spaceId)));
+      const spaceIdNum = parseInt(spaceId);
+      connectionData = await db.execute(
+        sql`SELECT * FROM connections WHERE space_id = ${spaceIdNum}`
+      );
     } else {
       // By default, get connections accessible to the user
-      connectionData = await db.select().from(connections)
-        .where(eq(connections.userId, typeof userId === 'string' ? parseInt(userId) : userId));
+      connectionData = await db.execute(
+        sql`SELECT * FROM connections WHERE user_id = ${userIdNum}`
+      );
     }
     
     return NextResponse.json(connectionData);
@@ -89,19 +96,21 @@ export async function POST(request: NextRequest) {
       hasHeaderRow: body.hasHeaderRow
     };
     
-    // Create new connection
-    const result = await db.insert(connections).values({
-      name: body.name,
-      type: body.type || 'sql',
-      userId: typeof userId === 'string' ? parseInt(userId) : userId,
-      spaceId: body.spaceId ? parseInt(body.spaceId) : null,
-      config: config,
-    });
+    // Make sure userId is a number
+    const userIdNum = typeof userId === 'string' ? parseInt(userId) : userId;
+    const spaceIdNum = body.spaceId ? parseInt(body.spaceId) : null;
+    const configJson = JSON.stringify(config);
     
-    // Get inserted connection ID
-    const insertedConnection = await db.select().from(connections)
-      .where(eq(connections.name, body.name))
-      .limit(1);
+    // Create new connection
+    await db.execute(sql`
+      INSERT INTO connections (name, type, user_id, space_id, config)
+      VALUES (${body.name}, ${body.type || 'sql'}, ${userIdNum}, ${spaceIdNum}, ${configJson}::jsonb)
+    `);
+    
+    // Get inserted connection 
+    const insertedConnection = await db.execute(sql`
+      SELECT * FROM connections WHERE name = ${body.name} ORDER BY id DESC LIMIT 1
+    `);
     
     return NextResponse.json({
       success: true,
