@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { DbQaQuery, DbQaCategory, DbQaFrequency, DbQaExecutionResult } from '@/lib/db/schema';
 import { useSpaces } from './use-spaces';
 
@@ -30,6 +30,7 @@ interface UpdateDbQaQueryData extends Partial<CreateDbQaQueryData> {
 export function useDbQaQueries({ enabled = true }: UseDbQaQueriesProps = {}) {
   const queryClient = useQueryClient();
   const { currentSpaceId } = useSpaces();
+  const { toast } = useToast();
   
   // Get all DB QA queries
   const {

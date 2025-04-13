@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { DbQaAlert } from '@/lib/db/schema';
 import { useSpaces } from './use-spaces';
 
@@ -25,6 +25,7 @@ interface UpdateDbQaAlertData extends Partial<CreateDbQaAlertData> {
 export function useDbQaAlerts({ enabled = true }: UseDbQaAlertsProps = {}) {
   const queryClient = useQueryClient();
   const { currentSpaceId } = useSpaces();
+  const { toast } = useToast();
   
   // Get all DB QA alerts
   const {
