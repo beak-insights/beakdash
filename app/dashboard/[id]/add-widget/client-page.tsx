@@ -44,6 +44,7 @@ import {
   Play,
   Code,
   Server,
+  Text,
 } from 'lucide-react';
 import { getRandomColor } from '@/lib/utils';
 
