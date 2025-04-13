@@ -55,6 +55,25 @@ export const queryKeys = {
  * React Query Provider with pre-configured client
  */
 export function QueryProvider({ children }: { children: React.ReactNode }) {
+  // Configure the default query function to use our API fetcher
+  const defaultQueryFn = async ({ queryKey }: { queryKey: any }) => {
+    const [url] = queryKey;
+    if (typeof url === 'string') {
+      return fetcher(url);
+    }
+    throw new Error(`Invalid query key: ${queryKey}`);
+  };
+
+  // Set default query function
+  React.useEffect(() => {
+    queryClient.setDefaultOptions({
+      queries: {
+        ...defaultQueryConfig.queries,
+        queryFn: defaultQueryFn,
+      },
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}

@@ -35,25 +35,17 @@ export function ConnectionsClient() {
   const handleDeleteConnection = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this connection?')) {
       try {
-        const response = await fetch(`/api/connections/${id}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        await del(`/api/connections/${id}`);
+        
+        toast({
+          title: 'Connection deleted',
+          description: 'The connection has been successfully deleted.',
         });
         
-        if (response.ok) {
-          toast({
-            title: 'Connection deleted',
-            description: 'The connection has been successfully deleted.',
-          });
-          // Refresh the connections list
-          refetch();
-        } else {
-          throw new Error('Failed to delete connection');
-        }
+        // Refresh the connections list
+        refetch();
       } catch (error) {
+        console.error('Error deleting connection:', error);
         toast({
           title: 'Error',
           description: 'Failed to delete the connection. Please try again.',
