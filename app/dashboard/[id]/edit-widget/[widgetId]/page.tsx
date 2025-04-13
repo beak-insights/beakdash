@@ -5,17 +5,28 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { widgets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { EditWidgetForm } from "../../../../components/widgets/edit-widget-form";
-
-export const metadata: Metadata = {
-  title: "Edit Widget",
-  description: "Edit a dashboard widget",
-};
+import { WidgetForm } from "@/components/widgets/widget-form";
+import { AppLayout } from "@/components/layout/app-layout";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
     widgetId: string;
+  }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id, widgetId } = await params;
+  const dashboardId = parseInt(id);
+  const widgetIdNum = parseInt(widgetId);
+  
+  const widget = await db.query.widgets.findFirst({
+    where: eq(widgets.id, widgetIdNum),
+  });
+
+  return {
+    title: widget ? `Edit Widget - ${widget.name}` : "Edit Widget",
+    description: "Edit a dashboard widget",
   };
 }
 
@@ -25,16 +36,17 @@ export default async function EditWidgetPage({ params }: PageProps) {
     redirect("/auth");
   }
 
-  const dashboardId = parseInt(params.id);
-  const widgetId = parseInt(params.widgetId);
+  const { id, widgetId } = await params;
+  const dashboardId = parseInt(id);
+  const widgetIdNum = parseInt(widgetId);
 
-  if (isNaN(dashboardId) || isNaN(widgetId)) {
-    redirect(`/dashboard/${params.id}`);
+  if (isNaN(dashboardId) || isNaN(widgetIdNum)) {
+    redirect(`/dashboard/${id}`);
   }
 
   // Fetch the widget to edit
   const widget = await db.query.widgets.findFirst({
-    where: eq(widgets.id, widgetId),
+    where: eq(widgets.id, widgetIdNum),
     with: {
       dataset: true,
       connection: true,
@@ -42,19 +54,22 @@ export default async function EditWidgetPage({ params }: PageProps) {
   });
 
   if (!widget) {
-    redirect(`/dashboard/${params.id}`);
+    redirect(`/dashboard/${id}`);
   }
 
   return (
-    <div className="container py-10">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Edit Widget</h1>
-        <EditWidgetForm
-          dashboardId={dashboardId}
-          widget={widget}
-          backUrl={`/dashboard/${dashboardId}`}
-        />
+    <AppLayout>
+      <div className="container py-10">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Edit Widget</h1>
+          <WidgetForm
+            dashboardId={dashboardId}
+            widget={widget}
+            backUrl={`/dashboard/${dashboardId}`}
+            isEditMode={true}
+          />
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
