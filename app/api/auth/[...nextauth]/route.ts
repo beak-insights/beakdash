@@ -49,55 +49,65 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log("Authorize function called with credentials:", credentials);
         
+        // Handle both username and email credentials (Next.js form might send either)
+        const usernameOrEmail = credentials?.username || credentials?.email;
+        const password = credentials?.password;
+        
+        console.log(`Using username/email: ${usernameOrEmail}`);
+        
         // Check if credentials are provided
-        if (!credentials || !credentials.username || !credentials.password) {
-          console.log("Missing credentials");
+        if (!credentials || !usernameOrEmail || !password) {
+          console.log("Missing credentials - need username/email and password");
           return null;
         }
         
         try {
-          // Find user by username
-          console.log(`Looking for user with username: ${credentials.username}`);
+          // Find user by username or email
+          console.log(`Looking for user with username/email: ${usernameOrEmail}`);
           
           // Debug: Check all users in the database
           const allUsers = await db.select().from(users);
-          console.log("All users in database:", allUsers.map(u => ({ id: u.id, username: u.username })));
+          console.log("All users in database:", allUsers.map(u => ({ id: u.id, username: u.username, email: u.email })));
           
-          // Query for the user
-          const userResults = await db.select()
+          // First try to find by username
+          let userResults = await db.select()
             .from(users)
-            .where(eq(users.username, credentials.username));
+            .where(eq(users.username, usernameOrEmail));
           
+          // If not found by username, try by email
           if (!userResults || userResults.length === 0) {
-            console.log(`User not found with username: ${credentials.username}`);
-            // Try case-insensitive search as a fallback
-            const allUsersLower = allUsers.find(u => 
-              u.username.toLowerCase() === credentials.username.toLowerCase()
+            console.log(`User not found with username, trying email: ${usernameOrEmail}`);
+            userResults = await db.select()
+              .from(users)
+              .where(eq(users.email, usernameOrEmail));
+          }
+          
+          // If still not found, try case-insensitive search
+          if (!userResults || userResults.length === 0) {
+            console.log(`User not found with exact username/email: ${usernameOrEmail}`);
+            
+            // Try case-insensitive username match
+            const usernameMatch = allUsers.find(u => 
+              u.username.toLowerCase() === usernameOrEmail.toLowerCase()
             );
-            if (allUsersLower) {
-              console.log(`Found user with case-insensitive match: ${allUsersLower.username}`);
-              // Use the correctly cased username
-              const userResultsCase = await db.select()
-                .from(users)
-                .where(eq(users.username, allUsersLower.username));
-              if (userResultsCase.length > 0) {
-                console.log(`Successfully retrieved user with correct case: ${allUsersLower.username}`);
-                const user = userResultsCase[0];
-                // Check password
-                const passwordMatch = await bcrypt.compare(credentials.password, user.password);
-                if (passwordMatch) {
-                  console.log("Password match successful for case-insensitive match");
-                  return {
-                    id: user.id.toString(),
-                    name: user.displayName || user.username,
-                    email: user.email,
-                    image: user.avatarUrl,
-                    role: user.role
-                  };
-                }
+            
+            if (usernameMatch) {
+              console.log(`Found user with case-insensitive username match: ${usernameMatch.username}`);
+              userResults = [usernameMatch];
+            } else {
+              // Try case-insensitive email match
+              const emailMatch = allUsers.find(u => 
+                u.email && u.email.toLowerCase() === usernameOrEmail.toLowerCase()
+              );
+              
+              if (emailMatch) {
+                console.log(`Found user with case-insensitive email match: ${emailMatch.email}`);
+                userResults = [emailMatch];
+              } else {
+                console.log(`No user found with username or email: ${usernameOrEmail}`);
+                return null;
               }
             }
-            return null;
           }
           
           const user = userResults[0];
@@ -111,18 +121,18 @@ export const authOptions: NextAuthOptions = {
           
           try {
             // First try with bcrypt (for hashed passwords)
-            passwordMatch = await bcrypt.compare(credentials.password, user.password);
+            passwordMatch = await bcrypt.compare(password, user.password);
             console.log(`bcrypt comparison result: ${passwordMatch}`);
           } catch (error) {
             console.error("Error during password comparison:", error);
             // If bcrypt fails (might be plaintext password), try direct comparison
-            passwordMatch = credentials.password === user.password;
+            passwordMatch = password === user.password;
             console.log(`Direct comparison result: ${passwordMatch}`);
             
             // If it matched with direct comparison, we should update to bcrypt
             if (passwordMatch) {
               console.log("Updating plaintext password to bcrypt hash");
-              const hashedPassword = await bcrypt.hash(credentials.password, 10);
+              const hashedPassword = await bcrypt.hash(password, 10);
               await db.update(users)
                 .set({ password: hashedPassword })
                 .where(eq(users.id, user.id));

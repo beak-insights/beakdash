@@ -145,7 +145,7 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
               htmlFor="username"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Username
+              Username or Email
             </label>
             <input
               id="username"
@@ -154,7 +154,7 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
               value={formData.username}
               onChange={handleChange}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
               required
             />
           </div>
