@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Create new user
-    const result = await db.insert(users).values({
+    const insertResult = await db.insert(users).values({
       username,
       email,
       password: hashedPassword,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       displayName: username,
     }).returning();
     
-    const newUser = result[0];
+    const newUser = insertResult[0];
     
     // Return the user data without password
     return NextResponse.json({
