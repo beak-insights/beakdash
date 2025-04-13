@@ -6,14 +6,6 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-// Define a more flexible credentials type
-interface ExtendedCredentials {
-  username?: string;
-  email?: string;
-  password?: string;
-  [key: string]: string | undefined;
-}
-
 // Define the Auth Options
 export const authOptions: NextAuthOptions = {
   // Configure credentials provider
@@ -25,8 +17,8 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // Handle both username and email credentials
-        const usernameOrEmail = credentials?.username || credentials?.email;
+        // Handle username input that could be either username or email
+        const usernameOrEmail = credentials?.username;
         const password = credentials?.password;
         
         // Check if credentials are provided
