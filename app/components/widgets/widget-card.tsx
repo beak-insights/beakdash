@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import { Widget, ChartType } from "@/lib/db/schema";
 import { 

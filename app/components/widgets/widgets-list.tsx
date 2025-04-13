@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import { Widget } from "@/lib/db/schema";
 import WidgetCard from "@/components/widgets/widget-card";
