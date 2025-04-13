@@ -1,137 +1,140 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { widgets, dashboardWidgets } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+interface Props {
+  params: { id: string };
+}
+
+// GET /api/widgets/[id]
+export async function GET(request: NextRequest, { params }: Props) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const id = parseInt(params.id);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-    
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/widgets/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
+    const widget = await db.query.widgets.findFirst({
+      where: eq(widgets.id, id),
+      with: {
+        dashboardWidgets: {
+          with: {
+            dashboard: true,
+          },
+        },
+        dataset: true,
+        connection: true,
       },
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch widget' },
-        { status: response.status }
-      );
+    if (!widget) {
+      return NextResponse.json({ error: "Widget not found" }, { status: 404 });
     }
     
-    const widget = await response.json();
-    return NextResponse.json(widget);
+    return NextResponse.json({ widget });
   } catch (error) {
-    console.error(`Widget fetch error for ID ${params.id}:`, error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Error fetching widget:", error);
+    return NextResponse.json({ error: "Failed to fetch widget" }, { status: 500 });
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// PUT /api/widgets/[id]
+export async function PUT(request: NextRequest, { params }: Props) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const id = parseInt(params.id);
+    const json = await request.json();
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-    
-    // Get request body
-    const body = await request.json();
-    
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/widgets/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
+    // Check if widget exists
+    const existingWidget = await db.query.widgets.findFirst({
+      where: eq(widgets.id, id),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to update widget' },
-        { status: response.status }
-      );
+    if (!existingWidget) {
+      return NextResponse.json({ error: "Widget not found" }, { status: 404 });
     }
     
-    const widget = await response.json();
-    return NextResponse.json(widget);
-  } catch (error) {
-    console.error(`Widget update error for ID ${params.id}:`, error);
+    // Extract dashboard-related properties
+    const { dashboardId, position, ...widgetData } = json;
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    // Update the widget
+    const [updatedWidget] = await db
+      .update(widgets)
+      .set(widgetData)
+      .where(eq(widgets.id, id))
+      .returning();
+    
+    // If dashboardId is provided, update or create the dashboard-widget relationship
+    if (dashboardId) {
+      // Check if dashboard-widget relationship exists
+      const existingDashboardWidget = await db.query.dashboardWidgets.findFirst({
+        where: (dw, { and, eq }) => 
+          and(eq(dw.widgetId, id), eq(dw.dashboardId, dashboardId)),
+      });
+      
+      if (existingDashboardWidget) {
+        // Update position if provided
+        if (position) {
+          await db
+            .update(dashboardWidgets)
+            .set({ position })
+            .where(eq(dashboardWidgets.widgetId, id))
+            .where(eq(dashboardWidgets.dashboardId, dashboardId));
+        }
+      } else {
+        // Create new dashboard-widget relationship
+        await db.insert(dashboardWidgets).values({
+          dashboardId,
+          widgetId: id,
+          position: position || { x: 0, y: 0, w: 6, h: 4 },
+        });
+      }
+    }
+    
+    return NextResponse.json({ widget: updatedWidget });
+  } catch (error) {
+    console.error("Error updating widget:", error);
+    return NextResponse.json({ error: "Failed to update widget" }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// DELETE /api/widgets/[id]
+export async function DELETE(request: NextRequest, { params }: Props) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const id = parseInt(params.id);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-    
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/widgets/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
+    // Check if widget exists
+    const existingWidget = await db.query.widgets.findFirst({
+      where: eq(widgets.id, id),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to delete widget' },
-        { status: response.status }
-      );
+    if (!existingWidget) {
+      return NextResponse.json({ error: "Widget not found" }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Widget deleted successfully' });
-  } catch (error) {
-    console.error(`Widget deletion error for ID ${params.id}:`, error);
+    // First delete any dashboard-widget relationships
+    await db.delete(dashboardWidgets).where(eq(dashboardWidgets.widgetId, id));
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    // Then delete the widget
+    await db.delete(widgets).where(eq(widgets.id, id));
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting widget:", error);
+    return NextResponse.json({ error: "Failed to delete widget" }, { status: 500 });
   }
 }

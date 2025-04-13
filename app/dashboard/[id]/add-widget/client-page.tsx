@@ -271,10 +271,70 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
   };
 
   // Handle widget creation
-  const handleCreateWidget = () => {
-    // In a real implementation, this would send the widget config to the server
-    alert('Widget creation functionality will be implemented in the next phase.');
-    router.push(`/dashboard/${dashboard.id}`);
+  const handleCreateWidget = async () => {
+    try {
+      // Prepare widget data based on type
+      const widgetData = {
+        name: widgetTitle,
+        spaceId: dashboard.spaceId,
+        type: widgetType,
+        dashboardId: dashboard.id,
+        position: {
+          x: 0,
+          y: 0,
+          w: widgetWidth === '1' ? 4 : widgetWidth === '2' ? 8 : 12,
+          h: 4
+        }
+      };
+      
+      // Add config data based on widget type
+      if (widgetType === 'text') {
+        widgetData.config = {
+          textContent,
+          textAlign: 'left',
+          fontSize: 'medium',
+          fontWeight: 'normal',
+          textColor: '',
+          backgroundColor: '',
+        };
+      } else {
+        // For chart widgets
+        widgetData.datasetId = selectedDatasetId ? parseInt(selectedDatasetId) : null;
+        widgetData.connectionId = selectedConnectionId ? parseInt(selectedConnectionId) : null;
+        widgetData.customQuery = sqlQuery;
+        widgetData.config = {
+          chartType,
+          xAxis: xAxisField,
+          yAxis: yAxisField,
+          showLegend,
+          showGrid,
+          showTooltip,
+          isStacked,
+          colors: chartColors,
+          refreshInterval: refreshInterval ? parseInt(refreshInterval) : 0,
+        };
+      }
+      
+      // Send the widget data to the server
+      const response = await fetch(`/api/dashboards/${dashboard.id}/widgets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(widgetData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create widget');
+      }
+      
+      // Navigate back to the dashboard view
+      router.push(`/dashboard/${dashboard.id}`);
+    } catch (error) {
+      console.error('Error creating widget:', error);
+      alert('Failed to create widget: ' + (error.message || 'Unknown error'));
+    }
   };
 
   const renderTableColumns = () => {

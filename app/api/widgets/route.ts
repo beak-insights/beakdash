@@ -1,102 +1,95 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { widgets, insertWidgetSchema, dashboardWidgets } from "@/lib/db/schema";
+import { z } from "zod";
 
+// GET /api/widgets
 export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const { searchParams } = new URL(request.url);
+    const dashboardId = searchParams.get("dashboardId");
+    const spaceId = searchParams.get("spaceId");
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    let widgetsList = [];
+    
+    if (dashboardId) {
+      // Get widgets for a specific dashboard
+      const dashboardWidgetsList = await db.query.dashboardWidgets.findMany({
+        where: (dw, { eq }) => eq(dw.dashboardId, parseInt(dashboardId)),
+        with: {
+          widget: true,
+        },
+      });
+      
+      widgetsList = dashboardWidgetsList.map((dw) => ({
+        ...dw.widget,
+        position: dw.position,
+      }));
+    } else if (spaceId) {
+      // Get widgets for a specific space
+      widgetsList = await db.query.widgets.findMany({
+        where: (w, { eq }) => eq(w.spaceId, parseInt(spaceId)),
+      });
+    } else {
+      // Get all widgets
+      widgetsList = await db.query.widgets.findMany();
     }
     
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const dashboardId = searchParams.get('dashboardId');
-    const userId = searchParams.get('userId');
-    const spaceId = searchParams.get('spaceId');
-    
-    // Build query string
-    let queryString = '';
-    if (dashboardId) queryString += `dashboardId=${dashboardId}&`;
-    if (userId) queryString += `userId=${userId}&`;
-    if (spaceId) queryString += `spaceId=${spaceId}&`;
-    
-    // Forward request to existing backend
-    const url = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/widgets${queryString ? `?${queryString.slice(0, -1)}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch widgets' },
-        { status: response.status }
-      );
-    }
-    
-    const widgets = await response.json();
-    return NextResponse.json(widgets);
+    return NextResponse.json({ widgets: widgetsList });
   } catch (error) {
-    console.error('Widget fetch error:', error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Error fetching widgets:", error);
+    return NextResponse.json({ error: "Failed to fetch widgets" }, { status: 500 });
   }
 }
 
+// Define a schema for widget creation that includes the dashboard ID
+const createWidgetSchema = insertWidgetSchema.extend({
+  dashboardId: z.number().optional(),
+  position: z.object({
+    x: z.number().default(0),
+    y: z.number().default(0),
+    w: z.number().default(6),
+    h: z.number().default(4),
+  }).optional(),
+});
+
+// POST /api/widgets
 export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const json = await request.json();
+    const { dashboardId, position, ...widgetData } = createWidgetSchema.parse(json);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    // Create the widget
+    const [newWidget] = await db.insert(widgets).values(widgetData).returning();
+    
+    // If dashboardId is provided, create the dashboard-widget relationship
+    if (dashboardId) {
+      await db.insert(dashboardWidgets).values({
+        dashboardId,
+        widgetId: newWidget.id,
+        position: position || { x: 0, y: 0, w: 6, h: 4 },
+      });
     }
     
-    // Get request body
-    const body = await request.json();
-    
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/widgets`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to create widget' },
-        { status: response.status }
-      );
-    }
-    
-    const widget = await response.json();
-    return NextResponse.json(widget);
+    return NextResponse.json({ widget: newWidget });
   } catch (error) {
-    console.error('Widget creation error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Error creating widget:", error);
+    return NextResponse.json({ error: "Failed to create widget" }, { status: 500 });
   }
 }
