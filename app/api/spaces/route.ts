@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
         .where(eq(spaces.isDefault, true));
     }
     
+    // Create a slug from the name
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    
     // Insert the new space
     const [newSpace] = await db.insert(spaces)
       .values({
         name,
         description,
+        slug,
         isDefault,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -2,13 +2,20 @@ import React from 'react';
 import { Metadata } from 'next';
 import { AppLayout } from '@/components/layout/app-layout';
 import Link from 'next/link';
+import { db } from '@/lib/db';
+import { spaces } from '@/lib/db/schema';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Create Dashboard',
   description: 'Create a new dashboard',
 };
 
-export default function CreateDashboardPage() {
+export default async function CreateDashboardPage() {
+  // Fetch all spaces to populate the dropdown
+  const allSpaces = await db.query.spaces.findMany({
+    orderBy: (spaces, { asc }) => [asc(spaces.name)],
+  });
+  
   return (
     <AppLayout>
       <div className="mb-6">
@@ -23,7 +30,7 @@ export default function CreateDashboardPage() {
         </div>
 
         <div className="bg-card rounded-lg border p-6 shadow-sm">
-          <form className="space-y-6">
+          <form className="space-y-6" action="/api/dashboards" method="POST">
             <div className="space-y-2">
               <label 
                 htmlFor="name" 
@@ -33,9 +40,11 @@ export default function CreateDashboardPage() {
               </label>
               <input
                 id="name"
+                name="name"
                 type="text"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="Enter dashboard name"
+                required
               />
             </div>
             
@@ -48,6 +57,7 @@ export default function CreateDashboardPage() {
               </label>
               <textarea
                 id="description"
+                name="description"
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="Enter dashboard description (optional)"
@@ -56,21 +66,25 @@ export default function CreateDashboardPage() {
             
             <div className="space-y-2">
               <label 
-                htmlFor="space" 
+                htmlFor="spaceId" 
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Space
               </label>
               <select
-                id="space"
+                id="spaceId"
+                name="spaceId"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="1">Default Space</option>
-                <option value="2">Personal Analytics</option>
-                <option value="3">Team Projects</option>
+                <option value="">Select a space</option>
+                {allSpaces.map((space) => (
+                  <option key={space.id} value={space.id} selected={space.isDefault}>
+                    {space.name}{space.isDefault ? ' (Default)' : ''}
+                  </option>
+                ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                The space this dashboard belongs to.
+                The space this dashboard belongs to. If none selected, the default space will be used.
               </p>
             </div>
             
@@ -78,18 +92,19 @@ export default function CreateDashboardPage() {
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Layout
               </label>
+              <input type="hidden" name="layoutType" id="layoutType" value="standard" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center">
+                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center bg-primary/5">
                   <div className="w-full h-24 bg-muted/50 rounded-md mb-2 flex flex-col">
                     <div className="h-1/2 border-b border-border"></div>
                     <div className="grid grid-cols-2 h-1/2">
                       <div className="border-r border-border"></div>
                     </div>
                   </div>
-                  <span className="text-sm">Standard</span>
+                  <span className="text-sm font-medium">Standard</span>
                 </div>
                 
-                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center">
+                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center opacity-50">
                   <div className="w-full h-24 bg-muted/50 rounded-md mb-2 flex flex-col">
                     <div className="h-1/3 border-b border-border"></div>
                     <div className="grid grid-cols-3 h-2/3">
@@ -97,17 +112,17 @@ export default function CreateDashboardPage() {
                       <div className="border-r border-border"></div>
                     </div>
                   </div>
-                  <span className="text-sm">Analytics</span>
+                  <span className="text-sm">Analytics (Coming Soon)</span>
                 </div>
                 
-                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center">
+                <div className="border rounded-md p-4 cursor-pointer hover:border-primary transition-colors flex flex-col items-center opacity-50">
                   <div className="w-full h-24 bg-muted/50 rounded-md mb-2 grid grid-cols-4 grid-rows-3 gap-1">
                     <div className="bg-border rounded-sm col-span-4"></div>
                     <div className="bg-border rounded-sm col-span-2 row-span-2"></div>
                     <div className="bg-border rounded-sm col-span-2"></div>
                     <div className="bg-border rounded-sm col-span-2"></div>
                   </div>
-                  <span className="text-sm">Custom</span>
+                  <span className="text-sm">Custom (Coming Soon)</span>
                 </div>
               </div>
             </div>
@@ -116,10 +131,11 @@ export default function CreateDashboardPage() {
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="is_public"
+                  id="isPublic"
+                  name="isPublic"
                   className="rounded border-gray-300 text-primary focus:ring-primary/20"
                 />
-                <label htmlFor="is_public" className="text-sm font-medium leading-none">
+                <label htmlFor="isPublic" className="text-sm font-medium leading-none">
                   Make dashboard public
                 </label>
               </div>

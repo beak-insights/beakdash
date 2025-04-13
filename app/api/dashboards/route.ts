@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { dashboards, spaces } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     // Get query parameters
@@ -18,83 +18,72 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const spaceId = searchParams.get('spaceId');
     
-    // Build query string
-    let queryString = '';
-    if (userId) queryString += `userId=${userId}&`;
-    if (spaceId) queryString += `spaceId=${spaceId}&`;
+    // Fetch dashboards with optional filters
+    let query = db.select().from(dashboards);
     
-    // Forward request to existing backend
-    const url = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/dashboards${queryString ? `?${queryString.slice(0, -1)}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch dashboards' },
-        { status: response.status }
-      );
+    if (userId) {
+      query = query.where(eq(dashboards.userId, parseInt(userId)));
     }
     
-    const dashboards = await response.json();
-    return NextResponse.json(dashboards);
-  } catch (error) {
-    console.error('Dashboard fetch error:', error);
+    if (spaceId) {
+      query = query.where(eq(dashboards.spaceId, parseInt(spaceId)));
+    }
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    const allDashboards = await query;
+    
+    return NextResponse.json(allDashboards);
+  } catch (error) {
+    console.error('Error fetching dashboards:', error);
+    return NextResponse.json({ error: 'Failed to fetch dashboards' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get request body
-    const body = await request.json();
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string || null;
+    const spaceId = parseInt(formData.get('spaceId') as string) || null;
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/dashboards`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to create dashboard' },
-        { status: response.status }
-      );
+    if (!name) {
+      return NextResponse.json({ error: 'Dashboard name is required' }, { status: 400 });
     }
     
-    const dashboard = await response.json();
-    return NextResponse.json(dashboard);
+    // If no space is selected, try to find a default space
+    let actualSpaceId = spaceId;
+    if (!actualSpaceId) {
+      const defaultSpace = await db.query.spaces.findFirst({
+        where: eq(spaces.isDefault, true),
+      });
+      
+      if (defaultSpace) {
+        actualSpaceId = defaultSpace.id;
+      }
+    }
+    
+    // Insert the new dashboard
+    const [newDashboard] = await db.insert(dashboards)
+      .values({
+        name,
+        description,
+        userId: parseInt(session.user.id as string),
+        spaceId: actualSpaceId,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    
+    // Redirect to dashboard listing
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   } catch (error) {
-    console.error('Dashboard creation error:', error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error creating dashboard:', error);
+    return NextResponse.json({ error: 'Failed to create dashboard' }, { status: 500 });
   }
 }
