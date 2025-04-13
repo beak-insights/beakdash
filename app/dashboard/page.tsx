@@ -1,9 +1,10 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { DashboardClient } from './client-page';
+import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/db';
 import { dashboards, spaces, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Dashboards',
@@ -23,15 +24,16 @@ export default async function DashboardPage() {
   const hasDashboards = allDashboards.length > 0;
 
   return (
-    <DashboardClient>
-      <div className="px-4 py-6">
+    <AppLayout>
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Dashboards</h1>
-          <button
+          <Link
+            href="/dashboard/create"
             className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
           >
             Create Dashboard
-          </button>
+          </Link>
         </div>
 
         {/* Dashboard grid */}
@@ -48,13 +50,21 @@ export default async function DashboardPage() {
                   <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{dashboard.description || "No description"}</p>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">{dashboard.space?.name || "Unknown Space"}</span>
-                    <button className="text-sm text-primary hover:underline">View</button>
+                    <Link 
+                      href={`/dashboard/${dashboard.id}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View
+                    </Link>
                   </div>
                 </div>
               ))}
               
               {/* Add dashboard card */}
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow border-dashed border-muted-foreground/50 flex flex-col items-center justify-center text-center">
+              <Link 
+                href="/dashboard/create"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow border-dashed border-muted-foreground/50 flex flex-col items-center justify-center text-center"
+              >
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                     <path d="M5 12h14"></path>
@@ -63,7 +73,7 @@ export default async function DashboardPage() {
                 </div>
                 <h3 className="text-lg font-medium mb-1">Create New Dashboard</h3>
                 <p className="text-muted-foreground text-sm">Start building a custom analytics view</p>
-              </div>
+              </Link>
             </>
           ) : (
             // Empty state
@@ -99,7 +109,8 @@ export default async function DashboardPage() {
               <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
                 Create your first dashboard to start visualizing your data.
               </p>
-              <button
+              <Link
+                href="/dashboard/create"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
               >
                 <svg
@@ -118,7 +129,7 @@ export default async function DashboardPage() {
                   <path d="M12 5v14" />
                 </svg>
                 Create Dashboard
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -127,22 +138,31 @@ export default async function DashboardPage() {
           <>
             <h2 className="text-xl font-bold mt-10 mb-4">Quick Access</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4">
+              <Link 
+                href="/datasets"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
+              >
                 <h3 className="text-md font-medium mb-1">Datasets</h3>
                 <p className="text-muted-foreground text-xs">Manage your data</p>
-              </div>
+              </Link>
               
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4">
+              <Link 
+                href="/connections"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
+              >
                 <h3 className="text-md font-medium mb-1">Connections</h3>
                 <p className="text-muted-foreground text-xs">Configure data sources</p>
-              </div>
+              </Link>
               
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4">
+              <Link 
+                href="/widgets"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
+              >
                 <h3 className="text-md font-medium mb-1">Widgets</h3>
                 <p className="text-muted-foreground text-xs">Customize your views</p>
-              </div>
+              </Link>
               
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4">
+              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors">
                 <h3 className="text-md font-medium mb-1">Spaces</h3>
                 <p className="text-muted-foreground text-xs">Organize your work</p>
               </div>
@@ -150,6 +170,6 @@ export default async function DashboardPage() {
           </>
         )}
       </div>
-    </DashboardClient>
+    </AppLayout>
   );
 }

@@ -3,27 +3,26 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface SpinnerProps {
+type SpinnerProps = {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-}
+};
 
-export function Spinner({ size = 'md', className }: SpinnerProps) {
+export const Spinner = ({ size = 'md', className }: SpinnerProps) => {
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
+    sm: 'w-4 h-4 border-2',
+    md: 'w-8 h-8 border-3',
+    lg: 'w-12 h-12 border-4',
   };
 
   return (
     <div
       className={cn(
-        'animate-spin rounded-full border-t-2 border-primary',
+        'border-current text-primary rounded-full animate-spin',
+        'border-r-transparent border-t-transparent',
         sizeClasses[size],
         className
       )}
-      role="status"
-      aria-label="Loading"
     />
   );
-}
+};

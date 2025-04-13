@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { AppLayout } from '@/components/layout/app-layout';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Datasets',
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function DatasetsPage() {
   return (
-    <DashboardLayout>
+    <AppLayout>
       <div className="container px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Datasets</h1>
@@ -106,6 +107,6 @@ export default function DatasetsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </AppLayout>
   );
 }
