@@ -1,45 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { spaces, userSpaces, users } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces/${id}/leave`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
+    const spaceId = parseInt(params.id);
+    
+    // Validate space exists
+    const space = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to leave space' },
-        { status: response.status }
-      );
+    if (!space) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Successfully left space' });
-  } catch (error) {
-    console.error(`Leave space error for ID ${params.id}:`, error);
+    // Find the current user
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, session.user.email || ''),
+    });
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    // Check if user is already a member
+    const existingMembership = await db.query.userSpaces.findFirst({
+      where: and(
+        eq(userSpaces.userId, user.id),
+        eq(userSpaces.spaceId, spaceId)
+      ),
+    });
+    
+    if (!existingMembership) {
+      return NextResponse.json({ error: 'User is not a member of this space' }, { status: 400 });
+    }
+    
+    // Check if user is the owner and the only one in the space
+    if (existingMembership.role === 'owner') {
+      const spaceMembers = await db.query.userSpaces.findMany({
+        where: eq(userSpaces.spaceId, spaceId),
+      });
+      
+      if (spaceMembers.length === 1) {
+        return NextResponse.json({ 
+          error: 'Cannot leave space as you are the only owner. Delete the space instead.' 
+        }, { status: 400 });
+      }
+      
+      // Check if there's another owner
+      const otherOwners = spaceMembers.filter(member => 
+        member.userId !== user.id && member.role === 'owner'
+      );
+      
+      if (otherOwners.length === 0) {
+        return NextResponse.json({ 
+          error: 'Cannot leave space as you are the only owner. Transfer ownership to another member first.' 
+        }, { status: 400 });
+      }
+    }
+    
+    // Remove user from space
+    await db.delete(userSpaces)
+      .where(
+        and(
+          eq(userSpaces.userId, user.id),
+          eq(userSpaces.spaceId, spaceId)
+        )
+      );
+    
+    // Return success response
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Successfully left space' 
+    });
+  } catch (error) {
+    console.error('Error leaving space:', error);
+    return NextResponse.json({ error: 'Failed to leave space' }, { status: 500 });
   }
 }

@@ -51,6 +51,15 @@ export default async function SpaceDetailPage({ params }: Props) {
     notFound();
   }
   
+  // Find the current user
+  const currentUser = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email || ''),
+  });
+  
+  if (!currentUser) {
+    notFound();
+  }
+  
   // Fetch space members
   const members = await db.query.userSpaces.findMany({
     where: eq(userSpaces.spaceId, spaceId),
@@ -59,15 +68,24 @@ export default async function SpaceDetailPage({ params }: Props) {
     },
   });
   
-  // Fetch dashboards in this space
-  const spaceDashboards = await db.query.dashboards.findMany({
-    where: eq(dashboards.spaceId, spaceId),
-  });
+  // Check if the current user is a member of the space
+  const userMembership = members.find(membership => membership.userId === currentUser.id);
+  const isSpaceMember = !!userMembership;
+  const userRole = userMembership?.role || null;
   
-  // Fetch widgets in this space
-  const spaceWidgets = await db.query.widgets.findMany({
-    where: eq(widgets.spaceId, spaceId),
-  });
+  // Fetch dashboards in this space (only if user is a member)
+  const spaceDashboards = isSpaceMember 
+    ? await db.query.dashboards.findMany({
+        where: eq(dashboards.spaceId, spaceId),
+      })
+    : [];
+  
+  // Fetch widgets in this space (only if user is a member)
+  const spaceWidgets = isSpaceMember
+    ? await db.query.widgets.findMany({
+        where: eq(widgets.spaceId, spaceId),
+      })
+    : [];
   
   return (
     <AppLayout>
@@ -75,23 +93,72 @@ export default async function SpaceDetailPage({ params }: Props) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{space.name}</h1>
           <p className="text-muted-foreground mt-1">{space.description || 'No description'}</p>
+          {userRole && (
+            <div className="mt-2">
+              <span className="text-xs inline-flex items-center font-medium rounded-full px-2.5 py-0.5 bg-primary/10 text-primary">
+                {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
-          <Link href={`/spaces/${space.id}/edit`}>
-            <Button variant="outline">Edit Space</Button>
-          </Link>
+          {isSpaceMember ? (
+            <>
+              {userRole === 'owner' && (
+                <Link href={`/spaces/${space.id}/edit`}>
+                  <Button variant="outline">Edit Space</Button>
+                </Link>
+              )}
+              <form action={`/api/spaces/${space.id}/leave`} method="POST">
+                <Button type="submit" variant="destructive">Leave Space</Button>
+              </form>
+            </>
+          ) : (
+            <form action={`/api/spaces/${space.id}/join`} method="POST">
+              <Button type="submit" variant="default">Join Space</Button>
+            </form>
+          )}
           <Link href="/spaces">
             <Button variant="secondary">Back to Spaces</Button>
           </Link>
         </div>
       </div>
       
+      {/* Show a warning if user is not a member */}
+      {!isSpaceMember && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700">
+                You are not a member of this space. Some content is restricted.
+              </p>
+              <div className="mt-2">
+                <form action={`/api/spaces/${space.id}/join`} method="POST">
+                  <button type="submit" className="text-sm font-medium text-amber-700 hover:text-amber-600">
+                    Join Space →
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
-          <TabsTrigger value="widgets">Widgets</TabsTrigger>
+          {isSpaceMember && (
+            <>
+              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
+              <TabsTrigger value="widgets">Widgets</TabsTrigger>
+            </>
+          )}
         </TabsList>
         
         <TabsContent value="overview">

@@ -1,50 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { spaces, userSpaces, users } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get request body for additional data like role
-    const body = await request.json();
+    const spaceId = parseInt(params.id);
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces/${id}/join`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
+    // Validate space exists
+    const space = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to join space' },
-        { status: response.status }
-      );
+    if (!space) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     
-    const result = await response.json();
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error(`Join space error for ID ${params.id}:`, error);
+    // Find the current user
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, session.user.email || ''),
+    });
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    // Check if user is already a member
+    const existingMembership = await db.query.userSpaces.findFirst({
+      where: and(
+        eq(userSpaces.userId, user.id),
+        eq(userSpaces.spaceId, spaceId)
+      ),
+    });
+    
+    if (existingMembership) {
+      return NextResponse.json({ error: 'User is already a member of this space' }, { status: 400 });
+    }
+    
+    // Add user to space
+    const role = space.isPrivate ? 'pending' : 'member'; // If private, set as pending for approval
+    
+    await db.insert(userSpaces).values({
+      userId: user.id,
+      spaceId,
+      role,
+      joinedAt: new Date(),
+    });
+    
+    // Return success response
+    return NextResponse.json({ 
+      success: true, 
+      message: space.isPrivate 
+        ? 'Request to join space has been submitted' 
+        : 'Successfully joined space' 
+    });
+  } catch (error) {
+    console.error('Error joining space:', error);
+    return NextResponse.json({ error: 'Failed to join space' }, { status: 500 });
   }
 }
