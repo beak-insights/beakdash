@@ -3,52 +3,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { dashboardWidgets, dashboards, widgets } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 interface Props {
   params: { id: string };
 }
 
-// Helper function to get dashboard data by ID
-async function getDashboardById(dashboardId: number) {
-  return await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, dashboardId),
-  });
-}
-
-// Helper function to get widget data by ID
-async function getWidgetById(widgetId: number) {
-  return await db.query.widgets.findFirst({
-    where: eq(widgets.id, widgetId),
-  });
-}
-
-// Helper function to check if widget is already in dashboard
-async function getDashboardWidget(dashboardId: number, widgetId: number) {
-  return await db.query.dashboardWidgets.findFirst({
-    where: (dw, { and, eq }) => 
-      and(eq(dw.widgetId, widgetId), eq(dw.dashboardId, dashboardId)),
-  });
-}
-
 // GET /api/dashboards/[id]/widgets
 export async function GET(request: NextRequest, { params }: Props) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    // Safely access params
-    const id = String(params.id);
-    const dashboardId = parseInt(id);
-    
-    if (isNaN(dashboardId)) {
-      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
-    }
+  try {
+    const dashboardId = parseInt(params.id);
     
     // Check if dashboard exists
-    const dashboard = await getDashboardById(dashboardId);
+    const dashboard = await db.query.dashboards.findFirst({
+      where: eq(dashboards.id, dashboardId),
+    });
     
     if (!dashboard) {
       return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
@@ -82,24 +56,19 @@ export async function GET(request: NextRequest, { params }: Props) {
 
 // POST /api/dashboards/[id]/widgets
 export async function POST(request: NextRequest, { params }: Props) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    
-    // Safely access params
-    const id = String(params.id);
-    const dashboardId = parseInt(id);
-    
-    if (isNaN(dashboardId)) {
-      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
-    }
-    
+    const dashboardId = parseInt(params.id);
     const json = await request.json();
     
     // Check if dashboard exists
-    const dashboard = await getDashboardById(dashboardId);
+    const dashboard = await db.query.dashboards.findFirst({
+      where: eq(dashboards.id, dashboardId),
+    });
     
     if (!dashboard) {
       return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
@@ -110,14 +79,19 @@ export async function POST(request: NextRequest, { params }: Props) {
       const widgetId = json.widgetId;
       
       // Check if widget exists
-      const widget = await getWidgetById(widgetId);
+      const widget = await db.query.widgets.findFirst({
+        where: eq(widgets.id, widgetId),
+      });
       
       if (!widget) {
         return NextResponse.json({ error: "Widget not found" }, { status: 404 });
       }
       
       // Check if widget is already added to this dashboard
-      const existingDashboardWidget = await getDashboardWidget(dashboardId, widgetId);
+      const existingDashboardWidget = await db.query.dashboardWidgets.findFirst({
+        where: (dw, { and, eq }) => 
+          and(eq(dw.widgetId, widgetId), eq(dw.dashboardId, dashboardId)),
+      });
       
       if (existingDashboardWidget) {
         return NextResponse.json({ error: "Widget already added to this dashboard" }, { status: 400 });
