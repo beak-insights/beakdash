@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (spaceId) {
       const spaceIdNum = parseInt(spaceId);
       connectionData = await db.execute(
-        sql`SELECT * FROM connections WHERE space_id = ${spaceIdNum}`
+        sql`SELECT * FROM connections WHERE space_id = ${spaceIdNum} OR user_id = ${userIdNum}`
       );
     } else {
       // By default, get connections accessible to the user
@@ -41,7 +41,25 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    return NextResponse.json(connectionData);
+    // Transform the result to a serializable array
+    const connections = Array.isArray(connectionData) ? connectionData : [];
+    
+    // Process the connections to be serializable
+    const serializedConnections = connections.map(conn => {
+      // Create a plain object with all enumerable properties
+      const plainObject: Record<string, any> = {};
+      for (const key in conn) {
+        let value = conn[key];
+        // Convert dates to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        }
+        plainObject[key] = value;
+      }
+      return plainObject;
+    });
+    
+    return NextResponse.json(serializedConnections);
   } catch (error) {
     console.error('Connections fetch error:', error);
     
@@ -112,10 +130,27 @@ export async function POST(request: NextRequest) {
       SELECT * FROM connections WHERE name = ${body.name} ORDER BY id DESC LIMIT 1
     `);
     
+    // Serialize the connection for the response
+    let connection = null;
+    if (Array.isArray(insertedConnection) && insertedConnection.length > 0) {
+      const conn = insertedConnection[0];
+      connection = {} as Record<string, any>;
+      
+      // Create a serializable object from the row
+      for (const key in conn) {
+        let value = conn[key];
+        // Convert dates to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        }
+        connection[key] = value;
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       message: 'Connection created successfully',
-      connection: insertedConnection[0]
+      connection
     });
   } catch (error) {
     console.error('Connection creation error:', error);
