@@ -1,6 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { Space } from "@/lib/db/schema";
+import Image from "next/image";
 import {
   BarChart3,
   Database,
@@ -17,7 +18,8 @@ import {
   Users,
   Clock,
   Plus,
-  FolderPlus
+  FolderPlus,
+  Search
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useSpaces } from "@/lib/hooks/use-spaces";
@@ -107,9 +109,11 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
     currentSpaceId, 
     setCurrentSpaceId, 
     deselectCurrentSpace,
-    createSpaceMutation 
+    createSpaceMutation,
+    spaces: allSpaces = []
   } = useSpaces();
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
+  const [browseSpacesOpen, setBrowseSpacesOpen] = useState(false);
   
   const form = useForm<CreateSpaceForm>({
     resolver: zodResolver(createSpaceSchema),
@@ -130,6 +134,15 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
     setCreateSpaceOpen(false);
     form.reset();
   }
+
+  // Get a list of non-member spaces (spaces user can join)
+  const memberSpaceIds = Array.isArray(userSpaces) 
+    ? userSpaces.map((space: any) => space.id) 
+    : [];
+  
+  const nonMemberSpaces = Array.isArray(allSpaces) 
+    ? allSpaces.filter((space: any) => !memberSpaceIds.includes(space.id))
+    : [];
 
   if (isLoadingUserSpaces) {
     return (
@@ -163,8 +176,8 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                       <Globe className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-48">
-                    <div className="p-2 text-center font-medium text-sm">Spaces</div>
+                  <DropdownMenuContent align="center" className="w-56">
+                    <div className="p-2 text-center font-medium text-sm">Your Spaces</div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => deselectCurrentSpace()}
@@ -173,16 +186,31 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                       <Globe className="mr-2 h-4 w-4" />
                       <span className="truncate">All Spaces</span>
                     </DropdownMenuItem>
-                    {safeUserSpaces.map((space: Space) => (
-                      <DropdownMenuItem 
-                        key={space.id}
-                        className={cn(space.id === currentSpaceId && "bg-muted")}
-                        onClick={() => setCurrentSpaceId(space.id)}
-                      >
-                        <Globe className="mr-2 h-4 w-4" />
-                        <span className="truncate">{space.name}</span>
+                    
+                    {safeUserSpaces.length > 0 ? (
+                      <>
+                        {safeUserSpaces.map((space: any) => (
+                          <DropdownMenuItem 
+                            key={space.id}
+                            className={cn(space.id === currentSpaceId && "bg-muted")}
+                            onClick={() => setCurrentSpaceId(space.id)}
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <Globe className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{space.name}</span>
+                              {space.role && (
+                                <span className="ml-auto text-xs text-muted-foreground">{space.role}</span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    ) : (
+                      <DropdownMenuItem disabled>
+                        <span className="text-xs text-muted-foreground">No spaces yet</span>
                       </DropdownMenuItem>
-                    ))}
+                    )}
+                    
                     <DropdownMenuSeparator />
                     <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
                       <DropdownMenuItem>
@@ -190,6 +218,10 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                         <span>New Space</span>
                       </DropdownMenuItem>
                     </DialogTrigger>
+                    <DropdownMenuItem onClick={() => setBrowseSpacesOpen(true)}>
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Browse Spaces</span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TooltipTrigger>
@@ -219,7 +251,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                 <Globe className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">
                   {Array.isArray(userSpaces) && userSpaces.length > 0 && currentSpaceId ? 
-                    userSpaces.find((space: Space) => space && space.id === currentSpaceId && 'name' in space)?.name || "Default" : 
+                    userSpaces.find((space: any) => space && space.id === currentSpaceId)?.name || "Default" : 
                     "All Spaces"
                   }
                 </span>
@@ -227,13 +259,13 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuItem 
-              className="font-medium"
-              disabled
-            >
-              Select Space
-            </DropdownMenuItem>
+          <DropdownMenuContent className="w-64">
+            <div className="p-2 font-medium text-sm flex items-center justify-between">
+              <span>Your Spaces</span>
+              <Link href="/spaces" className="text-xs text-primary hover:underline">
+                Manage
+              </Link>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => deselectCurrentSpace()}
@@ -245,9 +277,8 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
               </div>
             </DropdownMenuItem>
             
-            {Array.isArray(userSpaces) && userSpaces.length > 0 ? userSpaces
-              .filter((space: Space) => space && 'id' in space && 'name' in space)
-              .map((space: Space) => (
+            {Array.isArray(userSpaces) && userSpaces.length > 0 ? (
+              userSpaces.map((space: any) => (
                 <DropdownMenuItem 
                   key={space.id} 
                   onClick={() => setCurrentSpaceId(space.id)}
@@ -256,9 +287,17 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                   <div className="flex items-center w-full">
                     <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span className="truncate">{space.name}</span>
+                    {space.role && (
+                      <span className="ml-auto text-xs text-muted-foreground">{space.role}</span>
+                    )}
                   </div>
                 </DropdownMenuItem>
-              )) : null}
+              ))
+            ) : (
+              <DropdownMenuItem disabled className="opacity-50 italic text-sm">
+                No spaces joined yet
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DialogTrigger asChild onClick={() => setCreateSpaceOpen(true)}>
               <DropdownMenuItem>
@@ -266,6 +305,10 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
                 <span>New Space</span>
               </DropdownMenuItem>
             </DialogTrigger>
+            <DropdownMenuItem onClick={() => setBrowseSpacesOpen(true)}>
+              <Users className="mr-2 h-4 w-4" />
+              <span>Browse Available Spaces</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -335,19 +378,98 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Browse Spaces Dialog */}
+      <Dialog open={browseSpacesOpen} onOpenChange={setBrowseSpacesOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Browse Available Spaces</DialogTitle>
+            <DialogDescription>
+              Discover spaces you can join and collaborate with others.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {nonMemberSpaces.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="mx-auto bg-muted rounded-full w-12 h-12 flex items-center justify-center mb-3">
+                  <Search className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium">No spaces available</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  You have already joined all available spaces or there are no other spaces yet.
+                </p>
+                <Button 
+                  onClick={() => {
+                    setBrowseSpacesOpen(false);
+                    setCreateSpaceOpen(true);
+                  }}
+                  className="mx-auto"
+                >
+                  Create a new space
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {nonMemberSpaces.map((space: any) => (
+                  <div key={space.id} className="border rounded-lg p-4 flex flex-col">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium">{space.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {space.description || "No description available"}
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {space.logoUrl ? (
+                          <Image src={space.logoUrl} alt={space.name} width={24} height={24} />
+                        ) : (
+                          <Globe className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Created {new Date(space.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <Separator className="my-4" />
+                    
+                    <form action={`/api/spaces/${space.id}/join`} method="POST" className="mt-auto">
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        variant="outline"
+                      >
+                        Join Space
+                      </Button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrowseSpacesOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { collapsed, toggleCollapsed } = useSidebarStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm("Are you sure you want to log out?")) {
-      logoutMutation.mutate();
+      await logout();
     }
   };
 
