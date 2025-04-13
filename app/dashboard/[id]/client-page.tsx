@@ -3,24 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { 
-  Column, Line, Area, Pie, G2, DualAxes, Scatter, 
+  Column, Line, Area, Pie, DualAxes, Scatter, 
   Rose, Radar, Gauge, Waterfall, WordCloud 
 } from '@ant-design/charts';
 import { EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
-
-// Configure G2 theme
-G2.registerTheme('beakdash-theme', {
-  colors10: [
-    '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
-    '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107'
-  ],
-  colors20: [
-    '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
-    '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107',
-    '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', 
-    '#673ab7', '#9c27b0', '#e91e63', '#f44336', '#5e35b1'
-  ]
-});
 
 // Define widget type
 interface Widget {
