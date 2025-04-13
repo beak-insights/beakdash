@@ -175,7 +175,7 @@ export function DbQaQueriesClient() {
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Categories</SelectLabel>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {dbQaCategoryTypes.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category.replace('_', ' ')}
@@ -192,7 +192,7 @@ export function DbQaQueriesClient() {
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Status</SelectLabel>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="success">Success</SelectItem>
                 <SelectItem value="warning">Warning</SelectItem>
                 <SelectItem value="error">Error</SelectItem>

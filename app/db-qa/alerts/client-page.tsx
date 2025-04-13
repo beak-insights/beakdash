@@ -241,7 +241,7 @@ export function DbQaAlertsClient() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Status</SelectLabel>
-                    <SelectItem value="">All Statuses</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="resolved">Resolved</SelectItem>
                     <SelectItem value="snoozed">Snoozed</SelectItem>
@@ -256,7 +256,7 @@ export function DbQaAlertsClient() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Severity</SelectLabel>
-                    <SelectItem value="">All Severities</SelectItem>
+                    <SelectItem value="all">All Severities</SelectItem>
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="low">Low</SelectItem>
