@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { spaces, userSpaces, users } from '@/lib/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { users, userSpaces } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
+/**
+ * Join a space as the current user
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -18,16 +21,11 @@ export async function POST(
     
     const spaceId = parseInt(params.id);
     
-    // Validate space exists
-    const space = await db.query.spaces.findFirst({
-      where: eq(spaces.id, spaceId),
-    });
-    
-    if (!space) {
-      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
+    if (isNaN(spaceId)) {
+      return NextResponse.json({ error: 'Invalid space ID' }, { status: 400 });
     }
     
-    // Find the current user
+    // Find current user
     const user = await db.query.users.findFirst({
       where: eq(users.email, session.user.email || ''),
     });
@@ -36,7 +34,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Check if user is already a member
+    // Check if user is already a member of the space
     const existingMembership = await db.query.userSpaces.findFirst({
       where: and(
         eq(userSpaces.userId, user.id),
@@ -45,26 +43,20 @@ export async function POST(
     });
     
     if (existingMembership) {
-      return NextResponse.json({ error: 'User is already a member of this space' }, { status: 400 });
+      return NextResponse.json({ error: 'Already a member of this space' }, { status: 400 });
     }
     
-    // Add user to space
-    const role = space.isPrivate ? 'pending' : 'member'; // If private, set as pending for approval
-    
+    // Add user to space with 'member' role
     await db.insert(userSpaces).values({
       userId: user.id,
-      spaceId,
-      role,
+      spaceId: spaceId,
+      role: 'member',
       joinedAt: new Date(),
     });
     
-    // Return success response
-    return NextResponse.json({ 
-      success: true, 
-      message: space.isPrivate 
-        ? 'Request to join space has been submitted' 
-        : 'Successfully joined space' 
-    });
+    // Redirect to the space page
+    return NextResponse.redirect(new URL(`/spaces/${spaceId}`, request.url));
+    
   } catch (error) {
     console.error('Error joining space:', error);
     return NextResponse.json({ error: 'Failed to join space' }, { status: 500 });

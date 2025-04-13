@@ -605,14 +605,14 @@ export default function Sidebar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-10 w-10">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
-                  <AvatarFallback>{user.displayName?.[0] || user.username[0]}</AvatarFallback>
+                  <AvatarImage src={user.image || ""} alt={user.name || "User"} />
+                  <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[240px]">
               <div className="p-2 border-b">
-                <p className="text-sm font-medium">{user.displayName || user.username}</p>
+                <p className="text-sm font-medium">{user.name || "User"}</p>
                 <p className="text-xs text-muted-foreground">{user.email || ""}</p>
               </div>
               <Link to="/profile">
@@ -640,11 +640,11 @@ export default function Sidebar() {
               <Button variant="ghost" className="w-full justify-between px-2">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
-                    <AvatarFallback>{user.displayName?.[0] || user.username[0]}</AvatarFallback>
+                    <AvatarImage src={user.image || ""} alt={user.name || "User"} />
+                    <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="text-left">
-                    <p className="text-sm font-medium truncate max-w-[140px]">{user.displayName || user.username}</p>
+                    <p className="text-sm font-medium truncate max-w-[140px]">{user.name || "User"}</p>
                     <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user.email || ""}</p>
                   </div>
                 </div>
