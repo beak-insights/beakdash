@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { del } from '@/lib/api';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, Link as LinkIcon, Edit, Trash2 } from 'lucide-react';
@@ -27,29 +28,8 @@ export function ConnectionsClient() {
   // Fetch connections with proper error handling
   const { data: connections = [], isLoading, isError, refetch } = useQuery<Connection[]>({
     queryKey: ['/api/connections'],
-    queryFn: async () => {
-      try {
-        console.log('Fetching connections from the API...');
-        const response = await fetch('/api/connections', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          console.error('API error response:', response.status, response.statusText);
-          throw new Error(`Failed to fetch connections: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log('Connections fetched successfully:', data);
-        return data;
-      } catch (error) {
-        console.error('Error fetching connections:', error);
-        throw error;
-      }
-    },
+    retry: 3,
+    refetchOnWindowFocus: false,
   });
 
   const handleDeleteConnection = async (id: number) => {

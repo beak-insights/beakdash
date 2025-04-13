@@ -20,7 +20,7 @@ export async function apiRequest<T = any>(url: string, options: RequestOptions =
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'same-origin',
+    credentials: 'include',
   };
 
   const fetchOptions: RequestInit = {
