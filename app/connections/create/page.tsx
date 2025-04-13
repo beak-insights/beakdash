@@ -15,9 +15,13 @@ export const metadata: Metadata = {
   description: 'Create a new data connection',
 };
 
-export default function CreateConnectionPage({ searchParams }: { searchParams: { type?: string } }) {
+export default function CreateConnectionPage({ 
+  searchParams,
+}: { 
+  searchParams: { type?: string } 
+}) {
   // Use the type from search params to determine which tab should be active
-  const defaultTab = searchParams?.type || 'sql';
+  const defaultTab = searchParams?.type ?? 'sql';
   
   return (
     <AppLayout>

@@ -20,8 +20,11 @@ export default async function DashboardPage({
   // Get the current space ID from the search parameters
   let currentSpaceId = null;
   
-  if (searchParams?.spaceId) {
-    const spaceIdParam = parseInt(searchParams.spaceId);
+  // In Next.js 15, we need to use optional chaining and nullish coalescing
+  // to safely access searchParams properties
+  const spaceIdStr = searchParams?.spaceId ?? null;
+  if (spaceIdStr) {
+    const spaceIdParam = parseInt(spaceIdStr);
     if (!isNaN(spaceIdParam)) {
       currentSpaceId = spaceIdParam;
     }
