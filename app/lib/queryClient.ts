@@ -26,7 +26,7 @@ export async function apiRequest<T = any>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   url: string,
   body?: any
-): Promise<Response> {
+): Promise<T> {
   const options: RequestInit = {
     method,
     headers: {
@@ -56,5 +56,11 @@ export async function apiRequest<T = any>(
     }
   }
 
-  return response;
+  // Parse and return the response data
+  if (response.headers.get('content-type')?.includes('application/json')) {
+    return await response.json() as T;
+  }
+  
+  // For non-JSON responses, return the response itself as any type
+  return response as any;
 }

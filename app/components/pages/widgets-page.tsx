@@ -87,11 +87,7 @@ export default function WidgetsPage() {
         dashboardId: null, // Templates aren't associated with a dashboard
       };
       
-      await apiRequest({
-        method: "POST",
-        url: "/api/widgets",
-        data: templateWidget,
-      });
+      await apiRequest("POST", "/api/widgets", templateWidget);
       
       queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
       
@@ -127,11 +123,7 @@ export default function WidgetsPage() {
         sourceWidgetId: selectedWidget.id, // Reference the original template
       };
       
-      await apiRequest({
-        method: "POST",
-        url: "/api/widgets",
-        data: newWidget,
-      });
+      await apiRequest("POST", "/api/widgets", newWidget);
       
       queryClient.invalidateQueries({ queryKey: ["/api/widgets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboards", selectedDashboardId] });

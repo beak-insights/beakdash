@@ -37,11 +37,12 @@ export function useAuth() {
     isLoading, 
     error, 
     refetch 
-  } = useQuery<User>({
+  } = useQuery<AuthUser | null>({
     queryKey: ['/api/auth/me'],
     queryFn: async () => {
       try {
-        return await apiRequest('GET', '/api/auth/me');
+        const data = await apiRequest<AuthUser>('GET', '/api/auth/me');
+        return data as AuthUser;
       } catch (error) {
         // If we get a 401 or similar, it means the user is not authenticated
         // We don't want to throw an error in this case
@@ -134,7 +135,7 @@ export function useAuth() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (profile: Partial<User>) => {
+    mutationFn: async (profile: Partial<AuthUser>) => {
       if (!user || !user.id) {
         throw new Error('You must be logged in to update your profile');
       }
