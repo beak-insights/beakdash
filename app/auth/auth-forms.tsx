@@ -28,6 +28,11 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError(null);
+    
+    // Remove any validation errors that might appear
+    if (e.target.setCustomValidity) {
+      e.target.setCustomValidity('');
+    }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -36,7 +41,14 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
     setError(null);
 
     try {
-      console.log('Attempting login with:', formData.username);
+      const usernameOrEmail = formData.username;
+      console.log('Attempting login with:', usernameOrEmail);
+      
+      // Remove potential client-side validation
+      const usernameInput = document.getElementById('username') as HTMLInputElement;
+      if (usernameInput?.setCustomValidity) {
+        usernameInput.setCustomValidity('');
+      }
       
       // Check for callback URL from search parameters
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
@@ -45,10 +57,10 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
       // Use NextAuth's signIn function directly with redirect: true
       // This ensures the server handles the session creation properly
       const result = await signIn('credentials', {
-        username: formData.username, // This will be either username or email
+        username: usernameOrEmail, // This will be either username or email
         password: formData.password,
         callbackUrl: callbackUrl,
-        redirect: true
+        redirect: false // Change to false to handle errors
       });
       
       // Note: The code below won't execute if redirect is true
@@ -150,7 +162,7 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
             <input
               id="username"
               name="username"
-              type="text"
+              type="text" 
               inputMode="text"
               autoComplete="username email"
               value={formData.username}
