@@ -53,15 +53,26 @@ interface GridLayoutProps {
 function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayoutProps) {
   // Convert widgets to layout items
   const [layouts, setLayouts] = useState(() => {
-    const layoutItems = widgets.map(widget => ({
-      i: widget.id.toString(),
-      x: widget.position?.x || 0,
-      y: widget.position?.y || 0,
-      w: widget.position?.w || 6,
-      h: widget.position?.h || 4,
-      minW: 2,
-      minH: 2,
-    }));
+    // Debug log for widget positions
+    console.log("Initial widget positions:", widgets.map(w => ({ id: w.id, position: w.position })));
+    
+    const layoutItems = widgets.map(widget => {
+      // Only use default values if position is completely missing
+      const position = widget.position || {};
+      
+      const item = {
+        i: widget.id.toString(),
+        x: position.x !== undefined ? position.x : 0,
+        y: position.y !== undefined ? position.y : 0,
+        w: position.w !== undefined ? position.w : 6,
+        h: position.h !== undefined ? position.h : 4,
+        minW: 2,
+        minH: 2,
+      };
+      
+      console.log(`Widget ${widget.id} layout:`, item);
+      return item;
+    });
     
     return { lg: layoutItems, md: layoutItems, sm: layoutItems };
   });

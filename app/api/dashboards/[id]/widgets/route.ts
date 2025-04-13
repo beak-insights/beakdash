@@ -29,7 +29,10 @@ export async function GET(request: NextRequest, { params }: Props) {
       return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
     }
     
-    // Get all widgets for this dashboard
+    // Log the dashboard ID we're fetching for
+    console.log(`Fetching widgets for dashboard ID: ${dashboardId}`);
+    
+    // Get all widgets for this dashboard with explicit join to ensure position data
     const dashboardWidgetsList = await db.query.dashboardWidgets.findMany({
       where: eq(dashboardWidgets.dashboardId, dashboardId),
       with: {
@@ -42,12 +45,26 @@ export async function GET(request: NextRequest, { params }: Props) {
       },
     });
     
-    // Transform to include position information with the widget
-    const widgetsList = dashboardWidgetsList.map((dw) => ({
-      ...dw.widget,
-      position: dw.position,
-    }));
+    // Log the raw response
+    console.log(`Found ${dashboardWidgetsList.length} widgets for dashboard ${dashboardId}`);
+    dashboardWidgetsList.forEach((dw, index) => {
+      console.log(`Widget ${index + 1}:`, {
+        id: dw.widget.id,
+        name: dw.widget.name,
+        position: dw.position
+      });
+    });
     
+    // Transform to include position information with the widget
+    const widgetsList = dashboardWidgetsList.map((dw) => {
+      console.log("Dashboard Widget position:", dw.position);
+      return {
+        ...dw.widget,
+        position: dw.position,
+      };
+    });
+    
+    console.log("Sending widgets with positions:", widgetsList.map(w => ({ id: w.id, position: w.position })));
     return NextResponse.json({ widgets: widgetsList });
   } catch (error) {
     console.error("Error fetching dashboard widgets:", error);

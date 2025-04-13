@@ -90,9 +90,19 @@ export async function PUT(request: NextRequest, { params }: Props) {
       if (existingDashboardWidget) {
         // Update position if provided
         if (position) {
+          console.log(`Updating position for widget ${widgetId} in dashboard ${dashboardId}:`, position);
+          
+          // Ensure position has all required fields
+          const validPosition = {
+            x: position.x !== undefined ? position.x : 0,
+            y: position.y !== undefined ? position.y : 0,
+            w: position.w !== undefined ? position.w : 6,
+            h: position.h !== undefined ? position.h : 4
+          };
+          
           await db
             .update(dashboardWidgets)
-            .set({ position })
+            .set({ position: validPosition })
             .where(eq(dashboardWidgets.widgetId, widgetId))
             .where(eq(dashboardWidgets.dashboardId, dashboardId));
         }
