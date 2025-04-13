@@ -76,6 +76,21 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/page.js"
     ],
+    "/api/dashboards/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/dashboards/route.js"
+    ],
+    "/dashboard/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/[id]/page.js"
+    ],
+    "/dashboard/[id]/add-widget/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/[id]/add-widget/page.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
