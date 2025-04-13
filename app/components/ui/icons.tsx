@@ -65,7 +65,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type Icon = LucideIcon;
+export type Icon = typeof LucideIcon;
 
 export const Icons = {
   logo: Command,

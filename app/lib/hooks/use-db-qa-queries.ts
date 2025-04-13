@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, get, post, put, del } from "@/lib/api-client";
 import { toast } from "@/components/ui/use-toast";
 import { DbQaQueryItem } from "@/components/db-qa/query-list";
 
@@ -32,7 +32,9 @@ export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
     queryKey,
     queryFn: async () => {
       const qs = buildQueryString();
-      return apiRequest<DbQaQueryItem[]>(`/api/db-qa/queries${qs ? `?${qs}` : ""}`);
+      return apiRequest<DbQaQueryItem[]>(`/api/db-qa/queries${qs ? `?${qs}` : ""}`, {
+        method: 'GET'
+      });
     },
     enabled,
   });
@@ -104,7 +106,9 @@ export function useDbQaQuery(id: number | string | null) {
     queryKey,
     queryFn: async () => {
       if (!id) throw new Error("Query ID is required");
-      return apiRequest(`/api/db-qa/queries/${id}`);
+      return apiRequest(`/api/db-qa/queries/${id}`, {
+        method: 'GET'
+      });
     },
     enabled: !!id,
   });
