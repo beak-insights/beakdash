@@ -10,13 +10,16 @@ interface Props {
 }
 
 // GET /api/widgets/[id]
-export async function GET(request: NextRequest, { params }: Props) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(
+  request: NextRequest,
+  { params }: Props
+) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = parseInt(params.id);
     
     const widget = await db.query.widgets.findFirst({
@@ -44,13 +47,16 @@ export async function GET(request: NextRequest, { params }: Props) {
 }
 
 // PUT /api/widgets/[id]
-export async function PUT(request: NextRequest, { params }: Props) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function PUT(
+  request: NextRequest,
+  { params }: Props
+) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = parseInt(params.id);
     const json = await request.json();
     
@@ -112,13 +118,16 @@ export async function PUT(request: NextRequest, { params }: Props) {
 }
 
 // DELETE /api/widgets/[id]
-export async function DELETE(request: NextRequest, { params }: Props) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function DELETE(
+  request: NextRequest,
+  { params }: Props
+) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = parseInt(params.id);
     
     // Check if widget exists

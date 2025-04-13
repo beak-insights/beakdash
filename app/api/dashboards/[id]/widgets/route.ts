@@ -3,26 +3,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { dashboardWidgets, dashboards, widgets } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 interface Props {
   params: { id: string };
 }
 
 // GET /api/dashboards/[id]/widgets
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(request: NextRequest, props: Props) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Safe parsing with fallback
-    const dashboardId = parseInt(params.id || '0');
-    
-    if (!dashboardId) {
-      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
-    }
+    const id = props.params.id;
+    const dashboardId = parseInt(id);
     
     // Check if dashboard exists
     const dashboard = await db.query.dashboards.findFirst({
@@ -60,20 +56,15 @@ export async function GET(request: NextRequest, { params }: Props) {
 }
 
 // POST /api/dashboards/[id]/widgets
-export async function POST(request: NextRequest, { params }: Props) {
+export async function POST(request: NextRequest, props: Props) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    // Safe parsing with fallback
-    const dashboardId = parseInt(params.id || '0');
-    
-    if (!dashboardId) {
-      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
-    }
-    
+    const id = props.params.id;
+    const dashboardId = parseInt(id);
     const json = await request.json();
     
     // Check if dashboard exists

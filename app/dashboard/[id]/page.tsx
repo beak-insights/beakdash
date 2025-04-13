@@ -12,17 +12,10 @@ type Props = {
   params: { id: string };
 };
 
-// For Next.js 15, params.id doesn't need to be awaited, but there are conflicting messages
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
   try {
-    const dashboardId = parseInt(params.id || '0');
-    
-    // Check if we actually have a dashboardId
-    if (!dashboardId) {
-      return {
-        title: 'Invalid Dashboard',
-      };
-    }
+    const id = props.params.id;
+    const dashboardId = parseInt(id);
     
     const dashboard = await db.query.dashboards.findFirst({
       where: eq(dashboards.id, dashboardId),
@@ -46,9 +39,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function DashboardViewPage({ params }: Props) {
+export default async function DashboardViewPage(props: Props) {
   try {
-    const dashboardId = parseInt(params.id || '0');
+    const id = props.params.id;
+    const dashboardId = parseInt(id);
     
     // Fetch the dashboard from the database
     const dashboard = await db.query.dashboards.findFirst({
