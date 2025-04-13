@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
-import Sidebar from '@/components/layout/sidebar';
+import Sidebar from '@/components/layout/sidebar-fixed';
 import { useSidebarStore } from '@/store/sidebar-store';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';

@@ -1,3 +1,5 @@
+'use client';
+
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -616,13 +618,13 @@ export default function Sidebar() {
                 <p className="text-sm font-medium">{user.name || "User"}</p>
                 <p className="text-xs text-muted-foreground">{user.email || ""}</p>
               </div>
-              <Link to="/profile">
+              <Link href="/profile">
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   <span>My Profile</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/settings">
+              <Link href="/settings">
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
@@ -653,13 +655,13 @@ export default function Sidebar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[240px]">
-              <Link to="/profile">
+              <Link href="/profile">
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   <span>My Profile</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/settings">
+              <Link href="/settings">
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
