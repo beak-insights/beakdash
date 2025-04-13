@@ -24,6 +24,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const { collapsed } = useSidebarStore();
+  
   // Set mounted state when component mounts
   useEffect(() => {
     setMounted(true);
@@ -56,7 +58,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   // If authenticated, render the layout with sidebar
   if (status === 'authenticated' && session?.user) {
     const user = session.user;
-    const { collapsed } = useSidebarStore();
     
     return (
       <div className="flex min-h-screen bg-background">
