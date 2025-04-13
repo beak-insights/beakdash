@@ -13,9 +13,9 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const id = await params.id;
+  const dashboardId = parseInt(params.id);
   const dashboard = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, parseInt(id)),
+    where: eq(dashboards.id, dashboardId),
   });
 
   if (!dashboard) {
@@ -31,8 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function DashboardViewPage({ params }: Props) {
-  const id = await params.id;
-  const dashboardId = parseInt(id);
+  const dashboardId = parseInt(params.id);
   
   // Fetch the dashboard from the database
   const dashboard = await db.query.dashboards.findFirst({

@@ -66,12 +66,16 @@ export async function PUT(request: NextRequest, { params }: Props) {
     // Extract dashboard-related properties
     const { dashboardId, position, ...widgetData } = json;
     
-    // Update the widget
-    const [updatedWidget] = await db
-      .update(widgets)
-      .set(widgetData)
-      .where(eq(widgets.id, id))
-      .returning();
+    let updatedWidget = existingWidget;
+    
+    // Only update widget data if there are properties to update
+    if (Object.keys(widgetData).length > 0) {
+      [updatedWidget] = await db
+        .update(widgets)
+        .set(widgetData)
+        .where(eq(widgets.id, id))
+        .returning();
+    }
     
     // If dashboardId is provided, update or create the dashboard-widget relationship
     if (dashboardId) {
