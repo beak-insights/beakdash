@@ -6,7 +6,7 @@ import { dashboardWidgets, dashboards, widgets } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET /api/dashboards/[id]/widgets
@@ -17,7 +17,8 @@ export async function GET(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const dashboardId = parseInt(params.id);
+    const { id } = await params;
+    const dashboardId = parseInt(id);
     
     // Check if dashboard exists
     const dashboard = await db.query.dashboards.findFirst({
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const dashboardId = parseInt(params.id);
+    const { id } = await params;
+    const dashboardId = parseInt(id);
     const json = await request.json();
     
     // Check if dashboard exists

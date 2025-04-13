@@ -6,7 +6,7 @@ import { widgets, dashboardWidgets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET /api/widgets/[id]
@@ -17,10 +17,11 @@ export async function GET(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const widgetId = parseInt(id);
     
     const widget = await db.query.widgets.findFirst({
-      where: eq(widgets.id, id),
+      where: eq(widgets.id, widgetId),
       with: {
         dashboardWidgets: {
           with: {
@@ -51,12 +52,13 @@ export async function PUT(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const widgetId = parseInt(id);
     const json = await request.json();
     
     // Check if widget exists
     const existingWidget = await db.query.widgets.findFirst({
-      where: eq(widgets.id, id),
+      where: eq(widgets.id, widgetId),
     });
     
     if (!existingWidget) {
@@ -73,7 +75,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
       [updatedWidget] = await db
         .update(widgets)
         .set(widgetData)
-        .where(eq(widgets.id, id))
+        .where(eq(widgets.id, widgetId))
         .returning();
     }
     
@@ -82,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
       // Check if dashboard-widget relationship exists
       const existingDashboardWidget = await db.query.dashboardWidgets.findFirst({
         where: (dw, { and, eq }) => 
-          and(eq(dw.widgetId, id), eq(dw.dashboardId, dashboardId)),
+          and(eq(dw.widgetId, widgetId), eq(dw.dashboardId, dashboardId)),
       });
       
       if (existingDashboardWidget) {
@@ -91,14 +93,14 @@ export async function PUT(request: NextRequest, { params }: Props) {
           await db
             .update(dashboardWidgets)
             .set({ position })
-            .where(eq(dashboardWidgets.widgetId, id))
+            .where(eq(dashboardWidgets.widgetId, widgetId))
             .where(eq(dashboardWidgets.dashboardId, dashboardId));
         }
       } else {
         // Create new dashboard-widget relationship
         await db.insert(dashboardWidgets).values({
           dashboardId,
-          widgetId: id,
+          widgetId,
           position: position || { x: 0, y: 0, w: 6, h: 4 },
         });
       }
@@ -119,11 +121,12 @@ export async function DELETE(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const widgetId = parseInt(id);
     
     // Check if widget exists
     const existingWidget = await db.query.widgets.findFirst({
-      where: eq(widgets.id, id),
+      where: eq(widgets.id, widgetId),
     });
     
     if (!existingWidget) {
@@ -131,10 +134,10 @@ export async function DELETE(request: NextRequest, { params }: Props) {
     }
     
     // First delete any dashboard-widget relationships
-    await db.delete(dashboardWidgets).where(eq(dashboardWidgets.widgetId, id));
+    await db.delete(dashboardWidgets).where(eq(dashboardWidgets.widgetId, widgetId));
     
     // Then delete the widget
-    await db.delete(widgets).where(eq(widgets.id, id));
+    await db.delete(widgets).where(eq(widgets.id, widgetId));
     
     return NextResponse.json({ success: true });
   } catch (error) {

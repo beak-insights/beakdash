@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"node_modules/.pnpm/@antv+g6-extension-react@0.2.1_@antv+g6@5.0.45_workerize-loader@2.0.2_webpack@5.99.5_esbuild@_z6spr5xtemcbs3ggxcyafbguzi/node_modules/@antv/g6-extension-react/esm/react-node/render.js -> react-dom/client\":{\"id\":\"node_modules/.pnpm/@antv+g6-extension-react@0.2.1_@antv+g6@5.0.45_workerize-loader@2.0.2_webpack@5.99.5_esbuild@_z6spr5xtemcbs3ggxcyafbguzi/node_modules/@antv/g6-extension-react/esm/react-node/render.js -> react-dom/client\",\"files\":[]}}"
+self.__REACT_LOADABLE_MANIFEST="{}"

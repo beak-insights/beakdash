@@ -9,11 +9,12 @@ import { notFound } from 'next/navigation';
 import { DashboardViewClient } from './client-page';
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const dashboardId = parseInt(params.id);
+  const { id } = await params;
+  const dashboardId = parseInt(id);
   const dashboard = await db.query.dashboards.findFirst({
     where: eq(dashboards.id, dashboardId),
   });
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function DashboardViewPage({ params }: Props) {
-  const dashboardId = parseInt(params.id);
+  const { id } = await params;
+  const dashboardId = parseInt(id);
   
   // Fetch the dashboard from the database
   const dashboard = await db.query.dashboards.findFirst({
