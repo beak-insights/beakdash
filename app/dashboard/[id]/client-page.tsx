@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { 
   Column, Line, Area, Pie, DualAxes, Scatter, 
   Rose, Radar, Gauge, Waterfall, WordCloud 
 } from '@ant-design/charts';
-import { EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons';
+import GridLayout, { Responsive, WidthProvider } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
 // Define widget type
 interface Widget {
@@ -371,43 +374,150 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {widgets.map((widget) => (
-            <div 
-              key={widget.id} 
-              className="border rounded-lg overflow-hidden bg-card shadow-sm"
-              style={{
-                gridColumn: `span ${widget.position?.w || 1} / span ${widget.position?.w || 1}`,
-                gridRow: `span ${widget.position?.h || 1} / span ${widget.position?.h || 1}`,
-              }}
-            >
-              <div className="p-4 border-b flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">{widget.name}</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground"
-                    aria-label="Edit widget"
-                  >
-                    <EditOutlined />
-                  </button>
-                  <button 
-                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive"
-                    aria-label="Delete widget"
-                  >
-                    <DeleteOutlined />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="h-64">
-                {renderWidget(widget)}
-              </div>
-            </div>
-          ))}
-        </div>
+        <GridLayoutComponent widgets={widgets} dashboardId={dashboard.id} onRenderWidget={renderWidget} />
       )}
     </>
+  );
+}
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+interface GridLayoutProps {
+  widgets: Widget[];
+  dashboardId: number;
+  onRenderWidget: (widget: Widget) => React.ReactNode;
+}
+
+function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayoutProps) {
+  // Convert widgets to layout items
+  const [layouts, setLayouts] = useState(() => {
+    const layoutItems = widgets.map(widget => ({
+      i: widget.id.toString(),
+      x: widget.position?.x || 0,
+      y: widget.position?.y || 0,
+      w: widget.position?.w || 6,
+      h: widget.position?.h || 4,
+      minW: 2,
+      minH: 2,
+    }));
+    
+    return { lg: layoutItems, md: layoutItems, sm: layoutItems };
+  });
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  
+  // Handle layout change
+  const onLayoutChange = useCallback((currentLayout: any, allLayouts: any) => {
+    setLayouts(allLayouts);
+  }, []);
+  
+  // Save updated layout positions to database
+  const saveLayout = async () => {
+    try {
+      setIsSaving(true);
+      setSaveMessage('');
+      
+      // For each widget, update its position in the database
+      const updatePromises = widgets.map(widget => {
+        const layoutItem = layouts.lg.find(item => item.i === widget.id.toString());
+        
+        if (layoutItem) {
+          const position = {
+            x: layoutItem.x,
+            y: layoutItem.y,
+            w: layoutItem.w,
+            h: layoutItem.h
+          };
+          
+          return fetch(`/api/widgets/${widget.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dashboardId,
+              position
+            })
+          });
+        }
+        
+        return Promise.resolve();
+      });
+      
+      await Promise.all(updatePromises);
+      
+      setSaveMessage('Layout saved successfully');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Error saving layout:', error);
+      setSaveMessage('Failed to save layout');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  return (
+    <div className="mb-6">
+      <div className="flex justify-end mb-4">
+        <button 
+          onClick={saveLayout}
+          disabled={isSaving}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
+        >
+          <SaveOutlined style={{ marginRight: 8 }} />
+          {isSaving ? 'Saving...' : 'Save Layout'}
+        </button>
+        {saveMessage && (
+          <div className={`ml-4 px-4 py-2 rounded-md text-sm ${saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {saveMessage}
+          </div>
+        )}
+      </div>
+      
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={layouts}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={60}
+        containerPadding={[15, 15]}
+        margin={[15, 15]}
+        onLayoutChange={onLayoutChange}
+        isDraggable={true}
+        isResizable={true}
+        useCSSTransforms={true}
+        isBounded={false}
+      >
+        {widgets.map(widget => (
+          <div
+            key={widget.id.toString()}
+            className="border rounded-lg overflow-hidden bg-card shadow-sm"
+          >
+            <div className="p-4 border-b flex items-center justify-between drag-handle">
+              <div>
+                <h3 className="font-medium">{widget.name}</h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button 
+                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground"
+                  aria-label="Edit widget"
+                >
+                  <EditOutlined />
+                </button>
+                <button 
+                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive"
+                  aria-label="Delete widget"
+                >
+                  <DeleteOutlined />
+                </button>
+              </div>
+            </div>
+            
+            <div className="overflow-auto" style={{ height: 'calc(100% - 57px)' }}>
+              {onRenderWidget(widget)}
+            </div>
+          </div>
+        ))}
+      </ResponsiveGridLayout>
+    </div>
   );
 }
