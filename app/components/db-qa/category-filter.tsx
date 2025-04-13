@@ -27,7 +27,7 @@ export function CategoryFilter({
 
   return (
     <div className="mb-6">
-      <Tabs value={selectedCategory} onValueChange={onCategoryChange}>
+      <Tabs value={currentCategory} onValueChange={onCategoryChange}>
         <TabsList className="w-full overflow-x-auto flex-wrap">
           <TabsTrigger value="all" className="flex-shrink-0">
             All Categories

@@ -51,18 +51,20 @@ export interface DbQaQueryItem {
 
 interface QueryListProps {
   queries: DbQaQueryItem[];
-  onDeleteQuery: (id: number) => void;
+  onDelete: (id: number) => void;
   onRunQuery: (id: number) => void;
-  isDeleting: boolean;
-  isRunning: boolean;
+  isLoading?: boolean;
+  isDeleting?: boolean;
+  isRunning?: boolean;
 }
 
 export function QueryList({
   queries,
-  onDeleteQuery,
+  onDelete,
   onRunQuery,
-  isDeleting,
-  isRunning,
+  isLoading = false,
+  isDeleting = false,
+  isRunning = false,
 }: QueryListProps) {
   const router = useRouter();
 
@@ -235,7 +237,7 @@ export function QueryList({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => onDeleteQuery(query.id)}
+                        onClick={() => onDelete(query.id)}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         {isDeleting ? (
