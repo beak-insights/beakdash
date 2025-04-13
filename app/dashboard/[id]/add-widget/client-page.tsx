@@ -73,7 +73,8 @@ type Dashboard = {
   layout: string | null;
 };
 
-type WidgetType = 'bar' | 'line' | 'pie' | 'area' | 'table' | 'stat' | 'text';
+type WidgetType = 'chart' | 'text';
+type ChartType = 'bar' | 'line' | 'pie' | 'area';
 type TableSchema = { name: string, columns: Array<{ name: string, type: string }> };
 
 interface WidgetClientProps {
@@ -111,7 +112,8 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
   // Data & visualization
-  const [widgetType, setWidgetType] = useState<WidgetType>('bar');
+  const [widgetType, setWidgetType] = useState<WidgetType>('chart');
+  const [chartType, setChartType] = useState<ChartType>('bar');
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [dataFields, setDataFields] = useState<string[]>([]);
   const [xAxisField, setXAxisField] = useState<string>('');
@@ -397,7 +399,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
       <div className="border rounded-lg p-4 space-y-3">
         <h4 className="text-sm font-medium mb-2">Data Mapping</h4>
         
-        {['bar', 'line', 'area'].includes(widgetType) && (
+        {['bar', 'line', 'area'].includes(chartType) && (
           <>
             <div className="space-y-2">
               <label 
@@ -443,7 +445,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
           </>
         )}
         
-        {widgetType === 'pie' && (
+        {chartType === 'pie' && (
           <>
             <div className="space-y-2">
               <label 
@@ -529,7 +531,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
           </label>
         </div>
         
-        {['bar', 'line', 'area'].includes(widgetType) && (
+        {['bar', 'line', 'area'].includes(chartType) && (
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -547,7 +549,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
           </div>
         )}
         
-        {['bar', 'area'].includes(widgetType) && (
+        {['bar', 'area'].includes(chartType) && (
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -684,7 +686,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
   };
 
   const renderChart = () => {
-    switch(widgetType) {
+    switch(chartType) {
       case 'bar':
         return renderBarChart();
       case 'line':
@@ -719,82 +721,72 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
       <div className="grid grid-cols-12 gap-6 mb-6">
         {/* Left sidebar - config */}
         <div className="col-span-4 space-y-4">
-          <div className="border rounded-lg p-4 bg-card">
-            <h2 className="text-lg font-medium mb-4">Widget Details</h2>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label 
-                  htmlFor="title" 
-                  className="text-sm font-medium"
-                >
-                  Title
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={widgetTitle}
-                  onChange={(e) => setWidgetTitle(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label 
-                  htmlFor="subtitle" 
-                  className="text-sm font-medium"
-                >
-                  Subtitle
-                </label>
-                <input
-                  id="subtitle"
-                  type="text"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={widgetSubtitle}
-                  onChange={(e) => setWidgetSubtitle(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
           
           {/* Widget Type Selection */}
           <div className="border rounded-lg p-4 bg-card">
             <h2 className="text-lg font-medium mb-4">Widget Type</h2>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div 
-                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
-                onClick={() => setWidgetType('bar')}
+                className={`border rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'chart' ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setWidgetType('chart')}
               >
-                <BarChart3 className="h-6 w-6 mb-2" />
-                <span className="text-sm">Bar Chart</span>
+                <BarChart3 className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">Chart</span>
+                <span className="text-xs text-muted-foreground mt-1">Data visualization</span>
               </div>
               
               <div 
-                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'line' ? 'border-primary bg-primary/5' : ''}`}
-                onClick={() => setWidgetType('line')}
-              >
-                <LineChartIcon className="h-6 w-6 mb-2" />
-                <span className="text-sm">Line Chart</span>
-              </div>
-              
-              <div 
-                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
-                onClick={() => setWidgetType('pie')}
-              >
-                <PieChartIcon className="h-6 w-6 mb-2" />
-                <span className="text-sm">Pie Chart</span>
-              </div>
-              
-              <div 
-                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'text' ? 'border-primary bg-primary/5' : ''}`}
+                className={`border rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'text' ? 'border-primary bg-primary/5' : ''}`}
                 onClick={() => setWidgetType('text')}
               >
-                <Text className="h-6 w-6 mb-2" />
-                <span className="text-sm">Text</span>
+                <Text className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">Text</span>
+                <span className="text-xs text-muted-foreground mt-1">Rich text content</span>
               </div>
             </div>
           </div>
+          
+          {/* Chart Type Selection - only shown for chart widget type */}
+          {widgetType === 'chart' && (
+            <div className="border rounded-lg p-4 bg-card">
+              <h2 className="text-lg font-medium mb-4">Chart Type</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div 
+                  className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
+                  onClick={() => setChartType('bar')}
+                >
+                  <BarChart3 className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Bar</span>
+                </div>
+                
+                <div 
+                  className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'line' ? 'border-primary bg-primary/5' : ''}`}
+                  onClick={() => setChartType('line')}
+                >
+                  <LineChartIcon className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Line</span>
+                </div>
+                
+                <div 
+                  className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
+                  onClick={() => setChartType('pie')}
+                >
+                  <PieChartIcon className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Pie</span>
+                </div>
+                
+                <div 
+                  className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'area' ? 'border-primary bg-primary/5' : ''}`}
+                  onClick={() => setChartType('area')}
+                >
+                  <LayoutDashboard className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Area</span>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Text content editor (only shown for text widget type) */}
           {widgetType === 'text' && (
@@ -822,8 +814,47 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
         </div>
         
         {/* Main content area */}
-        <div className="col-span-8">
-          <div className="border rounded-lg overflow-hidden h-[600px] flex flex-col">
+        <div className="col-span-8 space-y-4">
+          {/* Widget Details - Moved to top right */}
+          <div className="border rounded-lg p-4 bg-card">
+            <h2 className="text-lg font-medium mb-4">Widget Details</h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label 
+                  htmlFor="title-right" 
+                  className="text-sm font-medium"
+                >
+                  Title
+                </label>
+                <input
+                  id="title-right"
+                  type="text"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={widgetTitle}
+                  onChange={(e) => setWidgetTitle(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label 
+                  htmlFor="subtitle-right" 
+                  className="text-sm font-medium"
+                >
+                  Subtitle
+                </label>
+                <input
+                  id="subtitle-right"
+                  type="text"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={widgetSubtitle}
+                  onChange={(e) => setWidgetSubtitle(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="border rounded-lg overflow-hidden h-[500px] flex flex-col">
             {widgetType === 'text' ? (
               <div className="p-4 h-full">
                 <h2 className="text-lg font-medium mb-4">Text Widget Preview</h2>
@@ -946,32 +977,32 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
                           <h4 className="text-sm font-medium mb-2">Chart Type</h4>
                           <div className="grid grid-cols-2 gap-2">
                             <div 
-                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
-                              onClick={() => setWidgetType('bar')}
+                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
+                              onClick={() => setChartType('bar')}
                             >
                               <BarChart3 className="h-5 w-5" />
                               <span className="text-xs mt-1">Bar</span>
                             </div>
                             
                             <div 
-                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'line' ? 'border-primary bg-primary/5' : ''}`}
-                              onClick={() => setWidgetType('line')}
+                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'line' ? 'border-primary bg-primary/5' : ''}`}
+                              onClick={() => setChartType('line')}
                             >
                               <LineChartIcon className="h-5 w-5" />
                               <span className="text-xs mt-1">Line</span>
                             </div>
                             
                             <div 
-                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
-                              onClick={() => setWidgetType('pie')}
+                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
+                              onClick={() => setChartType('pie')}
                             >
                               <PieChartIcon className="h-5 w-5" />
                               <span className="text-xs mt-1">Pie</span>
                             </div>
                             
                             <div 
-                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'area' ? 'border-primary bg-primary/5' : ''}`}
-                              onClick={() => setWidgetType('area')}
+                              className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${chartType === 'area' ? 'border-primary bg-primary/5' : ''}`}
+                              onClick={() => setChartType('area')}
                             >
                               <LayoutDashboard className="h-5 w-5" />
                               <span className="text-xs mt-1">Area</span>
