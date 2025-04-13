@@ -20,29 +20,29 @@ export async function GET(request: NextRequest) {
     const connectionId = searchParams.get("connectionId");
     const category = searchParams.get("category");
     
-    let filter = {};
+    // Build query conditions
+    let conditions = [eq(dbQaQueries.userId, Number(session.user.id))];
     
-    // Apply filters
+    // Apply space filter
     if (spaceId) {
-      filter = and(eq(dbQaQueries.userId, Number(session.user.id)), eq(dbQaQueries.spaceId, Number(spaceId)));
+      conditions.push(eq(dbQaQueries.spaceId, Number(spaceId)));
     } else if (spaceId === null) {
       // Explicitly filter for NULL spaceId (global queries)
-      filter = and(eq(dbQaQueries.userId, Number(session.user.id)), isNull(dbQaQueries.spaceId));
-    } else {
-      // Default: return all queries for the user
-      filter = eq(dbQaQueries.userId, Number(session.user.id));
+      conditions.push(isNull(dbQaQueries.spaceId));
     }
     
+    // Add connection filter if specified
     if (connectionId) {
-      filter = and(filter, eq(dbQaQueries.connectionId, Number(connectionId)));
+      conditions.push(eq(dbQaQueries.connectionId, Number(connectionId)));
     }
     
+    // Add category filter if specified
     if (category) {
-      filter = and(filter, eq(dbQaQueries.category, category));
+      conditions.push(eq(dbQaQueries.category, category));
     }
     
     const queries = await db.query.dbQaQueries.findMany({
-      where: filter,
+      where: and(...conditions),
       with: {
         connection: true,
         space: true,
