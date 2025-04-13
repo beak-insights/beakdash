@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
-import { spaces } from '@/lib/db/schema';
+import { spaces, userSpaces, users } from '@/lib/db/schema';
 import { authOptions } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 
@@ -51,6 +51,15 @@ export async function POST(request: NextRequest) {
     // Create a slug from the name
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     
+    // Find the current user
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, session.user.email || ''),
+    });
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
     // Insert the new space
     const [newSpace] = await db.insert(spaces)
       .values({
@@ -62,6 +71,14 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .returning();
+    
+    // Add creator as owner of the space
+    await db.insert(userSpaces).values({
+      userId: user.id,
+      spaceId: newSpace.id,
+      role: 'owner',
+      joinedAt: new Date(),
+    });
     
     return NextResponse.redirect(new URL('/spaces', request.url));
   } catch (error) {
