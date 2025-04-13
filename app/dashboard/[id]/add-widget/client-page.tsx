@@ -38,9 +38,12 @@ import {
   BarChart3,
   LineChart as LineChartIcon,
   PieChart as PieChartIcon,
-  List,
   Table,
-  Text,
+  Database,
+  LayoutDashboard,
+  Play,
+  Code,
+  Server,
 } from 'lucide-react';
 import { getRandomColor } from '@/lib/utils';
 
@@ -54,6 +57,13 @@ type Dataset = {
   dataType: string | null;
 };
 
+type Connection = {
+  id: number;
+  name: string;
+  type: string;
+  config: any;
+};
+
 type Dashboard = {
   id: number;
   name: string;
@@ -63,6 +73,7 @@ type Dashboard = {
 };
 
 type WidgetType = 'bar' | 'line' | 'pie' | 'area' | 'table' | 'stat' | 'text';
+type TableSchema = { name: string, columns: Array<{ name: string, type: string }> };
 
 interface WidgetClientProps {
   dashboard: Dashboard;
@@ -71,19 +82,39 @@ interface WidgetClientProps {
 
 export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
   const router = useRouter();
-  const [widgetType, setWidgetType] = useState<WidgetType>('bar');
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
-  const [sqlQuery, setSqlQuery] = useState<string>('SELECT * FROM data LIMIT 10');
-  const [widgetTitle, setWidgetTitle] = useState<string>('New Widget');
+  const [activeTab, setActiveTab] = useState<'query' | 'table' | 'chart'>('query');
+  
+  // Widget metadata
+  const [widgetTitle, setWidgetTitle] = useState<string>('Widget Title');
+  const [widgetSubtitle, setWidgetSubtitle] = useState<string>('Widget Subtitle');
   const [widgetWidth, setWidgetWidth] = useState<string>('3');
   const [widgetHeight, setWidgetHeight] = useState<string>('medium');
   const [refreshInterval, setRefreshInterval] = useState<string>('0');
+  
+  // Data source selection
+  const [connections, setConnections] = useState<Connection[]>([
+    { id: 1, name: 'PostgreSQL DB', type: 'postgres', config: {} },
+    { id: 2, name: 'MySQL DB', type: 'mysql', config: {} },
+  ]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
+  const [availableSchemas, setAvailableSchemas] = useState<string[]>(['public', 'test']);
+  const [selectedSchema, setSelectedSchema] = useState<string>('public');
+  const [availableTables, setAvailableTables] = useState<string[]>(['users', 'products', 'orders']);
+  const [selectedTable, setSelectedTable] = useState<string>('');
+  const [tableColumns, setTableColumns] = useState<Array<{name: string, type: string}>>([]);
+  
+  // SQL Editor
+  const [sqlQuery, setSqlQuery] = useState<string>('SELECT * FROM users LIMIT 10');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  
+  // Data & visualization
+  const [widgetType, setWidgetType] = useState<WidgetType>('bar');
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [dataFields, setDataFields] = useState<string[]>([]);
   const [xAxisField, setXAxisField] = useState<string>('');
   const [yAxisField, setYAxisField] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-
+  
   // Chart configuration options
   const [showLegend, setShowLegend] = useState<boolean>(true);
   const [showGrid, setShowGrid] = useState<boolean>(true);
@@ -98,6 +129,73 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
       setChartColors(colors);
     }
   }, [widgetType]);
+
+  // Handle connection selection
+  useEffect(() => {
+    if (selectedConnectionId) {
+      // In a real app, we would fetch schemas for this connection
+      // For now, just simulate the behavior
+      setSelectedSchema('public');
+      setAvailableTables(['users', 'products', 'orders']);
+      setSelectedTable('');
+    }
+  }, [selectedConnectionId]);
+
+  // Handle schema selection
+  useEffect(() => {
+    if (selectedSchema) {
+      // In a real app, we would fetch tables for this schema
+      // For now, just simulate the behavior
+      if (selectedSchema === 'public') {
+        setAvailableTables(['users', 'products', 'orders']);
+      } else {
+        setAvailableTables(['test_data', 'metrics']);
+      }
+      setSelectedTable('');
+    }
+  }, [selectedSchema]);
+
+  // Handle table selection
+  useEffect(() => {
+    if (selectedTable) {
+      // In a real app, we would fetch columns for this table
+      // For now, just simulate the behavior
+      let columns: Array<{name: string, type: string}> = [];
+      
+      if (selectedTable === 'users') {
+        columns = [
+          { name: 'id', type: 'integer' },
+          { name: 'name', type: 'text' },
+          { name: 'email', type: 'text' },
+          { name: 'created_at', type: 'timestamp' }
+        ];
+        
+        setSqlQuery(`SELECT id, name, email, created_at FROM ${selectedSchema}.${selectedTable} LIMIT 10`);
+      } else if (selectedTable === 'products') {
+        columns = [
+          { name: 'id', type: 'integer' },
+          { name: 'name', type: 'text' },
+          { name: 'price', type: 'numeric' },
+          { name: 'category', type: 'text' },
+          { name: 'in_stock', type: 'boolean' }
+        ];
+        
+        setSqlQuery(`SELECT id, name, price, category FROM ${selectedSchema}.${selectedTable} LIMIT 10`);
+      } else if (selectedTable === 'orders') {
+        columns = [
+          { name: 'id', type: 'integer' },
+          { name: 'user_id', type: 'integer' },
+          { name: 'total', type: 'numeric' },
+          { name: 'status', type: 'text' },
+          { name: 'order_date', type: 'timestamp' }
+        ];
+        
+        setSqlQuery(`SELECT id, user_id, total, status, order_date FROM ${selectedSchema}.${selectedTable} LIMIT 10`);
+      }
+      
+      setTableColumns(columns);
+    }
+  }, [selectedTable, selectedSchema]);
 
   // Simulate loading dataset data when selected
   useEffect(() => {
@@ -140,16 +238,16 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
     }
   }, [selectedDatasetId, datasets]);
 
-  // Function to generate mock data if needed
-  const generateMockData = () => {
-    const mockData = Array.from({ length: 7 }, (_, i) => ({
+  // Generate sample data for preview
+  const generateSampleData = () => {
+    const sampleData = Array.from({ length: 7 }, (_, i) => ({
       name: `Day ${i + 1}`,
       value: Math.floor(Math.random() * 1000),
       value2: Math.floor(Math.random() * 800),
       value3: Math.floor(Math.random() * 600),
     }));
     
-    setPreviewData(mockData);
+    setPreviewData(sampleData);
     setDataFields(['name', 'value', 'value2', 'value3']);
     setXAxisField('name');
     setYAxisField('value');
@@ -160,12 +258,11 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
     setIsProcessing(true);
     
     // In a real implementation, this would send the SQL query to the server
-    // For now, we'll just generate some mock data
+    // For now, we'll just generate some sample data
     setTimeout(() => {
-      if (!previewData.length) {
-        generateMockData();
-      }
+      generateSampleData();
       setIsProcessing(false);
+      setActiveTab('table');
     }, 1000);
   };
 
@@ -176,11 +273,30 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
     router.push(`/dashboard/${dashboard.id}`);
   };
 
+  const renderTableColumns = () => {
+    return (
+      <div className="border rounded-lg bg-card p-4 max-h-72 overflow-y-auto">
+        <h4 className="text-sm font-medium mb-2">Available Columns</h4>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="font-medium text-sm px-3 py-2 bg-muted rounded-md">Column</div>
+          <div className="font-medium text-sm px-3 py-2 bg-muted rounded-md">Type</div>
+          
+          {tableColumns.map((column, index) => (
+            <React.Fragment key={index}>
+              <div className="text-sm px-3 py-2">{column.name}</div>
+              <div className="text-sm px-3 py-2 text-muted-foreground">{column.type}</div>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-8">
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Add Widget</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Create New Widget</h1>
           <p className="text-muted-foreground mt-1">
             Dashboard: {dashboard.name}
           </p>
@@ -193,628 +309,716 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
           Cancel
         </Link>
       </div>
-
-      {/* Widget type selection */}
-      <div className="mb-8">
-        <h2 className="text-lg font-medium mb-4">1. Select Widget Type</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Bar Chart */}
-          <div 
-            className={`border rounded-lg p-4 bg-card cursor-pointer transition-colors ${widgetType === 'bar' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary'}`}
-            onClick={() => setWidgetType('bar')}
-          >
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <BarChart3 className="text-primary" />
+      
+      <div className="grid grid-cols-12 gap-6 mb-6">
+        {/* Left sidebar - config */}
+        <div className="col-span-4 space-y-4">
+          <div className="border rounded-lg p-4 bg-card">
+            <h2 className="text-lg font-medium mb-4">Widget Details</h2>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label 
+                  htmlFor="title" 
+                  className="text-sm font-medium"
+                >
+                  Title
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={widgetTitle}
+                  onChange={(e) => setWidgetTitle(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label 
+                  htmlFor="subtitle" 
+                  className="text-sm font-medium"
+                >
+                  Subtitle
+                </label>
+                <input
+                  id="subtitle"
+                  type="text"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={widgetSubtitle}
+                  onChange={(e) => setWidgetSubtitle(e.target.value)}
+                />
+              </div>
             </div>
-            <h3 className="font-medium mb-1">Bar Chart</h3>
-            <p className="text-sm text-muted-foreground">
-              Compare values across categories.
-            </p>
           </div>
           
-          {/* Line Chart */}
-          <div 
-            className={`border rounded-lg p-4 bg-card cursor-pointer transition-colors ${widgetType === 'line' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary'}`}
-            onClick={() => setWidgetType('line')}
-          >
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <LineChartIcon className="text-primary" />
+          <div className="border rounded-lg p-4 bg-card">
+            <h2 className="text-lg font-medium mb-4">Data Source</h2>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dataset</label>
+                
+                {datasets.length > 0 ? (
+                  <Select 
+                    value={selectedDatasetId} 
+                    onValueChange={setSelectedDatasetId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a dataset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasets.map((dataset) => (
+                        <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                          {dataset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No datasets available
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Database Connection</div>
+                
+                <Select 
+                  value={selectedConnectionId} 
+                  onValueChange={setSelectedConnectionId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select connection" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {connections.map((connection) => (
+                      <SelectItem key={connection.id} value={connection.id.toString()}>
+                        {connection.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedConnectionId && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Schema</label>
+                    <Select 
+                      value={selectedSchema} 
+                      onValueChange={setSelectedSchema}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select schema" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSchemas.map((schema) => (
+                          <SelectItem key={schema} value={schema}>
+                            {schema}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedSchema && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Table</label>
+                      <Select 
+                        value={selectedTable} 
+                        onValueChange={setSelectedTable}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select table" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTables.map((table) => (
+                            <SelectItem key={table} value={table}>
+                              {table}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  {selectedTable && renderTableColumns()}
+                </>
+              )}
             </div>
-            <h3 className="font-medium mb-1">Line Chart</h3>
-            <p className="text-sm text-muted-foreground">
-              Show trends over time or ordered categories.
-            </p>
           </div>
-          
-          {/* Pie Chart */}
-          <div 
-            className={`border rounded-lg p-4 bg-card cursor-pointer transition-colors ${widgetType === 'pie' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary'}`}
-            onClick={() => setWidgetType('pie')}
-          >
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <PieChartIcon className="text-primary" />
-            </div>
-            <h3 className="font-medium mb-1">Pie Chart</h3>
-            <p className="text-sm text-muted-foreground">
-              Display proportions of a whole.
-            </p>
-          </div>
-          
-          {/* Table */}
-          <div 
-            className={`border rounded-lg p-4 bg-card cursor-pointer transition-colors ${widgetType === 'table' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary'}`}
-            onClick={() => setWidgetType('table')}
-          >
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Table className="text-primary" />
-            </div>
-            <h3 className="font-medium mb-1">Table</h3>
-            <p className="text-sm text-muted-foreground">
-              Display data in rows and columns.
-            </p>
+        </div>
+        
+        {/* Main content area */}
+        <div className="col-span-8">
+          <div className="border rounded-lg overflow-hidden h-[600px] flex flex-col">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex-1 flex flex-col">
+              <div className="border-b">
+                <TabsList className="w-full bg-transparent justify-start rounded-none h-12 px-4">
+                  <TabsTrigger value="query" className="data-[state=active]:bg-muted rounded-none">
+                    <Code className="h-4 w-4 mr-2" />
+                    Query View
+                  </TabsTrigger>
+                  <TabsTrigger value="table" className="data-[state=active]:bg-muted rounded-none">
+                    <Table className="h-4 w-4 mr-2" />
+                    Table View
+                  </TabsTrigger>
+                  <TabsTrigger value="chart" className="data-[state=active]:bg-muted rounded-none">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Chart Preview
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <TabsContent value="query" className="flex-1 p-0 m-0 flex flex-col">
+                <div className="p-4 pb-2 text-sm font-medium">SQL Query</div>
+                <div className="flex-1 relative">
+                  <Editor
+                    height="100%"
+                    defaultLanguage="sql"
+                    value={sqlQuery}
+                    onChange={(value) => setSqlQuery(value || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      fontSize: 14,
+                    }}
+                    theme="vs-dark"
+                  />
+                  
+                  <div className="absolute right-3 bottom-3">
+                    <button
+                      onClick={processQuery}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Executing...' : 'Execute'}
+                    </button>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="table" className="flex-1 p-4 m-0 overflow-auto">
+                {previewData.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted">
+                        <tr>
+                          {dataFields.map((field) => (
+                            <th
+                              key={field}
+                              className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                            >
+                              {field}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="bg-card divide-y divide-border">
+                        {previewData.map((row, i) => (
+                          <tr key={i} className={i % 2 === 0 ? 'bg-background' : ''}>
+                            {dataFields.map((field) => (
+                              <td
+                                key={field}
+                                className="px-4 py-3 whitespace-nowrap text-sm"
+                              >
+                                {row[field]?.toString() || 'null'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Server className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No data available</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Run a query to see data preview
+                      </p>
+                      <button
+                        onClick={processQuery}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Execute Query
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="chart" className="flex-1 p-4 m-0 overflow-auto">
+                {previewData.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    {/* Chart type selection */}
+                    <div className="col-span-2 space-y-4">
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <h4 className="text-sm font-medium mb-2">Chart Type</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div 
+                            className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
+                            onClick={() => setWidgetType('bar')}
+                          >
+                            <BarChart3 className="h-5 w-5" />
+                            <span className="text-xs mt-1">Bar</span>
+                          </div>
+                          
+                          <div 
+                            className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'line' ? 'border-primary bg-primary/5' : ''}`}
+                            onClick={() => setWidgetType('line')}
+                          >
+                            <LineChartIcon className="h-5 w-5" />
+                            <span className="text-xs mt-1">Line</span>
+                          </div>
+                          
+                          <div 
+                            className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
+                            onClick={() => setWidgetType('pie')}
+                          >
+                            <PieChartIcon className="h-5 w-5" />
+                            <span className="text-xs mt-1">Pie</span>
+                          </div>
+                          
+                          <div 
+                            className={`border rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'area' ? 'border-primary bg-primary/5' : ''}`}
+                            onClick={() => setWidgetType('area')}
+                          >
+                            <LayoutDashboard className="h-5 w-5" />
+                            <span className="text-xs mt-1">Area</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <h4 className="text-sm font-medium mb-2">Data Mapping</h4>
+                        
+                        {['bar', 'line', 'area'].includes(widgetType) && (
+                          <>
+                            <div className="space-y-2">
+                              <label 
+                                htmlFor="xAxis" 
+                                className="text-xs font-medium"
+                              >
+                                X-Axis
+                              </label>
+                              <Select value={xAxisField} onValueChange={setXAxisField}>
+                                <SelectTrigger id="xAxis" className="h-8 text-xs">
+                                  <SelectValue placeholder="Select field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dataFields.map((field) => (
+                                    <SelectItem key={field} value={field} className="text-xs">
+                                      {field}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label 
+                                htmlFor="yAxis" 
+                                className="text-xs font-medium"
+                              >
+                                Y-Axis
+                              </label>
+                              <Select value={yAxisField} onValueChange={setYAxisField}>
+                                <SelectTrigger id="yAxis" className="h-8 text-xs">
+                                  <SelectValue placeholder="Select field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dataFields.map((field) => (
+                                    <SelectItem key={field} value={field} className="text-xs">
+                                      {field}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        
+                        {widgetType === 'pie' && (
+                          <>
+                            <div className="space-y-2">
+                              <label 
+                                htmlFor="labelField" 
+                                className="text-xs font-medium"
+                              >
+                                Label
+                              </label>
+                              <Select value={xAxisField} onValueChange={setXAxisField}>
+                                <SelectTrigger id="labelField" className="h-8 text-xs">
+                                  <SelectValue placeholder="Select field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dataFields.map((field) => (
+                                    <SelectItem key={field} value={field} className="text-xs">
+                                      {field}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label 
+                                htmlFor="valueField" 
+                                className="text-xs font-medium"
+                              >
+                                Value
+                              </label>
+                              <Select value={yAxisField} onValueChange={setYAxisField}>
+                                <SelectTrigger id="valueField" className="h-8 text-xs">
+                                  <SelectValue placeholder="Select field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dataFields.map((field) => (
+                                    <SelectItem key={field} value={field} className="text-xs">
+                                      {field}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <h4 className="text-sm font-medium mb-2">Appearance</h4>
+                        
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="showLegend"
+                            checked={showLegend}
+                            onChange={(e) => setShowLegend(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          <label 
+                            htmlFor="showLegend"
+                            className="text-xs"
+                          >
+                            Show Legend
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="showTooltip"
+                            checked={showTooltip}
+                            onChange={(e) => setShowTooltip(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          <label 
+                            htmlFor="showTooltip"
+                            className="text-xs"
+                          >
+                            Show Tooltip
+                          </label>
+                        </div>
+                        
+                        {['bar', 'line', 'area'].includes(widgetType) && (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="showGrid"
+                              checked={showGrid}
+                              onChange={(e) => setShowGrid(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <label 
+                              htmlFor="showGrid"
+                              className="text-xs"
+                            >
+                              Show Grid
+                            </label>
+                          </div>
+                        )}
+                        
+                        {['bar', 'area'].includes(widgetType) && (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="stacked"
+                              checked={isStacked}
+                              onChange={(e) => setIsStacked(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <label 
+                              htmlFor="stacked"
+                              className="text-xs"
+                            >
+                              Stacked
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Chart preview */}
+                    <div className="col-span-4 border rounded-lg p-4 bg-card">
+                      <div className="text-sm font-medium mb-2">{widgetTitle}</div>
+                      <div className="text-xs text-muted-foreground mb-4">{widgetSubtitle}</div>
+                      
+                      <div className="h-[300px] w-full">
+                        {widgetType === 'bar' && (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={previewData}
+                              margin={{
+                                top: 5,
+                                right: 30,
+                                left: 20,
+                                bottom: 30,
+                              }}
+                            >
+                              {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+                              <XAxis 
+                                dataKey={xAxisField}
+                                angle={-45}
+                                textAnchor="end"
+                                height={70}
+                              />
+                              <YAxis />
+                              {showTooltip && <RechartsTooltip />}
+                              {showLegend && <Legend />}
+                              {dataFields
+                                .filter(field => field !== xAxisField)
+                                .filter(field => !isNaN(Number(previewData[0]?.[field])))
+                                .slice(0, 3)
+                                .map((field, index) => (
+                                  <Bar 
+                                    key={field}
+                                    dataKey={field} 
+                                    fill={chartColors[index % chartColors.length]}
+                                    stackId={isStacked ? "stack" : undefined}
+                                  />
+                                ))}
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
+                        
+                        {widgetType === 'line' && (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                              data={previewData}
+                              margin={{
+                                top: 5,
+                                right: 30,
+                                left: 20,
+                                bottom: 30,
+                              }}
+                            >
+                              {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+                              <XAxis 
+                                dataKey={xAxisField}
+                                angle={-45}
+                                textAnchor="end"
+                                height={70}
+                              />
+                              <YAxis />
+                              {showTooltip && <RechartsTooltip />}
+                              {showLegend && <Legend />}
+                              {dataFields
+                                .filter(field => field !== xAxisField)
+                                .filter(field => !isNaN(Number(previewData[0]?.[field])))
+                                .slice(0, 3)
+                                .map((field, index) => (
+                                  <Line 
+                                    key={field}
+                                    type="monotone"
+                                    dataKey={field} 
+                                    stroke={chartColors[index % chartColors.length]}
+                                    activeDot={{ r: 8 }}
+                                  />
+                                ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        )}
+                        
+                        {widgetType === 'pie' && (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={previewData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={true}
+                                nameKey={xAxisField}
+                                dataKey={yAxisField}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                label
+                              >
+                                {previewData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                                ))}
+                              </Pie>
+                              {showTooltip && <RechartsTooltip />}
+                              {showLegend && <Legend />}
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
+                        
+                        {widgetType === 'area' && (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                              data={previewData}
+                              margin={{
+                                top: 5,
+                                right: 30,
+                                left: 20,
+                                bottom: 30,
+                              }}
+                            >
+                              {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+                              <XAxis 
+                                dataKey={xAxisField}
+                                angle={-45}
+                                textAnchor="end"
+                                height={70}
+                              />
+                              <YAxis />
+                              {showTooltip && <RechartsTooltip />}
+                              {showLegend && <Legend />}
+                              {dataFields
+                                .filter(field => field !== xAxisField)
+                                .filter(field => !isNaN(Number(previewData[0]?.[field])))
+                                .slice(0, 3)
+                                .map((field, index) => (
+                                  <Area
+                                    key={field}
+                                    type="monotone"
+                                    dataKey={field}
+                                    stackId={isStacked ? "stack" : index.toString()}
+                                    stroke={chartColors[index % chartColors.length]}
+                                    fill={chartColors[index % chartColors.length]}
+                                    fillOpacity={0.6}
+                                  />
+                                ))}
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No chart data</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Run a query to generate chart data
+                      </p>
+                      <button
+                        onClick={processQuery}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Execute Query
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
       
-      {/* Data source selection */}
-      <div className="mb-8">
-        <h2 className="text-lg font-medium mb-4">2. Select Data Source</h2>
-        
-        {datasets.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-6 bg-muted/50 text-center">
-            <h3 className="text-sm font-medium mb-2">No datasets available</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Create a dataset to use as a data source for your widget.
-            </p>
-            <Link
-              href="/datasets"
-              className="text-sm text-primary hover:underline"
-            >
-              Create Dataset
-            </Link>
+      {/* Widget sizing */}
+      <div className="grid grid-cols-12 gap-6 mb-6">
+        <div className="col-span-4 border rounded-lg p-4 bg-card">
+          <h2 className="text-lg font-medium mb-4">Widget Size</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label 
+                htmlFor="widgetWidth" 
+                className="text-sm font-medium"
+              >
+                Width
+              </label>
+              <Select value={widgetWidth} onValueChange={setWidgetWidth}>
+                <SelectTrigger id="widgetWidth">
+                  <SelectValue placeholder="Widget width" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Small (1/3)</SelectItem>
+                  <SelectItem value="2">Medium (2/3)</SelectItem>
+                  <SelectItem value="3">Full (3/3)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label 
+                htmlFor="widgetHeight" 
+                className="text-sm font-medium"
+              >
+                Height
+              </label>
+              <Select value={widgetHeight} onValueChange={setWidgetHeight}>
+                <SelectTrigger id="widgetHeight">
+                  <SelectValue placeholder="Widget height" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        ) : (
+        </div>
+        
+        <div className="col-span-4 border rounded-lg p-4 bg-card">
+          <h2 className="text-lg font-medium mb-4">Refresh Settings</h2>
+          
           <div className="space-y-2">
             <label 
-              htmlFor="dataset" 
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              htmlFor="refreshInterval" 
+              className="text-sm font-medium"
             >
-              Dataset
+              Refresh Interval
             </label>
-            <Select 
-              value={selectedDatasetId} 
-              onValueChange={setSelectedDatasetId}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a dataset" />
+            <Select value={refreshInterval} onValueChange={setRefreshInterval}>
+              <SelectTrigger id="refreshInterval">
+                <SelectValue placeholder="Refresh interval" />
               </SelectTrigger>
               <SelectContent>
-                {datasets.map((dataset) => (
-                  <SelectItem key={dataset.id} value={dataset.id.toString()}>
-                    {dataset.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="0">Never</SelectItem>
+                <SelectItem value="60">Every minute</SelectItem>
+                <SelectItem value="300">Every 5 minutes</SelectItem>
+                <SelectItem value="1800">Every 30 minutes</SelectItem>
+                <SelectItem value="3600">Every hour</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        )}
-      </div>
-      
-      {/* SQL Editor */}
-      <div className="mb-8">
-        <h2 className="text-lg font-medium mb-4">3. SQL Query</h2>
-        <div className="border rounded-lg p-4 bg-card">
-          <div className="h-60 mb-4">
-            <Editor
-              height="100%"
-              defaultLanguage="sql"
-              defaultValue={sqlQuery}
-              onChange={(value) => setSqlQuery(value || "")}
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 14,
-              }}
-              theme="vs-dark"
-            />
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={processQuery}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : 'Run Query'}
-            </button>
-          </div>
         </div>
       </div>
-      
-      {/* Data Preview */}
-      {previewData.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium mb-4">4. Data Preview</h2>
-          <div className="border rounded-lg p-4 bg-card overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead>
-                <tr>
-                  {dataFields.map((field) => (
-                    <th
-                      key={field}
-                      className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                    >
-                      {field}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {previewData.map((row, i) => (
-                  <tr key={i}>
-                    {dataFields.map((field) => (
-                      <td
-                        key={field}
-                        className="px-3 py-2 whitespace-nowrap text-sm"
-                      >
-                        {row[field]?.toString() || 'null'}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      
-      {/* Chart Configuration */}
-      {previewData.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium mb-4">5. Chart Configuration</h2>
-          <div className="border rounded-lg p-6 bg-card">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Configuration Options */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label 
-                    htmlFor="widgetTitle" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Widget Title
-                  </label>
-                  <input
-                    id="widgetTitle"
-                    type="text"
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Enter widget title"
-                    value={widgetTitle}
-                    onChange={(e) => setWidgetTitle(e.target.value)}
-                  />
-                </div>
-                
-                {/* Chart axes */}
-                {['bar', 'line', 'area'].includes(widgetType) && (
-                  <>
-                    <div className="space-y-2">
-                      <label 
-                        htmlFor="xAxis" 
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        X-Axis Field
-                      </label>
-                      <Select value={xAxisField} onValueChange={setXAxisField}>
-                        <SelectTrigger id="xAxis">
-                          <SelectValue placeholder="Select X-Axis field" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataFields.map((field) => (
-                            <SelectItem key={field} value={field}>
-                              {field}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label 
-                        htmlFor="yAxis" 
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Y-Axis Field
-                      </label>
-                      <Select value={yAxisField} onValueChange={setYAxisField}>
-                        <SelectTrigger id="yAxis">
-                          <SelectValue placeholder="Select Y-Axis field" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataFields.map((field) => (
-                            <SelectItem key={field} value={field}>
-                              {field}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-                
-                {/* Pie chart field select */}
-                {widgetType === 'pie' && (
-                  <>
-                    <div className="space-y-2">
-                      <label 
-                        htmlFor="labelField" 
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Label Field
-                      </label>
-                      <Select value={xAxisField} onValueChange={setXAxisField}>
-                        <SelectTrigger id="labelField">
-                          <SelectValue placeholder="Select label field" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataFields.map((field) => (
-                            <SelectItem key={field} value={field}>
-                              {field}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label 
-                        htmlFor="valueField" 
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Value Field
-                      </label>
-                      <Select value={yAxisField} onValueChange={setYAxisField}>
-                        <SelectTrigger id="valueField">
-                          <SelectValue placeholder="Select value field" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataFields.map((field) => (
-                            <SelectItem key={field} value={field}>
-                              {field}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-                
-                {/* Chart display options */}
-                <Tabs defaultValue="appearance">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                    <TabsTrigger value="layout">Layout</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="appearance" className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="showLegend"
-                          checked={showLegend}
-                          onChange={(e) => setShowLegend(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <label 
-                          htmlFor="showLegend"
-                          className="text-sm font-medium"
-                        >
-                          Show Legend
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="showTooltip"
-                          checked={showTooltip}
-                          onChange={(e) => setShowTooltip(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <label 
-                          htmlFor="showTooltip"
-                          className="text-sm font-medium"
-                        >
-                          Show Tooltip
-                        </label>
-                      </div>
-                      
-                      {['bar', 'line', 'area'].includes(widgetType) && (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="showGrid"
-                            checked={showGrid}
-                            onChange={(e) => setShowGrid(e.target.checked)}
-                            className="h-4 w-4"
-                          />
-                          <label 
-                            htmlFor="showGrid"
-                            className="text-sm font-medium"
-                          >
-                            Show Grid
-                          </label>
-                        </div>
-                      )}
-                      
-                      {['bar', 'area'].includes(widgetType) && (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="stacked"
-                            checked={isStacked}
-                            onChange={(e) => setIsStacked(e.target.checked)}
-                            className="h-4 w-4"
-                          />
-                          <label 
-                            htmlFor="stacked"
-                            className="text-sm font-medium"
-                          >
-                            Stacked
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="layout" className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label 
-                          htmlFor="widgetWidth" 
-                          className="text-sm font-medium"
-                        >
-                          Width
-                        </label>
-                        <Select value={widgetWidth} onValueChange={setWidgetWidth}>
-                          <SelectTrigger id="widgetWidth">
-                            <SelectValue placeholder="Widget width" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Small (1/3)</SelectItem>
-                            <SelectItem value="2">Medium (2/3)</SelectItem>
-                            <SelectItem value="3">Full (3/3)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label 
-                          htmlFor="widgetHeight" 
-                          className="text-sm font-medium"
-                        >
-                          Height
-                        </label>
-                        <Select value={widgetHeight} onValueChange={setWidgetHeight}>
-                          <SelectTrigger id="widgetHeight">
-                            <SelectValue placeholder="Widget height" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              
-              {/* Chart Preview */}
-              <div className="border rounded-lg p-4 bg-background">
-                <h4 className="text-sm font-medium mb-2">{widgetTitle || 'Chart Preview'}</h4>
-                <div className="h-[300px] w-full">
-                  {widgetType === 'bar' && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={previewData}
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 20,
-                          bottom: 30,
-                        }}
-                      >
-                        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
-                        <XAxis 
-                          dataKey={xAxisField}
-                          angle={-45}
-                          textAnchor="end"
-                          height={70}
-                        />
-                        <YAxis />
-                        {showTooltip && <RechartsTooltip />}
-                        {showLegend && <Legend />}
-                        {dataFields
-                          .filter(field => field !== xAxisField)
-                          .filter(field => !isNaN(Number(previewData[0]?.[field])))
-                          .slice(0, 3)
-                          .map((field, index) => (
-                            <Bar 
-                              key={field}
-                              dataKey={field} 
-                              fill={chartColors[index % chartColors.length]}
-                              stackId={isStacked ? "stack" : undefined}
-                            />
-                          ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                  
-                  {widgetType === 'line' && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={previewData}
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 20,
-                          bottom: 30,
-                        }}
-                      >
-                        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
-                        <XAxis 
-                          dataKey={xAxisField}
-                          angle={-45}
-                          textAnchor="end"
-                          height={70}
-                        />
-                        <YAxis />
-                        {showTooltip && <RechartsTooltip />}
-                        {showLegend && <Legend />}
-                        {dataFields
-                          .filter(field => field !== xAxisField)
-                          .filter(field => !isNaN(Number(previewData[0]?.[field])))
-                          .slice(0, 3)
-                          .map((field, index) => (
-                            <Line 
-                              key={field}
-                              type="monotone"
-                              dataKey={field} 
-                              stroke={chartColors[index % chartColors.length]}
-                              activeDot={{ r: 8 }}
-                            />
-                          ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
-                  
-                  {widgetType === 'pie' && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={previewData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          nameKey={xAxisField}
-                          dataKey={yAxisField}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          label
-                        >
-                          {previewData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                          ))}
-                        </Pie>
-                        {showTooltip && <RechartsTooltip />}
-                        {showLegend && <Legend />}
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                  
-                  {widgetType === 'area' && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={previewData}
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 20,
-                          bottom: 30,
-                        }}
-                      >
-                        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
-                        <XAxis 
-                          dataKey={xAxisField}
-                          angle={-45}
-                          textAnchor="end"
-                          height={70}
-                        />
-                        <YAxis />
-                        {showTooltip && <RechartsTooltip />}
-                        {showLegend && <Legend />}
-                        {dataFields
-                          .filter(field => field !== xAxisField)
-                          .filter(field => !isNaN(Number(previewData[0]?.[field])))
-                          .slice(0, 3)
-                          .map((field, index) => (
-                            <Area
-                              key={field}
-                              type="monotone"
-                              dataKey={field}
-                              stackId={isStacked ? "stack" : index.toString()}
-                              stroke={chartColors[index % chartColors.length]}
-                              fill={chartColors[index % chartColors.length]}
-                              fillOpacity={0.6}
-                            />
-                          ))}
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                  
-                  {widgetType === 'table' && (
-                    <div className="h-full overflow-auto">
-                      <table className="min-w-full divide-y divide-border">
-                        <thead>
-                          <tr>
-                            {dataFields.slice(0, 4).map((field) => (
-                              <th
-                                key={field}
-                                className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                              >
-                                {field}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {previewData.slice(0, 5).map((row, i) => (
-                            <tr key={i}>
-                              {dataFields.slice(0, 4).map((field) => (
-                                <td
-                                  key={field}
-                                  className="px-3 py-2 whitespace-nowrap text-sm"
-                                >
-                                  {row[field]?.toString() || 'null'}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Actions */}
-      <div className="border-t pt-6 flex justify-between">
-        <Link
-          href={`/dashboard/${dashboard.id}`}
-          className="px-4 py-2 rounded-md text-sm font-medium border hover:bg-muted/50 transition-colors"
-        >
-          Cancel
-        </Link>
-        
+      <div className="border-t pt-6 flex justify-end">
         <div className="flex space-x-4">
-          <button
-            type="button"
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md text-sm font-medium"
-            onClick={processQuery}
+          <Link
+            href={`/dashboard/${dashboard.id}`}
+            className="px-4 py-2 rounded-md text-sm font-medium border hover:bg-muted/50 transition-colors"
           >
-            Preview
-          </button>
+            Cancel
+          </Link>
           
           <button
             type="button"
             className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
             onClick={handleCreateWidget}
           >
-            Add Widget
+            Save Widget
           </button>
         </div>
       </div>
