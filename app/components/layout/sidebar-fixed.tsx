@@ -586,6 +586,23 @@ export default function Sidebar() {
           collapsed={collapsed} 
         />
         
+        {!collapsed && <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">DATABASE QA</p>}
+        {collapsed && <div className="h-8"></div>}
+        <NavItem 
+          href="/db-qa/queries" 
+          icon={ShieldCheck} 
+          label="Quality Checks" 
+          active={isActive("/db-qa/queries")} 
+          collapsed={collapsed} 
+        />
+        <NavItem 
+          href="/db-qa/alerts" 
+          icon={CheckSquare} 
+          label="QA Alerts" 
+          active={isActive("/db-qa/alerts")} 
+          collapsed={collapsed} 
+        />
+        
         {!collapsed && <p className="text-xs font-medium text-muted-foreground px-4 mt-5 mb-2">ACCOUNT</p>}
         {collapsed && <div className="h-8"></div>}
         <NavItem 
