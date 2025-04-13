@@ -14,11 +14,27 @@ export default function DatasetsPage() {
       <div className="container px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Datasets</h1>
-          <button
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+          <Link
+            href="/datasets/create"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mr-2"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
             Create Dataset
-          </button>
+          </Link>
         </div>
 
         {/* Dataset list */}
@@ -48,7 +64,8 @@ export default function DatasetsPage() {
             <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
               Create a dataset from your connections to use in your dashboards.
             </p>
-            <button
+            <Link
+              href="/datasets/create"
               className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
             >
               <svg
@@ -67,7 +84,7 @@ export default function DatasetsPage() {
                 <path d="M12 5v14" />
               </svg>
               Create Dataset
-            </button>
+            </Link>
           </div>
         </div>
 

@@ -14,11 +14,27 @@ export default function ConnectionsPage() {
       <div className="container px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Data Connections</h1>
-          <button
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+          <Link 
+            href="/connections/create" 
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mr-2"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
             New Connection
-          </button>
+          </Link>
         </div>
 
         {/* Connection types */}
@@ -46,9 +62,9 @@ export default function ConnectionsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Connect to SQL databases including PostgreSQL, MySQL, and SQLite.
             </p>
-            <button className="text-sm text-primary hover:underline">
+            <Link href="/connections/create?type=sql" className="text-sm text-primary hover:underline">
               Connect
-            </button>
+            </Link>
           </div>
           
           <div className="border rounded-lg p-6 bg-card">
@@ -73,9 +89,9 @@ export default function ConnectionsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Connect to REST APIs with customizable authentication and parameters.
             </p>
-            <button className="text-sm text-primary hover:underline">
+            <Link href="/connections/create?type=rest" className="text-sm text-primary hover:underline">
               Connect
-            </button>
+            </Link>
           </div>
           
           <div className="border rounded-lg p-6 bg-card">
@@ -101,9 +117,9 @@ export default function ConnectionsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Upload and process CSV files for dashboard visualization.
             </p>
-            <button className="text-sm text-primary hover:underline">
+            <Link href="/connections/create?type=csv" className="text-sm text-primary hover:underline">
               Upload
-            </button>
+            </Link>
           </div>
         </div>
 
