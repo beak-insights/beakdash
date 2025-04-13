@@ -1,93 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
-    
-    if (!authToken) {
+    // Get authenticated user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/datasets/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch dataset' },
-        { status: response.status }
-      );
-    }
-    
-    const dataset = await response.json();
-    return NextResponse.json(dataset);
-  } catch (error) {
-    console.error(`Dataset fetch error for ID ${params.id}:`, error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const userId = session.user.id;
+    const datasetId = parseInt(params.id);
     
-    if (!authToken) {
+    if (isNaN(datasetId)) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
+        { error: 'Invalid dataset ID' },
+        { status: 400 }
       );
     }
     
-    // Get request body
-    const body = await request.json();
+    // Get dataset
+    const datasetResult = await db.execute(
+      sql`SELECT * FROM datasets WHERE id = ${datasetId} AND user_id = ${userId}`
+    );
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/datasets/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (!Array.isArray(datasetResult) || datasetResult.length === 0) {
       return NextResponse.json(
-        { message: errorData.message || 'Failed to update dataset' },
-        { status: response.status }
+        { error: 'Dataset not found' },
+        { status: 404 }
       );
     }
     
-    const dataset = await response.json();
-    return NextResponse.json(dataset);
+    // Get the dataset
+    const dataset = datasetResult[0];
+    
+    // Process the dataset to be serializable
+    const plainObject: Record<string, any> = {};
+    for (const key in dataset) {
+      let value = dataset[key];
+      // Convert dates to ISO strings
+      if (value instanceof Date) {
+        value = value.toISOString();
+      }
+      plainObject[key] = value;
+    }
+    
+    return NextResponse.json(plainObject);
   } catch (error) {
-    console.error(`Dataset update error for ID ${params.id}:`, error);
+    console.error('Dataset fetch error:', error);
     
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to fetch dataset' },
       { status: 500 }
     );
   }
@@ -98,39 +70,175 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
-    
-    if (!authToken) {
+    // Get authenticated user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    const userId = session.user.id;
+    const datasetId = parseInt(params.id);
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/datasets/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (isNaN(datasetId)) {
       return NextResponse.json(
-        { message: errorData.message || 'Failed to delete dataset' },
-        { status: response.status }
+        { error: 'Invalid dataset ID' },
+        { status: 400 }
       );
     }
     
-    return NextResponse.json({ message: 'Dataset deleted successfully' });
+    // Verify dataset exists and belongs to user
+    const datasetResult = await db.execute(
+      sql`SELECT id FROM datasets WHERE id = ${datasetId} AND user_id = ${userId}`
+    );
+    
+    if (!Array.isArray(datasetResult) || datasetResult.length === 0) {
+      return NextResponse.json(
+        { error: 'Dataset not found or you do not have permission to delete it' },
+        { status: 404 }
+      );
+    }
+    
+    // Delete dataset
+    await db.execute(
+      sql`DELETE FROM datasets WHERE id = ${datasetId} AND user_id = ${userId}`
+    );
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Dataset deleted successfully'
+    });
   } catch (error) {
-    console.error(`Dataset deletion error for ID ${params.id}:`, error);
+    console.error('Dataset deletion error:', error);
     
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to delete dataset' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Get authenticated user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    const datasetId = parseInt(params.id);
+    
+    if (isNaN(datasetId)) {
+      return NextResponse.json(
+        { error: 'Invalid dataset ID' },
+        { status: 400 }
+      );
+    }
+    
+    // Get request body
+    const body = await request.json();
+    
+    // Verify dataset exists and belongs to user
+    const datasetResult = await db.execute(
+      sql`SELECT id FROM datasets WHERE id = ${datasetId} AND user_id = ${userId}`
+    );
+    
+    if (!Array.isArray(datasetResult) || datasetResult.length === 0) {
+      return NextResponse.json(
+        { error: 'Dataset not found or you do not have permission to update it' },
+        { status: 404 }
+      );
+    }
+    
+    // Build update fields
+    const updateFields = [];
+    const values: any[] = [];
+    
+    if (body.name) {
+      updateFields.push('name = $1');
+      values.push(body.name);
+    }
+    
+    if (body.query) {
+      updateFields.push('query = $2');
+      values.push(body.query);
+    }
+    
+    if (body.refresh_interval) {
+      updateFields.push('refresh_interval = $3');
+      values.push(body.refresh_interval);
+    }
+    
+    if (body.connection_id) {
+      updateFields.push('connection_id = $4');
+      values.push(parseInt(body.connection_id));
+    }
+    
+    if (body.config) {
+      updateFields.push('config = $5');
+      values.push(JSON.stringify(body.config));
+    }
+    
+    if (updateFields.length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+    
+    // Update dataset
+    const updateResult = await db.execute(
+      sql`
+        UPDATE datasets 
+        SET ${sql.raw(updateFields.join(', '))}, updated_at = NOW()
+        WHERE id = ${datasetId} AND user_id = ${userId}
+        RETURNING *
+      `,
+      ...values
+    );
+    
+    // Get updated dataset
+    const updatedDataset = Array.isArray(updateResult) && updateResult.length > 0 
+      ? updateResult[0] 
+      : null;
+    
+    if (!updatedDataset) {
+      return NextResponse.json(
+        { error: 'Failed to update dataset' },
+        { status: 500 }
+      );
+    }
+    
+    // Process the dataset to be serializable
+    const plainObject: Record<string, any> = {};
+    for (const key in updatedDataset) {
+      let value = updatedDataset[key];
+      // Convert dates to ISO strings
+      if (value instanceof Date) {
+        value = value.toISOString();
+      }
+      plainObject[key] = value;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Dataset updated successfully',
+      dataset: plainObject
+    });
+  } catch (error) {
+    console.error('Dataset update error:', error);
+    
+    return NextResponse.json(
+      { error: 'Failed to update dataset' },
       { status: 500 }
     );
   }

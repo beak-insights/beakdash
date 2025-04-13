@@ -1,5 +1,7 @@
 {
+  "/api/datasets/route": "app/api/datasets/route.js",
+  "/api/connections/route": "app/api/connections/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/datasets/create/page": "app/datasets/create/page.js"
+  "/datasets/page": "app/datasets/page.js",
+  "/auth/page": "app/auth/page.js"
 }

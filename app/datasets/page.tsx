@@ -2,6 +2,9 @@ import React from 'react';
 import { Metadata } from 'next';
 import { AppLayout } from '@/components/layout/app-layout';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { PlusIcon } from 'lucide-react';
+import { DatasetsClient } from './client-page';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Datasets',
@@ -14,79 +17,16 @@ export default function DatasetsPage() {
       <div className="container px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Datasets</h1>
-          <Link
-            href="/datasets/create"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mr-2"
-            >
-              <path d="M5 12h14" />
-              <path d="M12 5v14" />
-            </svg>
-            Create Dataset
-          </Link>
+          <Button asChild>
+            <Link href="/datasets/create">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create Dataset
+            </Link>
+          </Button>
         </div>
 
         {/* Dataset list */}
-        <div className="space-y-6">
-          {/* Empty state */}
-          <div className="border border-dashed rounded-lg p-8 bg-muted/50 flex flex-col items-center justify-center">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-muted-foreground"
-              >
-                <path d="M21 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6" />
-                <path d="M9 2h6a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2Z" />
-                <path d="M12 11v4" />
-                <path d="M10 13h4" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium mb-1">No datasets yet</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-              Create a dataset from your connections to use in your dashboards.
-            </p>
-            <Link
-              href="/datasets/create"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-2"
-              >
-                <path d="M5 12h14" />
-                <path d="M12 5v14" />
-              </svg>
-              Create Dataset
-            </Link>
-          </div>
-        </div>
+        <DatasetsClient />
 
         {/* Dataset creation steps */}
         <div className="mt-12">
