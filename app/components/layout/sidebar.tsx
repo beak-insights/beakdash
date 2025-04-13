@@ -1,4 +1,5 @@
-import { useLocation, Link } from "wouter";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Space } from "@/lib/db/schema";
 import Image from "next/image";
@@ -76,7 +77,7 @@ interface NavItemProps {
 
 function NavItem({ href, icon: Icon, label, active, collapsed }: NavItemProps) {
   return (
-    <Link to={href}>
+    <Link href={href}>
       <Button
         variant="ghost"
         title={collapsed ? label : undefined}
@@ -462,7 +463,7 @@ function SpaceSelector({ collapsed }: { collapsed: boolean }) {
 }
 
 export default function Sidebar() {
-  const [location] = useLocation();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { collapsed, toggleCollapsed } = useSidebarStore();
@@ -475,9 +476,9 @@ export default function Sidebar() {
 
   const isActive = (path: string) => {
     if (path === "/") {
-      return location === "/";
+      return pathname === "/";
     }
-    return location.startsWith(path);
+    return pathname.startsWith(path);
   };
 
   // Instead of returning null, render a loading state with minimal width

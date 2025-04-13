@@ -24,25 +24,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
   // Set mounted state when component mounts
   useEffect(() => {
     setMounted(true);
-    
-    // Check local storage for sidebar collapsed state
-    const savedState = localStorage.getItem('sidebar-collapsed');
-    if (savedState) {
-      setSidebarCollapsed(savedState === 'true');
-    }
   }, []);
-
-  // Save sidebar state to local storage
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
-    }
-  }, [sidebarCollapsed, mounted]);
 
   // Check if the user is authenticated
   useEffect(() => {
@@ -52,51 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [mounted, status, router, pathname]);
 
-  // Nav items
-  const navItems = [
-    {
-      label: 'Dashboard',
-      href: '/dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />,
-      active: pathname === '/dashboard' || pathname.startsWith('/dashboard/'),
-    },
-    {
-      label: 'Spaces',
-      href: '/spaces',
-      icon: <Layers className="w-5 h-5" />,
-      active: pathname === '/spaces' || pathname.startsWith('/spaces/'),
-    },
-    {
-      label: 'Datasets',
-      href: '/datasets',
-      icon: <Database className="w-5 h-5" />,
-      active: pathname === '/datasets' || pathname.startsWith('/datasets/'),
-    },
-    {
-      label: 'Connections',
-      href: '/connections',
-      icon: <LinkIcon className="w-5 h-5" />,
-      active: pathname === '/connections' || pathname.startsWith('/connections/'),
-    },
-    {
-      label: 'Widgets',
-      href: '/widgets',
-      icon: <BarChart className="w-5 h-5" />,
-      active: pathname === '/widgets' || pathname.startsWith('/widgets/'),
-    },
-    {
-      label: 'Profile',
-      href: '/profile',
-      icon: <User className="w-5 h-5" />,
-      active: pathname === '/profile',
-    },
-    {
-      label: 'Settings',
-      href: '/settings',
-      icon: <Settings className="w-5 h-5" />,
-      active: pathname === '/settings',
-    },
-  ];
+  // Navigation is handled by the Sidebar component
 
   // Handle log out
   const handleLogout = async () => {
@@ -115,61 +56,25 @@ export function AppLayout({ children }: AppLayoutProps) {
   // If authenticated, render the layout with sidebar
   if (status === 'authenticated' && session?.user) {
     const user = session.user;
+    const { collapsed } = useSidebarStore();
     
     return (
       <div className="flex min-h-screen bg-background">
-        {/* Sidebar - always visible, even on mobile, but collapsible */}
-        <aside 
-          className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-card transition-all duration-300 
-            ${sidebarCollapsed ? 'w-16' : 'w-64'}`}
-        >
-          <div className="flex h-16 items-center justify-between px-4 border-b">
-            {!sidebarCollapsed && (
-              <h1 className="text-xl font-bold">BeakDash</h1>
-            )}
-            <button 
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`p-2 rounded-md hover:bg-muted ${sidebarCollapsed ? 'ml-auto mr-auto' : ''}`}
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-            </button>
-          </div>
-          
-          <nav className="flex flex-col gap-1 px-2 py-4 flex-1">
-            {navItems.map((item, index) => (
-              <Link 
-                key={index}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors
-                  ${item.active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'}
-                  ${sidebarCollapsed ? 'justify-center' : ''}`}
-                title={sidebarCollapsed ? item.label : ''}
-              >
-                {item.icon}
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="border-t p-4">
-            <button
-              onClick={handleLogout} 
-              className={`flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive
-                ${sidebarCollapsed ? 'justify-center' : ''}`}
-              title={sidebarCollapsed ? "Log Out" : ''}
-            >
-              <LogOut className="w-5 h-5" />
-              {!sidebarCollapsed && <span>Log Out</span>}
-            </button>
-          </div>
-        </aside>
+        {/* Import enhanced sidebar with space switching */}
+        <Sidebar />
         
         {/* Main content */}
-        <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className={`flex flex-col flex-1 transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'}`}>
           <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10">
             <h2 className="text-lg font-medium">
-              {navItems.find(item => item.active)?.label || 'Dashboard'}
+              {pathname.includes('/spaces/') ? 'Space Details' : 
+               pathname === '/spaces' ? 'Spaces' :
+               pathname === '/dashboard' ? 'Dashboard' :
+               pathname === '/datasets' ? 'Datasets' :
+               pathname === '/connections' ? 'Connections' :
+               pathname === '/widgets' ? 'Widgets' :
+               pathname === '/profile' ? 'Profile' :
+               pathname === '/settings' ? 'Settings' : 'Dashboard'}
             </h2>
             <div className="flex items-center gap-4">
               <div className="text-sm hidden md:block">
