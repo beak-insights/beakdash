@@ -42,26 +42,26 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
       console.log('Callback URL:', callbackUrl);
       
-      // Use NextAuth's signIn function directly
+      // Use NextAuth's signIn function directly with redirect: true
+      // This ensures the server handles the session creation properly
       const result = await signIn('credentials', {
         username: formData.username,
         password: formData.password,
-        redirect: false
+        callbackUrl: callbackUrl,
+        redirect: true
       });
-
-      console.log('Sign in result:', result);
+      
+      // Note: The code below won't execute if redirect is true
+      // It's kept as a fallback in case the redirect fails
+      
+      console.log('Sign in result (should not see this with redirect: true):', result);
 
       if (result?.error) {
         console.error('Login error:', result.error);
         setError(result.error);
       } else {
         console.log('Login successful, redirecting to:', callbackUrl);
-        
-        // Add a slight delay to ensure the session is set
-        setTimeout(() => {
-          // Redirect to dashboard or callback URL
-          router.push(callbackUrl);
-        }, 500);
+        router.push(callbackUrl);
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -92,19 +92,13 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
       });
 
       if (response) {
-        // After successful registration, log the user in
-        const result = await signIn('credentials', {
+        // After successful registration, log the user in with redirect
+        await signIn('credentials', {
           username: formData.username,
           password: formData.password,
-          redirect: false
+          callbackUrl: '/dashboard',
+          redirect: true
         });
-        
-        if (result?.error) {
-          setError(result.error);
-        } else {
-          // Redirect to dashboard
-          router.push('/dashboard');
-        }
       }
     } catch (err) {
       // Handle API errors
