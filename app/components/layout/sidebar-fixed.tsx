@@ -22,7 +22,9 @@ import {
   Clock,
   Plus,
   FolderPlus,
-  Search
+  Search,
+  ShieldCheck, // Added for DB QA
+  CheckSquare
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useSpaces } from "@/lib/hooks/use-spaces";

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, primaryKey, foreignKey, time } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -381,4 +381,304 @@ export const dashboardWidgetsRelations = relations(dashboardWidgets, ({ one }) =
     fields: [dashboardWidgets.widgetId],
     references: [widgets.id],
   }),
+}));
+
+// ============ DB QA Schemas ============ //
+
+// DB QA category types
+export const dbQaCategoryTypes = [
+  "data_completeness", 
+  "data_consistency", 
+  "data_accuracy", 
+  "data_integrity",
+  "data_timeliness", 
+  "data_uniqueness", 
+  "data_relationship", 
+  "sensitive_data_exposure"
+] as const;
+
+export const dbQaCategoryTypeSchema = z.enum(dbQaCategoryTypes);
+
+// DB QA Execution Frequency types
+export const dbQaFrequencyTypes = [
+  "manual", 
+  "hourly", 
+  "daily", 
+  "weekly", 
+  "monthly"
+] as const;
+
+export const dbQaFrequencyTypeSchema = z.enum(dbQaFrequencyTypes);
+
+// DB QA Queries schema
+export const dbQaQueries = pgTable("db_qa_queries", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  connectionId: integer("connection_id").notNull().references(() => connections.id),
+  spaceId: integer("space_id").references(() => spaces.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  query: text("query").notNull(),
+  expectedResult: jsonb("expected_result").default({}),
+  thresholds: jsonb("thresholds").default({}),
+  enabled: boolean("enabled").default(true),
+  executionFrequency: text("execution_frequency").default("manual"),
+  lastExecutionTime: timestamp("last_execution_time"),
+  nextExecutionTime: timestamp("next_execution_time"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDbQaQuerySchema = createInsertSchema(dbQaQueries).pick({
+  userId: true,
+  connectionId: true,
+  spaceId: true,
+  name: true,
+  description: true,
+  category: true,
+  query: true,
+  expectedResult: true,
+  thresholds: true,
+  enabled: true,
+  executionFrequency: true,
+});
+
+// DB QA Execution Results schema
+export const dbQaExecutionResults = pgTable("db_qa_execution_results", {
+  id: serial("id").primaryKey(),
+  queryId: integer("query_id").notNull().references(() => dbQaQueries.id),
+  executionTime: timestamp("execution_time").defaultNow(),
+  status: text("status").notNull(), // success, failure, error
+  result: jsonb("result").default({}),
+  metrics: jsonb("metrics").default({}),
+  executionDuration: integer("execution_duration"),
+  errorMessage: text("error_message"),
+});
+
+export const insertDbQaExecutionResultSchema = createInsertSchema(dbQaExecutionResults).pick({
+  queryId: true,
+  status: true,
+  result: true,
+  metrics: true,
+  executionDuration: true,
+  errorMessage: true,
+});
+
+// DB QA Alerts schema
+export const dbQaAlerts = pgTable("db_qa_alerts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  queryId: integer("query_id").notNull().references(() => dbQaQueries.id),
+  executionResultId: integer("execution_result_id").references(() => dbQaExecutionResults.id),
+  name: text("name").notNull(),
+  condition: jsonb("condition").notNull(),
+  status: text("status").notNull(), // active, resolved, snoozed
+  notificationChannels: jsonb("notification_channels").default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertDbQaAlertSchema = createInsertSchema(dbQaAlerts).pick({
+  userId: true,
+  queryId: true,
+  executionResultId: true,
+  name: true,
+  condition: true,
+  status: true,
+  notificationChannels: true,
+});
+
+// DB QA Alert Notifications schema
+export const dbQaAlertNotifications = pgTable("db_qa_alert_notifications", {
+  id: serial("id").primaryKey(),
+  alertId: integer("alert_id").notNull().references(() => dbQaAlerts.id),
+  channel: text("channel").notNull(), // email, slack, webhook
+  sentAt: timestamp("sent_at").defaultNow(),
+  status: text("status").notNull(), // sent, failed
+  content: jsonb("content").default({}),
+  errorMessage: text("error_message"),
+});
+
+export const insertDbQaAlertNotificationSchema = createInsertSchema(dbQaAlertNotifications).pick({
+  alertId: true,
+  channel: true,
+  status: true,
+  content: true,
+  errorMessage: true,
+});
+
+// DB QA Dashboards schema - for custom DB QA dashboards
+export const dbQaDashboards = pgTable("db_qa_dashboards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  spaceId: integer("space_id").references(() => spaces.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  layout: jsonb("layout").default({}),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDbQaDashboardSchema = createInsertSchema(dbQaDashboards).pick({
+  userId: true,
+  spaceId: true,
+  name: true,
+  description: true,
+  layout: true,
+  isDefault: true,
+});
+
+// DB QA Dashboard Widgets join table for many-to-many relationship
+export const dbQaDashboardQueries = pgTable("db_qa_dashboard_queries", {
+  dashboardId: integer("dashboard_id").notNull().references(() => dbQaDashboards.id),
+  queryId: integer("query_id").notNull().references(() => dbQaQueries.id),
+  position: jsonb("position").default({}),
+  visualizationType: text("visualization_type").default("table"),
+  visualizationConfig: jsonb("visualization_config").default({}),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.dashboardId, table.queryId] }),
+  };
+});
+
+export const insertDbQaDashboardQuerySchema = createInsertSchema(dbQaDashboardQueries).pick({
+  dashboardId: true,
+  queryId: true,
+  position: true,
+  visualizationType: true,
+  visualizationConfig: true,
+});
+
+// Type exports for DB QA
+export type DbQaCategory = z.infer<typeof dbQaCategoryTypeSchema>;
+export type DbQaFrequency = z.infer<typeof dbQaFrequencyTypeSchema>;
+
+export type DbQaQuery = typeof dbQaQueries.$inferSelect;
+export type InsertDbQaQuery = z.infer<typeof insertDbQaQuerySchema>;
+
+export type DbQaExecutionResult = typeof dbQaExecutionResults.$inferSelect;
+export type InsertDbQaExecutionResult = z.infer<typeof insertDbQaExecutionResultSchema>;
+
+export type DbQaAlert = typeof dbQaAlerts.$inferSelect;
+export type InsertDbQaAlert = z.infer<typeof insertDbQaAlertSchema>;
+
+export type DbQaAlertNotification = typeof dbQaAlertNotifications.$inferSelect;
+export type InsertDbQaAlertNotification = z.infer<typeof insertDbQaAlertNotificationSchema>;
+
+export type DbQaDashboard = typeof dbQaDashboards.$inferSelect;
+export type InsertDbQaDashboard = z.infer<typeof insertDbQaDashboardSchema>;
+
+export type DbQaDashboardQuery = typeof dbQaDashboardQueries.$inferSelect;
+export type InsertDbQaDashboardQuery = z.infer<typeof insertDbQaDashboardQuerySchema>;
+
+// DB QA Relations
+export const dbQaQueriesRelations = relations(dbQaQueries, ({ one, many }) => ({
+  user: one(users, {
+    fields: [dbQaQueries.userId],
+    references: [users.id],
+  }),
+  connection: one(connections, {
+    fields: [dbQaQueries.connectionId],
+    references: [connections.id],
+  }),
+  space: one(spaces, {
+    fields: [dbQaQueries.spaceId],
+    references: [spaces.id],
+  }),
+  executionResults: many(dbQaExecutionResults),
+  alerts: many(dbQaAlerts),
+  dashboardQueries: many(dbQaDashboardQueries),
+}));
+
+export const dbQaExecutionResultsRelations = relations(dbQaExecutionResults, ({ one, many }) => ({
+  query: one(dbQaQueries, {
+    fields: [dbQaExecutionResults.queryId],
+    references: [dbQaQueries.id],
+  }),
+  alerts: many(dbQaAlerts),
+}));
+
+export const dbQaAlertsRelations = relations(dbQaAlerts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [dbQaAlerts.userId],
+    references: [users.id],
+  }),
+  query: one(dbQaQueries, {
+    fields: [dbQaAlerts.queryId],
+    references: [dbQaQueries.id],
+  }),
+  executionResult: one(dbQaExecutionResults, {
+    fields: [dbQaAlerts.executionResultId],
+    references: [dbQaExecutionResults.id],
+  }),
+  notifications: many(dbQaAlertNotifications),
+}));
+
+export const dbQaAlertNotificationsRelations = relations(dbQaAlertNotifications, ({ one }) => ({
+  alert: one(dbQaAlerts, {
+    fields: [dbQaAlertNotifications.alertId],
+    references: [dbQaAlerts.id],
+  }),
+}));
+
+export const dbQaDashboardsRelations = relations(dbQaDashboards, ({ one, many }) => ({
+  user: one(users, {
+    fields: [dbQaDashboards.userId],
+    references: [users.id],
+  }),
+  space: one(spaces, {
+    fields: [dbQaDashboards.spaceId],
+    references: [spaces.id],
+  }),
+  dashboardQueries: many(dbQaDashboardQueries),
+}));
+
+export const dbQaDashboardQueriesRelations = relations(dbQaDashboardQueries, ({ one }) => ({
+  dashboard: one(dbQaDashboards, {
+    fields: [dbQaDashboardQueries.dashboardId],
+    references: [dbQaDashboards.id],
+  }),
+  query: one(dbQaQueries, {
+    fields: [dbQaDashboardQueries.queryId],
+    references: [dbQaQueries.id],
+  }),
+}));
+
+// Update user relations to include DB QA entities
+export const usersRelationsUpdated = relations(users, ({ many }) => ({
+  dashboards: many(dashboards),
+  connections: many(connections),
+  datasets: many(datasets),
+  userSpaces: many(userSpaces),
+  dbQaQueries: many(dbQaQueries),
+  dbQaAlerts: many(dbQaAlerts),
+  dbQaDashboards: many(dbQaDashboards),
+}));
+
+// Update space relations to include DB QA entities
+export const spacesRelationsUpdated = relations(spaces, ({ many }) => ({
+  dashboards: many(dashboards),
+  connections: many(connections),
+  userSpaces: many(userSpaces),
+  widgets: many(widgets),
+  dbQaQueries: many(dbQaQueries),
+  dbQaDashboards: many(dbQaDashboards),
+}));
+
+// Update connection relations to include DB QA queries
+export const connectionsRelationsUpdated = relations(connections, ({ one, many }) => ({
+  user: one(users, {
+    fields: [connections.userId],
+    references: [users.id],
+  }),
+  space: one(spaces, {
+    fields: [connections.spaceId],
+    references: [spaces.id],
+  }),
+  datasets: many(datasets),
+  widgets: many(widgets),
+  dbQaQueries: many(dbQaQueries),
 }));
