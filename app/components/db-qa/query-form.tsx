@@ -27,26 +27,25 @@ const queryFormSchema = z.object({
   name: z.string().min(3, { message: 'Check name must be at least 3 characters' }),
   description: z.string().optional(),
   category: z.enum([
-    'DATA_COMPLETENESS',
-    'DATA_CONSISTENCY',
-    'DATA_ACCURACY',
-    'DATA_INTEGRITY',
-    'DATA_TIMELINESS',
-    'DATA_UNIQUENESS',
-    'DATA_RELATIONSHIPS',
-    'SENSITIVE_DATA',
-    'CUSTOM'
+    'data_completeness',
+    'data_consistency',
+    'data_accuracy',
+    'data_integrity',
+    'data_timeliness',
+    'data_uniqueness',
+    'data_relationship',
+    'sensitive_data_exposure'
   ] as const),
   query: z.string().min(5, { message: 'SQL query is required' }),
   connectionId: z.number({ required_error: 'Connection is required' }),
   enabled: z.boolean().default(true),
   executionFrequency: z.enum([
-    'MANUAL',
-    'HOURLY',
-    'DAILY',
-    'WEEKLY',
-    'MONTHLY'
-  ] as const).default('MANUAL'),
+    'manual',
+    'hourly',
+    'daily',
+    'weekly',
+    'monthly'
+  ] as const).default('manual'),
   thresholds: z.string().optional(),
   expectedResult: z.string().optional(),
 });
@@ -59,11 +58,11 @@ export function DbQaQueryForm({ connections, onSubmit, isSubmitting, initialData
     defaultValues: initialData || {
       name: '',
       description: '',
-      category: 'DATA_COMPLETENESS',
+      category: 'data_completeness',
       query: '',
       connectionId: connections[0]?.id || 0,
       enabled: true,
-      executionFrequency: 'MANUAL',
+      executionFrequency: 'manual',
       thresholds: '',
       expectedResult: '',
     },
@@ -79,23 +78,22 @@ export function DbQaQueryForm({ connections, onSubmit, isSubmitting, initialData
   };
 
   const categoryLabels: Record<DbQaCategory, string> = {
-    DATA_COMPLETENESS: 'Data Completeness',
-    DATA_CONSISTENCY: 'Data Consistency',
-    DATA_ACCURACY: 'Data Accuracy',
-    DATA_INTEGRITY: 'Data Integrity',
-    DATA_TIMELINESS: 'Data Timeliness',
-    DATA_UNIQUENESS: 'Data Uniqueness',
-    DATA_RELATIONSHIPS: 'Data Relationships',
-    SENSITIVE_DATA: 'Sensitive Data Exposure',
-    CUSTOM: 'Custom Check',
+    data_completeness: 'Data Completeness',
+    data_consistency: 'Data Consistency',
+    data_accuracy: 'Data Accuracy',
+    data_integrity: 'Data Integrity',
+    data_timeliness: 'Data Timeliness',
+    data_uniqueness: 'Data Uniqueness',
+    data_relationship: 'Data Relationships',
+    sensitive_data_exposure: 'Sensitive Data Exposure',
   };
 
   const frequencyLabels: Record<DbQaFrequency, string> = {
-    MANUAL: 'Manual (On Demand)',
-    HOURLY: 'Hourly',
-    DAILY: 'Daily',
-    WEEKLY: 'Weekly',
-    MONTHLY: 'Monthly',
+    manual: 'Manual (On Demand)',
+    hourly: 'Hourly',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
   };
 
   return (
