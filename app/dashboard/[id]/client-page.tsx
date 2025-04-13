@@ -57,10 +57,14 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
   // Convert widgets to layout items
   const [layouts, setLayouts] = useState(() => {
     // Debug log for widget positions
-    console.log("Initial widget positions:", widgets.map(w => ({ id: w.id, position: w.position })));
+    console.log("Initial widget positions:", widgets.map(w => ({ 
+      id: w.id, 
+      name: w.name,
+      position: w.position 
+    })));
     
     const layoutItems = widgets.map(widget => {
-      // Only use default values if position is completely missing
+      // Ensure position exists
       const position = widget.position || {};
       
       // Create a layout item with the saved position or defaults
@@ -74,11 +78,16 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         minH: 2,
       };
       
-      console.log(`Widget ${widget.id} layout:`, item);
+      console.log(`Widget ${widget.id} (${widget.name}) layout:`, item);
       return item;
     });
     
-    return { lg: layoutItems, md: layoutItems, sm: layoutItems };
+    // Create separate layouts for each breakpoint for better responsiveness
+    return { 
+      lg: layoutItems,
+      md: layoutItems.map(item => ({...item})),
+      sm: layoutItems.map(item => ({...item}))
+    };
   });
   
   const [isSaving, setIsSaving] = useState(false);
@@ -91,34 +100,47 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
       setSaveMessage('');
       
       // For each widget, update its position in the database
-      const updatePromises = widgets.map(widget => {
+      const updatePromises = widgets.map(async (widget) => {
         const layoutItem = layouts.lg.find(item => item.i === widget.id.toString());
         
-        if (layoutItem) {
-          const position = {
-            x: layoutItem.x,
-            y: layoutItem.y,
-            w: layoutItem.w,
-            h: layoutItem.h
-          };
-          
-          console.log(`Saving widget ${widget.id} position:`, position);
-          
-          return fetch(`/api/widgets/${widget.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              dashboardId,
-              position
-            })
-          });
+        if (!layoutItem) {
+          console.warn(`No layout found for widget ${widget.id}`);
+          return Promise.resolve();
         }
         
-        return Promise.resolve();
+        // Create position object with explicit values
+        const position = {
+          x: parseInt(layoutItem.x.toString()),
+          y: parseInt(layoutItem.y.toString()),
+          w: parseInt(layoutItem.w.toString()),
+          h: parseInt(layoutItem.h.toString())
+        };
+        
+        // Log what we're saving for debugging
+        console.log(`Saving widget ${widget.id} (${widget.name}) position:`, JSON.stringify(position));
+        
+        // Make the API request to update the widget
+        const response = await fetch(`/api/widgets/${widget.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dashboardId,
+            position
+          })
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to save widget ${widget.id} position: ${errorText}`);
+        }
+        
+        return response;
       });
       
+      // Wait for all updates to complete
       await Promise.all(updatePromises);
       
+      // Set success message
       setSaveMessage('Layout saved successfully');
       setTimeout(() => setSaveMessage(''), 3000);
       
@@ -128,7 +150,7 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
       }
     } catch (error) {
       console.error('Error saving layout:', error);
-      setSaveMessage('Failed to save layout');
+      setSaveMessage('Failed to save layout. Please try again.');
     } finally {
       setIsSaving(false);
     }
