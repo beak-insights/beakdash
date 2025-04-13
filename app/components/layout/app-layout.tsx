@@ -65,7 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <Sidebar />
         
         {/* Main content */}
-        <div className={`flex flex-col flex-1 w-full transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="flex flex-col flex-1 w-full transition-all duration-300">
           <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10 w-full">
             <h2 className="text-lg font-medium">
               {pathname.includes('/spaces/') ? 'Space Details' : 
