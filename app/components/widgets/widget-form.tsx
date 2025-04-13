@@ -195,7 +195,7 @@ export function WidgetForm({ dashboardId, widget, backUrl, isEditMode = false }:
           <div className="h-40 mt-4">
             <Column 
               {...commonProps} 
-              isStack={form.watch('config.isStacked')}
+              stack={form.watch('config.isStacked')}
               columnStyle={{ radius: [4, 4, 0, 0] }}
             />
           </div>
@@ -217,7 +217,6 @@ export function WidgetForm({ dashboardId, widget, backUrl, isEditMode = false }:
             <Area 
               {...commonProps}
               stack={form.watch('config.isStacked')}
-              areaStyle={{ fillOpacity: 0.6 }}
             />
           </div>
         );
