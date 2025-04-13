@@ -1,47 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { spaces } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
+    const spaceId = parseInt(params.id);
+    
+    const space = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch space' },
-        { status: response.status }
-      );
+    if (!space) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     
-    const space = await response.json();
     return NextResponse.json(space);
   } catch (error) {
-    console.error(`Space fetch error for ID ${params.id}:`, error);
+    console.error('Error fetching space:', error);
+    return NextResponse.json({ error: 'Failed to fetch space' }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const spaceId = parseInt(params.id);
+    
+    // Validate the space exists
+    const existingSpace = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
+    });
+    
+    if (!existingSpace) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
+    }
+    
+    const formData = await request.formData();
+    const method = formData.get('_method') as string;
+    
+    // Handle PUT requests
+    if (method === 'PUT') {
+      const name = formData.get('name') as string;
+      const description = formData.get('description') as string;
+      const isDefault = formData.get('isDefault') === 'on';
+      
+      if (!name) {
+        return NextResponse.json({ error: 'Space name is required' }, { status: 400 });
+      }
+      
+      // If this space is to be the default, update all existing spaces to not be default
+      if (isDefault && !existingSpace.isDefault) {
+        await db.update(spaces)
+          .set({ isDefault: false })
+          .where(eq(spaces.isDefault, true));
+      }
+      
+      // Update the space
+      await db.update(spaces)
+        .set({
+          name,
+          description,
+          isDefault,
+          updatedAt: new Date(),
+        })
+        .where(eq(spaces.id, spaceId));
+      
+      // Redirect back to the space detail page
+      return NextResponse.redirect(new URL(`/spaces/${spaceId}`, request.url));
+    }
+    
+    // Handle DELETE requests
+    if (method === 'DELETE') {
+      // Check if this is the default space
+      if (existingSpace.isDefault) {
+        // Cannot delete default space
+        return NextResponse.json({ error: 'Cannot delete default space' }, { status: 400 });
+      }
+      
+      // Delete the space
+      await db.delete(spaces).where(eq(spaces.id, spaceId));
+      
+      // Redirect to spaces listing
+      return NextResponse.redirect(new URL('/spaces', request.url));
+    }
+    
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  } catch (error) {
+    console.error('Error updating space:', error);
+    return NextResponse.json({ error: 'Failed to update space' }, { status: 500 });
   }
 }
 
@@ -50,46 +116,52 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get request body
-    const body = await request.json();
+    const spaceId = parseInt(params.id);
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
+    // Validate the space exists
+    const existingSpace = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to update space' },
-        { status: response.status }
-      );
+    if (!existingSpace) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     
-    const space = await response.json();
-    return NextResponse.json(space);
-  } catch (error) {
-    console.error(`Space update error for ID ${params.id}:`, error);
+    const data = await request.json();
+    const { name, description, isDefault } = data;
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    if (!name) {
+      return NextResponse.json({ error: 'Space name is required' }, { status: 400 });
+    }
+    
+    // If this space is to be the default, update all existing spaces to not be default
+    if (isDefault && !existingSpace.isDefault) {
+      await db.update(spaces)
+        .set({ isDefault: false })
+        .where(eq(spaces.isDefault, true));
+    }
+    
+    // Update the space
+    const [updatedSpace] = await db.update(spaces)
+      .set({
+        name,
+        description,
+        isDefault,
+        updatedAt: new Date(),
+      })
+      .where(eq(spaces.id, spaceId))
+      .returning();
+    
+    return NextResponse.json(updatedSpace);
+  } catch (error) {
+    console.error('Error updating space:', error);
+    return NextResponse.json({ error: 'Failed to update space' }, { status: 500 });
   }
 }
 
@@ -98,40 +170,35 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
+    const spaceId = parseInt(params.id);
+    
+    // Validate the space exists
+    const existingSpace = await db.query.spaces.findFirst({
+      where: eq(spaces.id, spaceId),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to delete space' },
-        { status: response.status }
-      );
+    if (!existingSpace) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Space deleted successfully' });
-  } catch (error) {
-    console.error(`Space deletion error for ID ${params.id}:`, error);
+    // Check if this is the default space
+    if (existingSpace.isDefault) {
+      // Cannot delete default space
+      return NextResponse.json({ error: 'Cannot delete default space' }, { status: 400 });
+    }
     
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    // Delete the space
+    await db.delete(spaces).where(eq(spaces.id, spaceId));
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting space:', error);
+    return NextResponse.json({ error: 'Failed to delete space' }, { status: 500 });
   }
 }
