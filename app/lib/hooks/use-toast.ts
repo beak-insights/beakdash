@@ -1,169 +1,69 @@
-// Inspired by react-hot-toast library
-import * as React from "react"
-import { type ToastActionElement, type ToastProps } from "@/components/ui/toast"
+'use client';
 
-const TOAST_LIMIT = 20
-const TOAST_REMOVE_DELAY = 1000000
+import { useEffect } from "react";
+import { create } from "zustand";
 
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface Toast {
+  id: string;
+  message: string;
+  title?: string;
+  type?: ToastType;
+  duration?: number;
+  onClose?: () => void;
 }
 
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
-
-let count = 0
-
-function genId() {
-  count = (count + 1) % Number.MAX_VALUE
-  return count.toString()
+interface ToastState {
+  toasts: Toast[];
+  addToast: (toast: Omit<Toast, "id">) => string;
+  removeToast: (id: string) => void;
+  clearToasts: () => void;
 }
 
-type ActionType = typeof actionTypes
-
-type Action =
-  | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
-  | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
-  | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-  | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-
-interface State {
-  toasts: ToasterToast[]
-}
-
-export const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
-
-    case "UPDATE_TOAST":
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id
-            ? { ...t, ...action.toast }
-            : t
-        ),
-      }
-
-    case "DISMISS_TOAST": {
-      const { toastId } = action
-
-      if (toastId) {
-        return {
-          ...state,
-          toasts: state.toasts.map((t) =>
-            t.id === toastId ? { ...t, open: false } : t
-          ),
+// Create a simple Zustand store for toast state management
+const useToastStore = create<ToastState>((set) => ({
+  toasts: [],
+  addToast: (toast) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    
+    set((state) => ({
+      toasts: [...state.toasts, { ...toast, id }],
+    }));
+    
+    // Set up auto-removal if duration is provided
+    if (toast.duration) {
+      setTimeout(() => {
+        // Call onClose callback if provided
+        if (toast.onClose) {
+          toast.onClose();
         }
-      }
-
-      return {
-        ...state,
-        toasts: state.toasts.map((t) => ({ ...t, open: false })),
-      }
+        
+        // Remove the toast after duration
+        set((state) => ({
+          toasts: state.toasts.filter((t) => t.id !== id),
+        }));
+      }, toast.duration);
     }
+    
+    return id;
+  },
+  removeToast: (id) => {
+    set((state) => ({
+      toasts: state.toasts.filter((toast) => toast.id !== id),
+    }));
+  },
+  clearToasts: () => {
+    set({ toasts: [] });
+  },
+}));
 
-    case "REMOVE_TOAST": {
-      const { toastId } = action
-
-      if (toastId) {
-        return {
-          ...state,
-          toasts: state.toasts.filter((t) => t.id !== toastId),
-        }
-      }
-
-      return {
-        ...state,
-        toasts: [],
-      }
-    }
-  }
+// Export the hook for component usage
+export function useToast() {
+  return useToastStore();
 }
 
-const listeners: Array<(state: State) => void> = []
-
-let memoryState: State = { toasts: [] }
-
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
+// Export a standalone toast function for use outside of React components
+export function toast(props: Omit<Toast, "id">) {
+  return useToastStore.getState().addToast(props);
 }
-
-type Toast = Omit<ToasterToast, "id">
-
-function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
-  return {
-    id: id,
-    dismiss,
-    update,
-  }
-}
-
-function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }, [state])
-
-  return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  }
-}
-
-export { useToast, toast }
