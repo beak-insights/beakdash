@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { WidgetsClient } from './client-page';
+import { AppLayout } from '@/components/layout/app-layout';
 
 // Define metadata for the widgets page
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 // Widgets page component
 export default function Widgets() {
   return (
-    <WidgetsClient>
+    <AppLayout>
       <div className="container p-6">
         <h1 className="text-3xl font-bold mb-6">Widgets</h1>
         <p className="text-muted-foreground mb-8">
@@ -50,6 +50,6 @@ export default function Widgets() {
           </p>
         </div>
       </div>
-    </WidgetsClient>
+    </AppLayout>
   );
 }
