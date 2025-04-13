@@ -6,6 +6,14 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
+// Define a more flexible credentials type
+interface ExtendedCredentials {
+  username?: string;
+  email?: string;
+  password?: string;
+  [key: string]: string | undefined;
+}
+
 // Define the Auth Options
 export const authOptions: NextAuthOptions = {
   // Configure credentials provider
@@ -27,20 +35,41 @@ export const authOptions: NextAuthOptions = {
         }
         
         try {
-          // Find user by username or email
-          let userResults = await db.select()
-            .from(users)
-            .where(eq(users.username, usernameOrEmail));
+          // Check if the input looks like an email
+          const isEmail = usernameOrEmail.includes('@');
           
-          // If not found by username, try by email
-          if (!userResults || userResults.length === 0) {
+          let userResults;
+          
+          if (isEmail) {
+            // First try to find by exact email match
             userResults = await db.select()
               .from(users)
               .where(eq(users.email, usernameOrEmail));
+          } else {
+            // Try to find by exact username match
+            userResults = await db.select()
+              .from(users)
+              .where(eq(users.username, usernameOrEmail));
+          }
+          
+          // If no results, try the opposite way
+          if (!userResults || userResults.length === 0) {
+            if (isEmail) {
+              // Try username as a fallback
+              userResults = await db.select()
+                .from(users)
+                .where(eq(users.username, usernameOrEmail));
+            } else {
+              // Try email as a fallback
+              userResults = await db.select()
+                .from(users)
+                .where(eq(users.email, usernameOrEmail));
+            }
           }
           
           // If still not found, try case-insensitive search
           if (!userResults || userResults.length === 0) {
+            // Get all users (in a real production app, you'd want to limit this or use a DB-level case insensitive search)
             const allUsers = await db.select().from(users);
             
             // Try case-insensitive username match
@@ -89,9 +118,9 @@ export const authOptions: NextAuthOptions = {
             return {
               id: user.id.toString(),
               name: user.displayName || user.username,
-              email: user.email,
-              image: user.avatarUrl,
-              role: user.role
+              email: user.email || undefined,
+              image: user.avatarUrl || undefined,
+              role: user.role || undefined
             };
           }
           

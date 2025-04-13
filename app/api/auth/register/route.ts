@@ -7,8 +7,8 @@ import { z } from 'zod';
 // Registration validation schema
 const registerSchema = z.object({
   username: z.string().min(3).max(50),
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 export async function POST(request: NextRequest) {

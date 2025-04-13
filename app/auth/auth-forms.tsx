@@ -45,7 +45,7 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
       // Use NextAuth's signIn function directly with redirect: true
       // This ensures the server handles the session creation properly
       const result = await signIn('credentials', {
-        username: formData.username,
+        username: formData.username, // This will be either username or email
         password: formData.password,
         callbackUrl: callbackUrl,
         redirect: true
