@@ -84,9 +84,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   
-  // Setup auto-save debounce timer 
-  const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
-  
   // Save updated layout positions to database
   const saveLayout = async () => {
     try {
@@ -137,23 +134,12 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
     }
   };
   
-  // Handle layout change with auto-save
+  // Handle layout change - just update layouts without auto-saving
   const onLayoutChange = (currentLayout: Layout[], allLayouts: any) => {
-    // Only update layouts and auto-save if in edit mode
+    // Only update layouts if in edit mode
     if (isEditMode) {
       setLayouts(allLayouts);
-      
-      // Clear existing timer
-      if (saveTimer) {
-        clearTimeout(saveTimer);
-      }
-      
-      // Set new timer for auto-save with debounce
-      const newTimer = setTimeout(() => {
-        saveLayout();
-      }, 2000); // 2 second debounce
-      
-      setSaveTimer(newTimer);
+      // No auto-saving - we'll only save when "Done Editing" is clicked
     }
   };
   
