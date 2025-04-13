@@ -9,12 +9,12 @@ import {
 import { dbQaCategoryTypes } from "@/lib/db/schema";
 
 interface CategoryFilterProps {
-  selectedCategory: string;
+  currentCategory: string;
   onCategoryChange: (category: string) => void;
 }
 
 export function CategoryFilter({
-  selectedCategory,
+  currentCategory,
   onCategoryChange,
 }: CategoryFilterProps) {
   // Format category name for display

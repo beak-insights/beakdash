@@ -112,7 +112,7 @@ export function QueryList({
         </CardHeader>
         <CardContent className="flex items-center justify-center p-6">
           <div className="text-center">
-            <Icons.databaseZap className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+            <Icons.database className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
             <p className="mt-4 text-sm text-muted-foreground">
               No database quality checks have been created yet.
             </p>
