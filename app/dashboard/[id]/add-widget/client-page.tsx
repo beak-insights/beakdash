@@ -90,6 +90,7 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
   const [widgetWidth, setWidgetWidth] = useState<string>('3');
   const [widgetHeight, setWidgetHeight] = useState<string>('medium');
   const [refreshInterval, setRefreshInterval] = useState<string>('0');
+  const [textContent, setTextContent] = useState<string>('Enter your content here...');
   
   // Data source selection
   const [connections, setConnections] = useState<Connection[]>([
@@ -351,125 +352,199 @@ export function AddWidgetClient({ dashboard, datasets }: WidgetClientProps) {
             </div>
           </div>
           
+          {/* Widget Type Selection */}
           <div className="border rounded-lg p-4 bg-card">
-            <h2 className="text-lg font-medium mb-4">Data Source</h2>
+            <h2 className="text-lg font-medium mb-4">Widget Type</h2>
             
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dataset</label>
-                
-                {datasets.length > 0 ? (
-                  <Select 
-                    value={selectedDatasetId} 
-                    onValueChange={setSelectedDatasetId}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a dataset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {datasets.map((dataset) => (
-                        <SelectItem key={dataset.id} value={dataset.id.toString()}>
-                          {dataset.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    No datasets available
-                  </div>
-                )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div 
+                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'bar' ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setWidgetType('bar')}
+              >
+                <BarChart3 className="h-6 w-6 mb-2" />
+                <span className="text-sm">Bar Chart</span>
               </div>
               
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Database Connection</div>
-                
-                <Select 
-                  value={selectedConnectionId} 
-                  onValueChange={setSelectedConnectionId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select connection" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {connections.map((connection) => (
-                      <SelectItem key={connection.id} value={connection.id.toString()}>
-                        {connection.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div 
+                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'line' ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setWidgetType('line')}
+              >
+                <LineChartIcon className="h-6 w-6 mb-2" />
+                <span className="text-sm">Line Chart</span>
               </div>
               
-              {selectedConnectionId && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Schema</label>
+              <div 
+                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'pie' ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setWidgetType('pie')}
+              >
+                <PieChartIcon className="h-6 w-6 mb-2" />
+                <span className="text-sm">Pie Chart</span>
+              </div>
+              
+              <div 
+                className={`border rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors ${widgetType === 'text' ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setWidgetType('text')}
+              >
+                <Text className="h-6 w-6 mb-2" />
+                <span className="text-sm">Text</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Text content editor (only shown for text widget type) */}
+          {widgetType === 'text' && (
+            <div className="border rounded-lg p-4 bg-card">
+              <h2 className="text-lg font-medium mb-4">Text Content</h2>
+              
+              <div className="space-y-4">
+                <textarea
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[200px]"
+                  placeholder="Enter your content here..."
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Data source section (hidden for text widget type) */}
+          {widgetType !== 'text' && (
+            <div className="border rounded-lg p-4 bg-card">
+              <h2 className="text-lg font-medium mb-4">Data Source</h2>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Dataset</label>
+                  
+                  {datasets.length > 0 ? (
                     <Select 
-                      value={selectedSchema} 
-                      onValueChange={setSelectedSchema}
+                      value={selectedDatasetId} 
+                      onValueChange={setSelectedDatasetId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select schema" />
+                        <SelectValue placeholder="Select a dataset" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableSchemas.map((schema) => (
-                          <SelectItem key={schema} value={schema}>
-                            {schema}
+                        {datasets.map((dataset) => (
+                          <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                            {dataset.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      No datasets available
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Database Connection</div>
                   
-                  {selectedSchema && (
+                  <Select 
+                    value={selectedConnectionId} 
+                    onValueChange={setSelectedConnectionId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select connection" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connections.map((connection) => (
+                        <SelectItem key={connection.id} value={connection.id.toString()}>
+                          {connection.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedConnectionId && (
+                  <>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Table</label>
+                      <label className="text-sm font-medium">Schema</label>
                       <Select 
-                        value={selectedTable} 
-                        onValueChange={setSelectedTable}
+                        value={selectedSchema} 
+                        onValueChange={setSelectedSchema}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select table" />
+                          <SelectValue placeholder="Select schema" />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableTables.map((table) => (
-                            <SelectItem key={table} value={table}>
-                              {table}
+                          {availableSchemas.map((schema) => (
+                            <SelectItem key={schema} value={schema}>
+                              {schema}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
-                  
-                  {selectedTable && renderTableColumns()}
-                </>
-              )}
+                    
+                    {selectedSchema && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Table</label>
+                        <Select 
+                          value={selectedTable} 
+                          onValueChange={setSelectedTable}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select table" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableTables.map((table) => (
+                              <SelectItem key={table} value={table}>
+                                {table}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {selectedTable && renderTableColumns()}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         
         {/* Main content area */}
         <div className="col-span-8">
           <div className="border rounded-lg overflow-hidden h-[600px] flex flex-col">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex-1 flex flex-col">
-              <div className="border-b">
-                <TabsList className="w-full bg-transparent justify-start rounded-none h-12 px-4">
-                  <TabsTrigger value="query" className="data-[state=active]:bg-muted rounded-none">
-                    <Code className="h-4 w-4 mr-2" />
-                    Query View
-                  </TabsTrigger>
-                  <TabsTrigger value="table" className="data-[state=active]:bg-muted rounded-none">
-                    <Table className="h-4 w-4 mr-2" />
-                    Table View
-                  </TabsTrigger>
-                  <TabsTrigger value="chart" className="data-[state=active]:bg-muted rounded-none">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Chart Preview
-                  </TabsTrigger>
-                </TabsList>
+            {widgetType === 'text' ? (
+              <div className="p-4 h-full">
+                <h2 className="text-lg font-medium mb-4">Text Widget Preview</h2>
+                <div className="border rounded-lg p-4 bg-card h-[calc(100%-3rem)] overflow-auto">
+                  <div className="prose max-w-none">
+                    <h3>{widgetTitle}</h3>
+                    <p className="text-sm text-muted-foreground">{widgetSubtitle}</p>
+                    <div className="mt-4">
+                      {textContent.split('\n').map((line, i) => (
+                        <p key={i}>{line || <br />}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex-1 flex flex-col">
+                <div className="border-b">
+                  <TabsList className="w-full bg-transparent justify-start rounded-none h-12 px-4">
+                    <TabsTrigger value="query" className="data-[state=active]:bg-muted rounded-none">
+                      <Code className="h-4 w-4 mr-2" />
+                      Query View
+                    </TabsTrigger>
+                    <TabsTrigger value="table" className="data-[state=active]:bg-muted rounded-none">
+                      <Table className="h-4 w-4 mr-2" />
+                      Table View
+                    </TabsTrigger>
+                    <TabsTrigger value="chart" className="data-[state=active]:bg-muted rounded-none">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Chart Preview
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               
               <TabsContent value="query" className="flex-1 p-0 m-0 flex flex-col">
                 <div className="p-4 pb-2 text-sm font-medium">SQL Query</div>
