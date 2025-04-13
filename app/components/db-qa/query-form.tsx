@@ -1,130 +1,199 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Connection, DbQaCategory, DbQaFrequency } from '@/lib/db/schema';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-interface DbQaQueryFormProps {
-  connections: Connection[];
-  onSubmit: (data: any) => void;
-  isSubmitting: boolean;
-  initialData?: any;
-}
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Icons } from "@/components/ui/icons";
+import { dbQaCategoryTypes, dbQaFrequencyTypes } from "@/lib/db/schema";
+import { post, put } from "@/lib/api-client";
 
-// Define schema for the form
-const queryFormSchema = z.object({
-  name: z.string().min(3, { message: 'Check name must be at least 3 characters' }),
+// Define form schema using Zod
+const formSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   description: z.string().optional(),
-  category: z.enum([
-    'data_completeness',
-    'data_consistency',
-    'data_accuracy',
-    'data_integrity',
-    'data_timeliness',
-    'data_uniqueness',
-    'data_relationship',
-    'sensitive_data_exposure'
-  ] as const),
-  query: z.string().min(5, { message: 'SQL query is required' }),
-  connectionId: z.number({ required_error: 'Connection is required' }),
+  category: z.string().min(1, { message: "Please select a category" }),
+  query: z.string().min(1, { message: "SQL query is required" }),
+  connectionId: z.coerce.number({ required_error: "Connection is required" }),
+  spaceId: z.coerce.number().optional().nullable(),
+  executionFrequency: z.string().default("manual"),
   enabled: z.boolean().default(true),
-  executionFrequency: z.enum([
-    'manual',
-    'hourly',
-    'daily',
-    'weekly',
-    'monthly'
-  ] as const).default('manual'),
-  thresholds: z.string().optional(),
-  expectedResult: z.string().optional(),
+  thresholds: z.record(z.any()).optional(),
+  expectedResult: z.record(z.any()).optional(),
+  validateQuery: z.boolean().default(true),
 });
 
-export function DbQaQueryForm({ connections, onSubmit, isSubmitting, initialData }: DbQaQueryFormProps) {
-  const [activeTab, setActiveTab] = useState('basic');
+type FormValues = z.infer<typeof formSchema>;
 
-  const form = useForm<z.infer<typeof queryFormSchema>>({
-    resolver: zodResolver(queryFormSchema),
-    defaultValues: initialData || {
-      name: '',
-      description: '',
-      category: 'data_completeness',
-      query: '',
-      connectionId: connections[0]?.id || 0,
-      enabled: true,
-      executionFrequency: 'manual',
-      thresholds: '',
-      expectedResult: '',
-    },
+interface QueryFormProps {
+  initialData?: any;
+  connections: { id: number; name: string; type: string }[];
+  spaces: { id: number; name: string }[];
+  mode: "create" | "edit";
+}
+
+export function QueryForm({ initialData, connections, spaces, mode }: QueryFormProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validateQuery, setValidateQuery] = useState(true);
+
+  // Format category name for display
+  const formatCategoryName = (category: string) => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Initialize form with default values or existing data
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          connectionId: initialData.connectionId || initialData.connection_id,
+          spaceId: initialData.spaceId || initialData.space_id,
+          validateQuery: false, // Don't validate on edit by default
+        }
+      : {
+          name: "",
+          description: "",
+          category: dbQaCategoryTypes[0],
+          query: "",
+          connectionId: connections.length > 0 ? connections[0].id : 0,
+          spaceId: spaces.length > 0 ? spaces[0].id : null,
+          executionFrequency: "manual",
+          enabled: true,
+          thresholds: {},
+          expectedResult: {},
+          validateQuery: true,
+        },
   });
 
-  const handleSubmit = (data: z.infer<typeof queryFormSchema>) => {
-    // Parse numeric values
-    const formattedData = {
-      ...data,
-      connectionId: Number(data.connectionId),
-    };
-    onSubmit(formattedData);
-  };
+  // Form submission handler
+  const onSubmit = async (values: FormValues) => {
+    setIsSubmitting(true);
 
-  const categoryLabels: Record<DbQaCategory, string> = {
-    data_completeness: 'Data Completeness',
-    data_consistency: 'Data Consistency',
-    data_accuracy: 'Data Accuracy',
-    data_integrity: 'Data Integrity',
-    data_timeliness: 'Data Timeliness',
-    data_uniqueness: 'Data Uniqueness',
-    data_relationship: 'Data Relationships',
-    sensitive_data_exposure: 'Sensitive Data Exposure',
-  };
+    try {
+      // Include validation flag
+      const submitData = {
+        ...values,
+        validateQuery,
+      };
 
-  const frequencyLabels: Record<DbQaFrequency, string> = {
-    manual: 'Manual (On Demand)',
-    hourly: 'Hourly',
-    daily: 'Daily',
-    weekly: 'Weekly',
-    monthly: 'Monthly',
+      let response;
+      
+      if (mode === "create") {
+        // Create new query
+        response = await post("/api/db-qa/queries", submitData);
+      } else {
+        // Update existing query
+        response = await put(`/api/db-qa/queries/${initialData.id}`, submitData);
+      }
+
+      if (response.success) {
+        toast({
+          title: mode === "create" ? "Query created" : "Query updated",
+          description: response.message || "Your query has been saved successfully.",
+        });
+        
+        // Redirect back to queries list
+        router.push("/db-qa/queries");
+      } else {
+        // Handle validation errors or other issues
+        toast({
+          title: "Error",
+          description: response.error || "Failed to save query.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving query:", error);
+      
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="basic">Basic Information</TabsTrigger>
-            <TabsTrigger value="query">Query Configuration</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced Options</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Check Name</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter a descriptive name" {...field} />
+                      <Input placeholder="Query name" {...field} />
                     </FormControl>
                     <FormDescription>
-                      A descriptive name for this quality check
+                      A descriptive name for your quality check query
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Brief description of what this query checks"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Explain the purpose of this quality check
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Category and Execution Settings */}
+            <div className="space-y-4">
               <FormField
                 control={form.control}
                 name="category"
@@ -141,159 +210,86 @@ export function DbQaQueryForm({ connections, onSubmit, isSubmitting, initialData
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(categoryLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
+                        {dbQaCategoryTypes.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {formatCategoryName(category)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Type of quality check to perform
+                      The type of quality check this query performs
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the purpose of this check..."
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Optional description to provide context
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="connectionId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Database Connection</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(Number(value))}
-                    defaultValue={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a connection" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {connections.map((connection) => (
-                        <SelectItem key={connection.id} value={connection.id.toString()}>
-                          {connection.name} ({connection.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Connection to use for this check
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </TabsContent>
-
-          <TabsContent value="query" className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">SQL Query</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="query"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="SELECT * FROM users WHERE ..."
-                          rows={10}
-                          className="font-mono"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter a SQL query to validate data quality
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Expected Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="expectedResult"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="e.g., 'Should return 0 rows', 'Value in column X should be > 100', etc."
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Describe what the query should return when data is valid
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="advanced" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="executionFrequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Execution Schedule</FormLabel>
+                    <FormLabel>Execution Frequency</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a frequency" />
+                          <SelectValue placeholder="Select frequency" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(frequencyLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
+                        {dbQaFrequencyTypes.map((frequency) => (
+                          <SelectItem key={frequency} value={frequency}>
+                            {frequency.charAt(0).toUpperCase() +
+                              frequency.slice(1)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      How often this check should run
+                      How often this check should be executed
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Connection and Space Selection */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="connectionId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Connection</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={
+                        field.value ? field.value.toString() : undefined
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a connection" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {connections.map((connection) => (
+                          <SelectItem
+                            key={connection.id}
+                            value={connection.id.toString()}
+                          >
+                            {connection.name} ({connection.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      The database connection to use for this check
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -302,56 +298,141 @@ export function DbQaQueryForm({ connections, onSubmit, isSubmitting, initialData
 
               <FormField
                 control={form.control}
-                name="enabled"
+                name="spaceId"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Enabled</FormLabel>
-                      <FormDescription>
-                        Enable or disable this check
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
+                  <FormItem>
+                    <FormLabel>Space (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === "none" ? null : parseInt(value))
+                      }
+                      defaultValue={
+                        field.value ? field.value.toString() : "none"
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a space" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No space</SelectItem>
+                        {spaces.map((space) => (
+                          <SelectItem
+                            key={space.id}
+                            value={space.id.toString()}
+                          >
+                            {space.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Associate this check with a specific space (optional)
+                    </FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
+            {/* Validation Options */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="validateQuery"
+                    checked={validateQuery}
+                    onCheckedChange={(checked) =>
+                      setValidateQuery(checked === true)
+                    }
+                  />
+                  <label
+                    htmlFor="validateQuery"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Validate query before saving
+                  </label>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Test the query against the selected connection to ensure it
+                  runs correctly
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            {/* SQL Query */}
             <FormField
               control={form.control}
-              name="thresholds"
+              name="query"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Alert Thresholds</FormLabel>
+                <FormItem className="h-full">
+                  <FormLabel>SQL Query</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="e.g., { warning: 5, error: 10 }"
-                      rows={4}
+                    <Textarea
+                      placeholder="SELECT * FROM table_name WHERE condition;"
+                      className="min-h-[300px] font-mono"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Threshold values that will trigger alerts (optional JSON format)
+                    Write a SQL query that validates your data quality. For
+                    example, to check for null values in a column: 
+                    <code className="block mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded">
+                      SELECT COUNT(*) as total_records, <br/>
+                      SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) as null_emails <br/>
+                      FROM users;
+                    </code>
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => setActiveTab('basic')}>
+        {/* Enabled switch */}
+        <FormField
+          control={form.control}
+          name="enabled"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Enable Check</FormLabel>
+                <FormDescription>
+                  When enabled, this check will run on its scheduled frequency
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Submit buttons */}
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/db-qa/queries")}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? 'Update Check' : 'Create Check'}
+            {isSubmitting ? (
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                {mode === "create" ? "Creating..." : "Updating..."}
+              </>
+            ) : (
+              <>{mode === "create" ? "Create" : "Update"} Query</>
+            )}
           </Button>
         </div>
       </form>

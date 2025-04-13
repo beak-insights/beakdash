@@ -32,9 +32,7 @@ export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
     queryKey,
     queryFn: async () => {
       const qs = buildQueryString();
-      return apiRequest<DbQaQueryItem[]>(`/api/db-qa/queries${qs ? `?${qs}` : ""}`, {
-        method: 'GET'
-      });
+      return get<DbQaQueryItem[]>(`/api/db-qa/queries${qs ? `?${qs}` : ""}`);
     },
     enabled,
   });
@@ -42,7 +40,7 @@ export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
   // Delete a query
   const deleteQuery = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/db-qa/queries/${id}`, { method: "DELETE" });
+      await del(`/api/db-qa/queries/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -64,7 +62,7 @@ export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
   // Run a query
   const runQuery = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/db-qa/queries/${id}/run`, { method: "POST" });
+      return post(`/api/db-qa/queries/${id}/run`, {});
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey });
@@ -106,9 +104,7 @@ export function useDbQaQuery(id: number | string | null) {
     queryKey,
     queryFn: async () => {
       if (!id) throw new Error("Query ID is required");
-      return apiRequest(`/api/db-qa/queries/${id}`, {
-        method: 'GET'
-      });
+      return get(`/api/db-qa/queries/${id}`);
     },
     enabled: !!id,
   });
@@ -117,10 +113,7 @@ export function useDbQaQuery(id: number | string | null) {
   const updateQuery = useMutation({
     mutationFn: async (queryData: any) => {
       if (!id) throw new Error("Query ID is required");
-      return apiRequest(`/api/db-qa/queries/${id}`, {
-        method: "PUT",
-        body: queryData,
-      });
+      return put(`/api/db-qa/queries/${id}`, queryData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -144,9 +137,7 @@ export function useDbQaQuery(id: number | string | null) {
   const runQuery = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error("Query ID is required");
-      return apiRequest(`/api/db-qa/queries/${id}/run`, { 
-        method: "POST" 
-      });
+      return post(`/api/db-qa/queries/${id}/run`, {});
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey });

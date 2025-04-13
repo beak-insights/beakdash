@@ -3,17 +3,17 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,265 +23,256 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
 import { Icons } from "@/components/ui/icons";
-import { toast } from "@/components/ui/use-toast";
 
-// Interface for DB QA query data
+// Define query item structure for type safety
 export interface DbQaQueryItem {
   id: number;
   name: string;
   description: string | null;
   category: string;
-  connection_name: string;
-  space_name: string | null;
+  query: string;
   enabled: boolean;
-  execution_frequency: string;
-  last_execution_time: string | null;
-  last_status: string | null;
-  execution_count: number;
+  connection_id: number;
+  connection_name?: string;
+  space_id: number | null;
+  space_name?: string | null;
+  last_run_at: string | null;
+  last_run_status: string | null;
+  last_run_metrics: Record<string, any> | null;
+  success_count: number;
+  warning_count: number;
+  error_count: number;
   created_at: string;
+  updated_at: string;
 }
 
 interface QueryListProps {
   queries: DbQaQueryItem[];
-  isLoading: boolean;
-  onDelete: (id: number) => Promise<void>;
-  onRunQuery: (id: number) => Promise<void>;
+  onDeleteQuery: (id: number) => void;
+  onRunQuery: (id: number) => void;
+  isDeleting: boolean;
+  isRunning: boolean;
 }
 
-export function QueryList({ queries, isLoading, onDelete, onRunQuery }: QueryListProps) {
+export function QueryList({
+  queries,
+  onDeleteQuery,
+  onRunQuery,
+  isDeleting,
+  isRunning,
+}: QueryListProps) {
   const router = useRouter();
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [selectedQueryId, setSelectedQueryId] = React.useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = React.useState(false);
-  const [isRunning, setIsRunning] = React.useState<Record<number, boolean>>({});
-  
-  // Format category from snake_case to Title Case
-  const formatCategory = (category: string) => {
-    return category
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+
+  // Format date strings
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Never";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
   };
-  
-  // Get status badge color based on status
+
+  // Format category display name
+  const formatCategoryName = (category: string) => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Get status badge variant based on last run status
   const getStatusBadge = (status: string | null) => {
-    if (!status) return null;
+    if (!status) return { variant: "outline" as const, label: "Not Run" };
     
     switch (status.toLowerCase()) {
-      case 'success':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Success</Badge>;
-      case 'warning':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Warning</Badge>;
-      case 'error':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Error</Badge>;
+      case "success":
+        return { variant: "default" as const, label: "Success" };
+      case "warning":
+        return { variant: "secondary" as const, label: "Warning" };
+      case "error":
+        return { variant: "destructive" as const, label: "Error" };
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return { variant: "outline" as const, label: status };
     }
   };
-  
-  // Get frequency badge
-  const getFrequencyBadge = (frequency: string) => {
-    switch (frequency.toLowerCase()) {
-      case 'manual':
-        return <Badge variant="outline" className="bg-slate-50">Manual</Badge>;
-      case 'hourly':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Hourly</Badge>;
-      case 'daily':
-        return <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Daily</Badge>;
-      case 'weekly':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Weekly</Badge>;
-      case 'monthly':
-        return <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">Monthly</Badge>;
-      default:
-        return <Badge variant="outline">{frequency}</Badge>;
-    }
-  };
-  
-  // Handler for delete confirmation
-  const handleConfirmDelete = async () => {
-    if (selectedQueryId === null) return;
-    
-    setIsDeleting(true);
-    try {
-      await onDelete(selectedQueryId);
-      toast({
-        title: "Query deleted",
-        description: "The query has been successfully deleted.",
-      });
-    } catch (error) {
-      console.error("Error deleting query:", error);
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete the query. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
-      setSelectedQueryId(null);
-    }
-  };
-  
-  // Handler for running a query
-  const handleRunQuery = async (id: number) => {
-    setIsRunning(prev => ({ ...prev, [id]: true }));
-    
-    try {
-      await onRunQuery(id);
-      toast({
-        title: "Query executed",
-        description: "The query has been successfully executed.",
-      });
-    } catch (error) {
-      console.error("Error running query:", error);
-      toast({
-        title: "Execution failed",
-        description: "Failed to execute the query. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRunning(prev => ({ ...prev, [id]: false }));
-    }
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-2 text-sm text-muted-foreground">Loading queries...</p>
-      </div>
-    );
-  }
-  
+
+  // If no queries, show empty state
   if (queries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 border rounded-lg">
-        <Icons.database className="h-10 w-10 text-muted-foreground mb-2" />
-        <h3 className="text-lg font-medium">No queries found</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Get started by creating your first database quality check.
-        </p>
-        <Button asChild>
-          <Link href="/db-qa/queries/new">
-            Create New Query
-          </Link>
-        </Button>
-      </div>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>No Quality Checks Found</CardTitle>
+          <CardDescription>
+            Create your first database quality check to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center p-6">
+          <div className="text-center">
+            <Icons.databaseZap className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              No database quality checks have been created yet.
+            </p>
+            <Button
+              className="mt-4"
+              onClick={() => router.push("/db-qa/queries/new")}
+            >
+              Create Check
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
-  
+
   return (
-    <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Connection</TableHead>
-              <TableHead>Space</TableHead>
-              <TableHead>Frequency</TableHead>
-              <TableHead>Last Run</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {queries.map((query) => (
-              <TableRow key={query.id}>
-                <TableCell className="font-medium">
-                  <Link 
-                    href={`/db-qa/queries/${query.id}`} 
-                    className="hover:underline text-blue-600"
-                  >
-                    {query.name}
-                  </Link>
-                  {query.description && (
-                    <p className="text-sm text-muted-foreground truncate max-w-[300px]">
-                      {query.description}
-                    </p>
-                  )}
-                </TableCell>
-                <TableCell>{formatCategory(query.category)}</TableCell>
-                <TableCell>{query.connection_name}</TableCell>
-                <TableCell>{query.space_name || '-'}</TableCell>
-                <TableCell>{getFrequencyBadge(query.execution_frequency)}</TableCell>
-                <TableCell>
-                  {query.last_execution_time 
-                    ? formatDate(new Date(query.last_execution_time), {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }) 
-                    : "Never"}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(query.last_status)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRunQuery(query.id)}
-                      disabled={isRunning[query.id]}
-                    >
-                      {isRunning[query.id] ? (
-                        <Icons.spinner className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Icons.play className="h-4 w-4 mr-1" />
-                      )}
-                      Run
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedQueryId(query.id);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Icons.trash className="h-4 w-4" />
-                    </Button>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {queries.map((query) => {
+        const status = getStatusBadge(query.last_run_status);
+        
+        return (
+          <Card key={query.id} className="relative">
+            {!query.enabled && (
+              <div className="absolute right-2 top-2">
+                <Badge variant="outline" className="bg-muted">
+                  Disabled
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <Badge className="mb-2" variant="outline">
+                    {formatCategoryName(query.category)}
+                  </Badge>
+                  <CardTitle className="line-clamp-1">{query.name}</CardTitle>
+                  <CardDescription className="line-clamp-2 mt-1">
+                    {query.description || "No description"}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Connection</p>
+                    <p className="font-medium">{query.connection_name || "Unknown"}</p>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this query and all its execution history.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              {isDeleting ? (
-                <>
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+                  <div>
+                    <p className="text-muted-foreground">Space</p>
+                    <p className="font-medium">{query.space_name || "Global"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Last Run</p>
+                    <p className="font-medium">{formatDate(query.last_run_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </div>
+                </div>
+                
+                {query.last_run_metrics && (
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Last Run Metrics
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Success</p>
+                        <p className="text-sm font-medium">{query.success_count}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Warnings</p>
+                        <p className="text-sm font-medium">{query.warning_count}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Errors</p>
+                        <p className="text-sm font-medium">{query.error_count}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex justify-between">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/db-qa/queries/${query.id}`}>
+                    Edit
+                  </Link>
+                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Query</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{query.name}"? This action
+                        cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDeleteQuery(query.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          "Delete"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              
+              <Button
+                size="sm"
+                onClick={() => onRunQuery(query.id)}
+                disabled={isRunning}
+              >
+                {isRunning ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Icons.play className="mr-2 h-4 w-4" />
+                    Run
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

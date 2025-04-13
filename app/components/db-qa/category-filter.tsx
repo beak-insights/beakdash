@@ -1,50 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tabs, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
 import { dbQaCategoryTypes } from "@/lib/db/schema";
-import { Label } from "@/components/ui/label";
 
 interface CategoryFilterProps {
-  currentCategory: string;
+  selectedCategory: string;
   onCategoryChange: (category: string) => void;
 }
 
-export function CategoryFilter({ currentCategory, onCategoryChange }: CategoryFilterProps) {
-  // Convert category from API format (snake_case) to display format (Title Case)
+export function CategoryFilter({
+  selectedCategory,
+  onCategoryChange,
+}: CategoryFilterProps) {
+  // Format category name for display
   const formatCategoryName = (category: string) => {
     return category
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   return (
-    <div className="flex flex-col space-y-2">
-      <Label htmlFor="category-select">Filter by Category</Label>
-      <Select
-        value={currentCategory}
-        onValueChange={onCategoryChange}
-      >
-        <SelectTrigger id="category-select" className="w-[200px]">
-          <SelectValue placeholder="All Categories" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
+    <div className="mb-6">
+      <Tabs value={selectedCategory} onValueChange={onCategoryChange}>
+        <TabsList className="w-full overflow-x-auto flex-wrap">
+          <TabsTrigger value="all" className="flex-shrink-0">
+            All Categories
+          </TabsTrigger>
+          
           {dbQaCategoryTypes.map((category) => (
-            <SelectItem key={category} value={category}>
+            <TabsTrigger key={category} value={category} className="flex-shrink-0">
               {formatCategoryName(category)}
-            </SelectItem>
+            </TabsTrigger>
           ))}
-        </SelectContent>
-      </Select>
+        </TabsList>
+      </Tabs>
     </div>
   );
 }
