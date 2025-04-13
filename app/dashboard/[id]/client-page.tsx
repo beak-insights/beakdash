@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Spinner } from '@/components/ui/spinner';
+import Link from 'next/link';
 import { 
   Column, Line, Area, Pie, DualAxes, Scatter, 
   Rose, Radar, Gauge, Waterfall, WordCloud 
@@ -266,12 +267,13 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
                 <h3 className="font-medium">{widget.name}</h3>
               </div>
               <div className="flex items-center space-x-2">
-                <button 
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground"
+                <Link
+                  href={`/dashboard/${dashboardId}/edit-widget/${widget.id}`}
+                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
                   aria-label="Edit widget"
                 >
                   <EditOutlined />
-                </button>
+                </Link>
                 <button 
                   className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive"
                   aria-label="Delete widget"
