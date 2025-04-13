@@ -201,9 +201,11 @@ export function DbQaQueriesClient() {
           </Select>
         </div>
         
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Check
+        <Button asChild>
+          <Link href="/db-qa/queries/create">
+            <Plus className="mr-2 h-4 w-4" />
+            New Check
+          </Link>
         </Button>
       </div>
       
@@ -279,9 +281,11 @@ export function DbQaQueriesClient() {
                     ? "Try changing or clearing your filters"
                     : "Get started by creating your first database quality check"}
                 </p>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Check
+                <Button asChild>
+                  <Link href="/db-qa/queries/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Check
+                  </Link>
                 </Button>
               </div>
             )}
