@@ -112,15 +112,64 @@ export function ConnectionCreateClient({ defaultTab = 'sql' }: { defaultTab?: st
     setIsTestingConnection(true);
     
     try {
-      // In a real app, this would call an API to test the connection
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      // Prepare the data to send based on active tab
+      let connectionData;
       
-      // Show success message
-      toast({
-        title: "Connection test successful",
-        description: "Successfully connected to the data source.",
-        variant: "default",
+      if (activeTab === 'sql') {
+        connectionData = {
+          type: sqlFormData.type,
+          hostname: sqlFormData.hostname,
+          port: sqlFormData.port,
+          database: sqlFormData.database,
+          username: sqlFormData.username,
+          password: sqlFormData.password,
+          sslMode: sqlFormData.sslMode
+        };
+      } else if (activeTab === 'rest') {
+        connectionData = {
+          type: 'rest',
+          baseUrl: restFormData.baseUrl,
+          authType: restFormData.authType,
+          apiKey: restFormData.apiKey,
+          headerName: restFormData.headerName
+        };
+      } else {
+        // CSV doesn't require a connection test
+        toast({
+          title: "No connection test needed",
+          description: "CSV files don't require a connection test. You can proceed with creating the connection.",
+          variant: "default",
+        });
+        setIsTestingConnection(false);
+        return;
+      }
+      
+      // Make API call to test connection
+      const response = await fetch('/api/connections/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(connectionData),
       });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Show success message
+        toast({
+          title: "Connection test successful",
+          description: "Successfully connected to the data source.",
+          variant: "default",
+        });
+      } else {
+        // Show error message with details from the API
+        toast({
+          title: "Connection test failed",
+          description: data.error || "Could not connect to the data source. Please check your settings.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       // Show error message
       toast({

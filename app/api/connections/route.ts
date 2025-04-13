@@ -1,54 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { connections } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
-    
-    if (!authToken) {
+    // Get authenticated user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    const userId = session.user.id;
     
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const spaceId = searchParams.get('spaceId');
     
-    // Build query string
-    let queryString = '';
-    if (userId) queryString += `userId=${userId}&`;
-    if (spaceId) queryString += `spaceId=${spaceId}&`;
+    // Query connections based on filters
+    let connectionData;
     
-    // Forward request to existing backend
-    const url = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/connections${queryString ? `?${queryString.slice(0, -1)}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch connections' },
-        { status: response.status }
-      );
+    if (spaceId) {
+      connectionData = await db.select().from(connections)
+        .where(eq(connections.spaceId, parseInt(spaceId)));
+    } else {
+      // By default, get connections accessible to the user
+      connectionData = await db.select().from(connections)
+        .where(eq(connections.userId, parseInt(userId)));
     }
     
-    const connections = await response.json();
-    return NextResponse.json(connections);
+    return NextResponse.json(connectionData);
   } catch (error) {
     console.error('Connections fetch error:', error);
     
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to fetch connections' },
       { status: 500 }
     );
   }
@@ -56,44 +47,52 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
-    
-    if (!authToken) {
+    // Get authenticated user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    const userId = session.user.id;
     
     // Get request body
     const body = await request.json();
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/connections`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
+    // Validate required fields
+    if (!body.name) {
       return NextResponse.json(
-        { message: errorData.message || 'Failed to create connection' },
-        { status: response.status }
+        { error: 'Connection name is required' },
+        { status: 400 }
       );
     }
     
-    const connection = await response.json();
-    return NextResponse.json(connection);
+    // Create new connection
+    const newConnection = {
+      name: body.name,
+      type: body.type || 'sql',
+      userId: userId,
+      spaceId: body.spaceId || null,
+      config: body,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await db.insert(connections).values(newConnection);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Connection created successfully',
+      connectionId: result.insertId
+    });
   } catch (error) {
     console.error('Connection creation error:', error);
     
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to create connection' },
       { status: 500 }
     );
   }
