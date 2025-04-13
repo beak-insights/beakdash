@@ -60,13 +60,13 @@ export function AppLayout({ children }: AppLayoutProps) {
     const user = session.user;
     
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen w-full bg-background overflow-hidden">
         {/* Import enhanced sidebar with space switching */}
         <Sidebar />
         
         {/* Main content */}
-        <div className={`flex flex-col flex-1 transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'}`}>
-          <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10">
+        <div className={`flex flex-col flex-1 w-full transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'}`}>
+          <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10 w-full">
             <h2 className="text-lg font-medium">
               {pathname.includes('/spaces/') ? 'Space Details' : 
                pathname === '/spaces' ? 'Spaces' :
@@ -99,10 +99,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               </button>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 p-4 md:p-6 w-full">
             {children}
           </main>
-          <footer className="border-t p-4 text-center text-sm text-muted-foreground">
+          <footer className="border-t p-4 text-center text-sm text-muted-foreground w-full">
             BeakDash &copy; {new Date().getFullYear()} - AI-Powered Dashboard Creator
           </footer>
         </div>

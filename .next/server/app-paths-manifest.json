@@ -1,11 +1,6 @@
 {
-  "/api/spaces/route": "app/api/spaces/route.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/page": "app/page.js",
-  "/datasets/page": "app/datasets/page.js",
-  "/connections/page": "app/connections/page.js",
-  "/widgets/page": "app/widgets/page.js"
+  "/profile/page": "app/profile/page.js"
 }
