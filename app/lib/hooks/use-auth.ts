@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/lib/hooks/use-toast';
-import { User } from '@schema';
+import { User } from '@/lib/db/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 // Structure for login credentials
@@ -31,15 +31,35 @@ export function useAuth() {
     refetch 
   } = useQuery<User>({
     queryKey: ['/api/auth/me'],
+    queryFn: async () => {
+      try {
+        return await apiRequest('GET', '/api/auth/me');
+      } catch (error) {
+        // If we get a 401 or similar, it means the user is not authenticated
+        // We don't want to throw an error in this case
+        if (error instanceof Error && (error as any).status === 401) {
+          return null;
+        }
+        throw error;
+      }
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onSuccess: () => {
-      setIsInitialized(true);
+    meta: {
+      // Custom meta property for initialization tracking
+      initialized: false
     },
-    onError: () => {
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
+  });
+  
+  // Handle initialization after query completes
+  useEffect(() => {
+    if (user !== undefined || error) {
       setIsInitialized(true);
     }
-  });
+  }, [user, error]);
 
   // Login mutation
   const loginMutation = useMutation({
@@ -152,7 +172,7 @@ export function useAuth() {
   });
 
   // Check if user is authenticated
-  const isAuthenticated = useCallback(() => {
+  const isAuthenticated = useMemo(() => {
     return !!user;
   }, [user]);
 
