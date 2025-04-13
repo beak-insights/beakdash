@@ -11,13 +11,18 @@ interface Props {
 
 // GET /api/dashboards/[id]/widgets
 export async function GET(request: NextRequest, { params }: Props) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const dashboardId = parseInt(params.id);
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Safe parsing with fallback
+    const dashboardId = parseInt(params.id || '0');
+    
+    if (!dashboardId) {
+      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
+    }
     
     // Check if dashboard exists
     const dashboard = await db.query.dashboards.findFirst({
@@ -56,13 +61,19 @@ export async function GET(request: NextRequest, { params }: Props) {
 
 // POST /api/dashboards/[id]/widgets
 export async function POST(request: NextRequest, { params }: Props) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const dashboardId = parseInt(params.id);
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Safe parsing with fallback
+    const dashboardId = parseInt(params.id || '0');
+    
+    if (!dashboardId) {
+      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
+    }
+    
     const json = await request.json();
     
     // Check if dashboard exists
