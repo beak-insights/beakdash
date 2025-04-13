@@ -65,10 +65,42 @@ export async function GET(request: NextRequest) {
     
     query += ` ORDER BY q.created_at DESC`;
     
-    // Execute the query
-    const result = await db.execute(sql.raw(query, ...(queryParams as [any])));
+    // Execute the query with parameters
+    let result;
+    if (queryParams.length > 0) {
+      // We have parameters, use parameterized query
+      let parametrizedQuery = query;
+      for (let i = 0; i < queryParams.length; i++) {
+        // Replace $N with actual parameter value - this is not ideal but works for this scenario
+        parametrizedQuery = parametrizedQuery.replace(`$${i+1}`, Array.isArray(queryParams[i]) ? 
+          `'${queryParams[i].join("','")}'` : 
+          typeof queryParams[i] === 'string' ? `'${queryParams[i]}'` : String(queryParams[i]));
+      }
+      result = await db.execute(sql.raw(parametrizedQuery));
+    } else {
+      // No parameters, simpler query
+      result = await db.execute(sql.raw(query));
+    }
     
-    return NextResponse.json((result as any).rows);
+    // Transform the result to a serializable array
+    const rows = Array.isArray(result) ? result : [];
+    
+    // Check if we need to process the data before returning
+    const serializedRows = rows.map(row => {
+      // Create a plain object with all enumerable properties
+      const plainObject: Record<string, any> = {};
+      for (const key in row) {
+        let value = row[key];
+        // Convert dates to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        }
+        plainObject[key] = value;
+      }
+      return plainObject;
+    });
+    
+    return NextResponse.json(serializedRows);
   } catch (error) {
     console.error('Error fetching DB QA queries:', error);
     
@@ -121,15 +153,18 @@ export async function POST(request: NextRequest) {
           sql`SELECT * FROM connections WHERE id = ${connectionIdNum}`
         );
         
-        if (!connectionResult.rows.length) {
+        // Process connection result (considering DrizzleORM's return format)
+        const connectionRows = Array.isArray(connectionResult) ? connectionResult : [];
+        if (connectionRows.length === 0) {
           return NextResponse.json(
             { error: 'Connection not found' },
             { status: 404 }
           );
         }
         
-        const connection = connectionResult.rows[0];
-        const config = connection.config;
+        const connection = connectionRows[0];
+        // Type assertion for connection config
+        const config = connection.config as Record<string, any>;
         
         // Create a connection to run the test query if it's a SQL connection
         if (connection.type === 'sql' || connection.type === 'postgresql') {
@@ -216,10 +251,27 @@ export async function POST(request: NextRequest) {
       ORDER BY id DESC LIMIT 1
     `);
     
+    // Serialize the inserted query result
+    let queryResult = null;
+    if (Array.isArray(insertedQuery) && insertedQuery.length > 0) {
+      const row = insertedQuery[0];
+      queryResult = {} as Record<string, any>;
+      
+      // Create a serializable object from the row
+      for (const key in row) {
+        let value = row[key];
+        // Convert dates to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        }
+        queryResult[key] = value;
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       message: 'DB QA query created successfully',
-      query: insertedQuery.rows[0]
+      query: queryResult
     });
   } catch (error: any) {
     console.error('Error creating DB QA query:', error);
