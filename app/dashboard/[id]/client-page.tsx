@@ -317,11 +317,15 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       isStack: config.isStacked,
       label: config.showLabel ? {} : undefined,
       color: config.colors || chartColors,
+      // Make the chart fully responsive
+      autoFit: true,
+      appendPadding: [8, 8, 8, 8],
       columnStyle: {
         radius: [4, 4, 0, 0],
       },
       legend: {
         visible: config.showLegend !== false,
+        position: 'top-right',
       },
       xAxis: {
         title: { text: config.xAxisLabel || '' },
@@ -349,6 +353,9 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       yField: config.yAxis || 'value',
       seriesField: config.groupBy,
       smooth: true,
+      // Make the chart fully responsive
+      autoFit: true,
+      appendPadding: [8, 8, 8, 8],
       color: config.colors || chartColors,
       lineStyle: { lineWidth: 2 },
       point: {
@@ -358,6 +365,7 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       },
       legend: {
         visible: config.showLegend !== false,
+        position: 'top-right',
       },
       xAxis: {
         title: { text: config.xAxisLabel || '' },
@@ -386,10 +394,14 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       seriesField: config.groupBy,
       isStack: config.isStacked,
       smooth: true,
+      // Make the chart fully responsive
+      autoFit: true,
+      appendPadding: [8, 8, 8, 8],
       color: config.colors || chartColors,
       areaStyle: { fillOpacity: 0.6 },
       legend: {
         visible: config.showLegend !== false,
+        position: 'top-right',
       },
       xAxis: {
         title: { text: config.xAxisLabel || '' },
@@ -416,6 +428,9 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       angleField: config.yAxis || 'value',
       colorField: config.xAxis || 'name',
       color: config.colors || chartColors,
+      // Make the chart fully responsive
+      autoFit: true,
+      appendPadding: [8, 8, 8, 8],
       radius: 0.8,
       innerRadius: config.innerRadius || 0,
       label: {
@@ -424,6 +439,7 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       },
       legend: {
         visible: config.showLegend !== false,
+        position: 'top-right',
       },
       tooltip: {
         showContent: config.showTooltip !== false,
@@ -479,10 +495,10 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     // For text widget type
     if (type === 'text') {
       return (
-        <div className="h-full p-4 overflow-auto">
-          <div className="prose max-w-none">
+        <div className="h-full p-4 overflow-auto w-full">
+          <div className="prose max-w-none w-full h-full">
             {config.textContent?.split('\n').map((line: string, i: number) => (
-              <p key={i}>{line || <br />}</p>
+              <p key={i} className="break-words">{line || <br />}</p>
             )) || (
               <p className="text-muted-foreground">No content available</p>
             )}
@@ -496,12 +512,14 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       const chartType = config.chartType || 'bar';
       const sampleData = getSampleData(widget);
       
-      // Set chart height to fill container with some padding
+      // Set chart to fill container completely and be responsive
       const chartContainerStyle = { 
         height: '100%', 
+        width: '100%',
         display: 'flex', 
         flexDirection: 'column' as const,
-        padding: '8px'
+        padding: '0px',
+        overflow: 'hidden'
       };
       
       // Render different chart types
