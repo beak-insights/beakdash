@@ -280,6 +280,9 @@ export function useSpaces() {
     // Set to null to indicate no specific space is selected
     setCurrentSpaceId(null);
     
+    // Update cookie to reflect the change - remove the cookie
+    document.cookie = "currentSpaceId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    
     // Invalidate related queries to show all content
     queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
     queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
@@ -309,6 +312,11 @@ export function useSpaces() {
     
     // Also update local state immediately for better UX
     setCurrentSpaceId(spaceId);
+    
+    // Store the current space ID in a cookie for server-side access
+    const expirationDate = new Date();
+    expirationDate.setTime(expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+    document.cookie = `currentSpaceId=${spaceId}; expires=${expirationDate.toUTCString()}; path=/;`;
   };
   
   // Get current space

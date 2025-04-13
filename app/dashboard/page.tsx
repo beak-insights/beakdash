@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { dashboards, spaces, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Dashboards',
@@ -13,13 +14,32 @@ export const metadata: Metadata = {
 
 // This is a server component that can fetch data
 export default async function DashboardPage() {
-  // Fetch dashboards from the database
-  const allDashboards = await db.query.dashboards.findMany({
-    with: {
-      space: true,
-    },
-    limit: 6
-  });
+  // Get the current space ID from cookies (if any)
+  let currentSpaceId = null;
+  try {
+    const cookieStore = cookies();
+    const currentSpaceIdCookie = cookieStore.get('currentSpaceId');
+    if (currentSpaceIdCookie && currentSpaceIdCookie.value) {
+      currentSpaceId = parseInt(currentSpaceIdCookie.value);
+    }
+  } catch (error) {
+    console.error('Error accessing cookie:', error);
+  }
+  
+  // Build the query based on the current space selection
+  let dashboardsQuery = db.query.dashboards;
+  
+  // If a specific space is selected, filter dashboards by space
+  const allDashboards = currentSpaceId 
+    ? await dashboardsQuery.findMany({
+        where: eq(dashboards.spaceId, currentSpaceId),
+        with: { space: true },
+        limit: 6
+      })
+    : await dashboardsQuery.findMany({
+        with: { space: true },
+        limit: 6
+      });
 
   const hasDashboards = allDashboards.length > 0;
 
