@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/lib/hooks/use-toast';
-import { User } from '@/lib/db/schema';
 import { apiRequest } from '@/lib/queryClient';
+
+// Define a session user interface compatible with NextAuth
+export interface AuthUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+}
 
 // Structure for login credentials
 interface LoginCredentials {

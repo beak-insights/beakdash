@@ -31,7 +31,7 @@ export function DashboardClient({ children }: DashboardProps) {
   }
 
   // If authenticated, render the dashboard
-  if (isAuthenticated && user) {
+  if (isAuthenticated) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />

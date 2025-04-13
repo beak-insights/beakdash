@@ -1,7 +1,26 @@
 import NextAuth from "next-auth";
 import type { NextAuthOptions } from "next-auth";
+import { Session, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { users } from "@/lib/auth/mock-users";
+
+// Extend the built-in session types
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id?: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role?: string;
+    };
+  }
+
+  interface User extends NextAuthUser {
+    id: string;
+    role?: string;
+  }
+}
 
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options

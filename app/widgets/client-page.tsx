@@ -31,7 +31,7 @@ export function WidgetsClient({ children }: WidgetsClientProps) {
   }
 
   // If authenticated, render the widgets page
-  if (isAuthenticated && user) {
+  if (isAuthenticated) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
