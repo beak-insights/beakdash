@@ -30,8 +30,16 @@ export function ConnectionsClient() {
     queryFn: async () => {
       try {
         console.log('Fetching connections from the API...');
-        const response = await fetch('/api/connections');
+        const response = await fetch('/api/connections', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
         if (!response.ok) {
+          console.error('API error response:', response.status, response.statusText);
           throw new Error(`Failed to fetch connections: ${response.statusText}`);
         }
         const data = await response.json();
@@ -49,6 +57,10 @@ export function ConnectionsClient() {
       try {
         const response = await fetch(`/api/connections/${id}`, {
           method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
         
         if (response.ok) {
