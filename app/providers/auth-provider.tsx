@@ -1,16 +1,17 @@
 "use client"
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { get, post } from '@/lib/api';
-import { User } from '@/lib/db/schema';
+import { AuthUser } from '@/lib/hooks/use-auth';
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<User>;
-  register: (username: string, email: string, password: string) => Promise<User>;
+  login: (username: string, password: string) => Promise<AuthUser>;
+  register: (username: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<User>;
+  updateProfile: (data: Partial<AuthUser>) => Promise<AuthUser>;
   error: string | null;
 }
 
@@ -25,35 +26,64 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session, status } = useSession();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch the current user on initial load
+  // Update user data from session
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    if (status === 'loading') {
+      setIsLoading(true);
+      return;
+    }
+    
+    if (session && session.user) {
+      setUser(session.user as AuthUser);
+    } else {
+      setUser(null);
+    }
+    
+    setIsLoading(false);
+  }, [session, status]);
+
+  // Fetch additional user data if needed
+  useEffect(() => {
+    const fetchExtendedUserData = async () => {
+      if (!session?.user) return;
+
       try {
-        const userData = await get<User>('/api/auth/me');
+        const userData = await get<AuthUser>('/api/auth/me');
         setUser(userData);
       } catch (err) {
-        // If 401 or other auth error, clear user state
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+        console.error('Error fetching extended user data:', err);
       }
     };
 
-    fetchCurrentUser();
-  }, []);
+    if (session?.user) {
+      fetchExtendedUserData();
+    }
+  }, [session]);
 
   // Login handler
-  const login = async (username: string, password: string): Promise<User> => {
+  const login = async (username: string, password: string): Promise<AuthUser> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const userData = await post<User>('/api/auth/login', { username, password });
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      // Refresh user data after login
+      const userData = await get<AuthUser>('/api/auth/me');
       setUser(userData);
       return userData;
     } catch (err) {
@@ -66,12 +96,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Register handler
-  const register = async (username: string, email: string, password: string): Promise<User> => {
+  const register = async (username: string, email: string, password: string): Promise<AuthUser> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const userData = await post<User>('/api/auth/register', { username, email, password });
+      // Create user account
+      await post('/api/auth/register', { username, email, password });
+      
+      // Log in the newly created user
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      // Fetch user data
+      const userData = await get<AuthUser>('/api/auth/me');
       setUser(userData);
       return userData;
     } catch (err) {
@@ -89,9 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      await post('/api/auth/logout', {});
+      await signOut({ redirect: false });
       setUser(null);
-      // Redirect to login page
       router.push('/auth');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Logout failed';
@@ -103,13 +147,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Update profile handler
-  const updateProfile = async (data: Partial<User>): Promise<User> => {
+  const updateProfile = async (data: Partial<AuthUser>): Promise<AuthUser> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const updatedUser = await post<User>('/api/auth/me', data);
-      setUser(updatedUser);
+      const updatedUser = await post<AuthUser>('/api/user/profile', data);
+      setUser(prevUser => prevUser ? { ...prevUser, ...updatedUser } : updatedUser);
       return updatedUser;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Profile update failed';
@@ -122,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
-    isLoading,
+    isLoading: isLoading || status === 'loading',
     login,
     register,
     logout,

@@ -2,7 +2,11 @@ import NextAuth from "next-auth";
 import type { NextAuthOptions } from "next-auth";
 import { Session, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { users } from "@/lib/auth/mock-users";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { runMigrations } from "@/lib/db/migrations";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 // Extend the built-in session types
 declare module "next-auth" {
@@ -22,6 +26,15 @@ declare module "next-auth" {
   }
 }
 
+// Initialize the database if needed
+try {
+  // This will run asynchronously - in production, 
+  // you should use a proper migration strategy
+  runMigrations().catch(console.error);
+} catch (error) {
+  console.error("Failed to run database migrations:", error);
+}
+
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options
 export const authOptions: NextAuthOptions = {
@@ -30,26 +43,46 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         // Check if credentials are provided
-        if (!credentials?.email || !credentials.password) {
+        if (!credentials?.username || !credentials.password) {
           return null;
         }
         
-        // Find user by email (in a real app, this would query your database)
-        const user = users.find(user => user.email === credentials.email);
-        
-        // Check if user exists and password matches
-        if (user && user.password === credentials.password) {
-          // Return user without password
-          const { password, ...userWithoutPassword } = user;
-          return userWithoutPassword;
+        try {
+          // Find user by username
+          const userResults = await db.select()
+            .from(users)
+            .where(eq(users.username, credentials.username));
+          
+          if (!userResults || userResults.length === 0) {
+            return null;
+          }
+          
+          const user = userResults[0];
+          
+          // Check if password matches
+          const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+          
+          if (passwordMatch) {
+            // Return user without password
+            return {
+              id: user.id.toString(),
+              name: user.displayName || user.username,
+              email: user.email,
+              image: user.avatarUrl,
+              role: user.role
+            };
+          }
+          
+          return null;
+        } catch (error) {
+          console.error("Error during authentication:", error);
+          return null;
         }
-        
-        return null;
       }
     }),
   ],

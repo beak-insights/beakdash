@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../providers/auth-provider';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { post } from '@/lib/api';
 
 interface AuthFormProps {
   defaultView: 'login' | 'register';
@@ -14,7 +15,7 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
-  const { login, register } = useAuth();
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -35,8 +36,22 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
     setError(null);
 
     try {
-      await login(formData.username, formData.password);
-      router.push('/dashboard');
+      // Check for callback URL from search parameters
+      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      
+      // Use NextAuth's signIn function directly
+      const result = await signIn('credentials', {
+        username: formData.username,
+        password: formData.password,
+        redirect: false
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        // Redirect to dashboard or callback URL
+        router.push(callbackUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -57,10 +72,37 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
     }
 
     try {
-      await register(formData.username, formData.email, formData.password);
-      router.push('/dashboard');
+      // Register the user through API
+      const response = await post('/api/auth/register', {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (response) {
+        // After successful registration, log the user in
+        const result = await signIn('credentials', {
+          username: formData.username,
+          password: formData.password,
+          redirect: false
+        });
+        
+        if (result?.error) {
+          setError(result.error);
+        } else {
+          // Redirect to dashboard
+          router.push('/dashboard');
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      // Handle API errors
+      if (err instanceof Error) {
+        setError(err.message);
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        setError(err.message as string);
+      } else {
+        setError('Registration failed');
+      }
     } finally {
       setIsSubmitting(false);
     }
