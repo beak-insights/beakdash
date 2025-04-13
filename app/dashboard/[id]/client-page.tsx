@@ -51,6 +51,9 @@ interface GridLayoutProps {
 }
 
 function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayoutProps) {
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   // Convert widgets to layout items
   const [layouts, setLayouts] = useState(() => {
     // Debug log for widget positions
@@ -60,6 +63,7 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
       // Only use default values if position is completely missing
       const position = widget.position || {};
       
+      // Create a layout item with the saved position or defaults
       const item = {
         i: widget.id.toString(),
         x: position.x !== undefined ? position.x : 0,
@@ -101,6 +105,8 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
             h: layoutItem.h
           };
           
+          console.log(`Saving widget ${widget.id} position:`, position);
+          
           return fetch(`/api/widgets/${widget.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -118,6 +124,11 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
       
       setSaveMessage('Layout saved successfully');
       setTimeout(() => setSaveMessage(''), 3000);
+      
+      // Turn off edit mode after saving
+      if (isEditMode) {
+        setIsEditMode(false);
+      }
     } catch (error) {
       console.error('Error saving layout:', error);
       setSaveMessage('Failed to save layout');
@@ -128,41 +139,100 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
   
   // Handle layout change with auto-save
   const onLayoutChange = (currentLayout: Layout[], allLayouts: any) => {
-    setLayouts(allLayouts);
-    
-    // Clear existing timer
-    if (saveTimer) {
-      clearTimeout(saveTimer);
+    // Only update layouts and auto-save if in edit mode
+    if (isEditMode) {
+      setLayouts(allLayouts);
+      
+      // Clear existing timer
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+      
+      // Set new timer for auto-save with debounce
+      const newTimer = setTimeout(() => {
+        saveLayout();
+      }, 2000); // 2 second debounce
+      
+      setSaveTimer(newTimer);
     }
-    
-    // Set new timer for auto-save with debounce
-    const newTimer = setTimeout(() => {
+  };
+  
+  // Toggle edit mode
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      // Save layout before turning off edit mode
       saveLayout();
-    }, 2000); // 2 second debounce
-    
-    setSaveTimer(newTimer);
+    } else {
+      setIsEditMode(true);
+    }
   };
   
   return (
     <div className="mb-6">
-      <div className="flex justify-end mb-4">
-        <button 
-          onClick={saveLayout}
-          disabled={isSaving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
-        >
-          <SaveOutlined style={{ marginRight: 8 }} />
-          {isSaving ? 'Saving...' : 'Save Layout'}
-        </button>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <button 
+            onClick={toggleEditMode}
+            className={`${
+              isEditMode 
+                ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                : 'bg-muted hover:bg-muted/90 text-foreground'
+            } px-4 py-2 rounded-md text-sm font-medium inline-flex items-center transition-colors`}
+          >
+            {isEditMode ? (
+              <>
+                <SaveOutlined style={{ marginRight: 8 }} />
+                Done Editing
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}>
+                  <path d="M2 17a5 5 0 0 0 10 0c0-2.5-2.5-5-5-5a5 5 0 0 0-5 5Z" />
+                  <path d="M12 17a5 5 0 0 0 10 0c0-2.5-2.5-5-5-5a5 5 0 0 0-5 5Z" />
+                  <path d="M7 7a5 5 0 1 0-5 5" />
+                  <path d="M17 7a5 5 0 1 0-5 5" />
+                </svg>
+                Edit Layout
+              </>
+            )}
+          </button>
+          
+          {isEditMode && (
+            <span className="ml-4 text-sm text-muted-foreground">
+              Drag widgets to reposition or resize them
+            </span>
+          )}
+        </div>
+        
+        {isSaving && (
+          <div className="flex items-center">
+            <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+            <span className="text-sm">Saving layout...</span>
+          </div>
+        )}
+        
         {saveMessage && (
-          <div className={`ml-4 px-4 py-2 rounded-md text-sm ${saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div className={`px-4 py-2 rounded-md text-sm ${saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {saveMessage}
           </div>
         )}
       </div>
       
+      {isEditMode && (
+        <div className="mb-4 p-2 border border-amber-500 bg-amber-50 text-amber-800 rounded-md text-sm">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+              <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" />
+            </svg>
+            Edit mode is active. Drag widgets by their headers or resize from the corners and edges.
+          </div>
+        </div>
+      )}
+      
       <ResponsiveGridLayout
-        className="layout"
+        className={`layout ${isEditMode ? 'edit-mode' : ''}`}
         layouts={layouts}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
@@ -170,8 +240,8 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         containerPadding={[15, 15]}
         margin={[15, 15]}
         onLayoutChange={onLayoutChange}
-        isDraggable={true}
-        isResizable={true}
+        isDraggable={isEditMode}
+        isResizable={isEditMode}
         useCSSTransforms={true}
         isBounded={false}
         draggableHandle=".drag-handle"
@@ -179,9 +249,11 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         {widgets.map(widget => (
           <div
             key={widget.id.toString()}
-            className="border rounded-lg overflow-hidden bg-card shadow-sm"
+            className={`border rounded-lg overflow-hidden bg-card shadow-sm transition-all ${
+              isEditMode ? 'border-amber-500 border-dashed shadow-md' : ''
+            }`}
           >
-            <div className="p-4 border-b flex items-center justify-between drag-handle cursor-move">
+            <div className={`p-4 border-b flex items-center justify-between ${isEditMode ? 'drag-handle cursor-move bg-amber-50' : ''}`}>
               <div>
                 <h3 className="font-medium">{widget.name}</h3>
               </div>

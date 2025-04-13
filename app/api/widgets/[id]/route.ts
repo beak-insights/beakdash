@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { widgets, dashboardWidgets } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -100,11 +100,26 @@ export async function PUT(request: NextRequest, { params }: Props) {
             h: position.h !== undefined ? position.h : 4
           };
           
+          // Using the correct query structure for multiple where conditions
           await db
             .update(dashboardWidgets)
             .set({ position: validPosition })
-            .where(eq(dashboardWidgets.widgetId, widgetId))
-            .where(eq(dashboardWidgets.dashboardId, dashboardId));
+            .where(
+              and(
+                eq(dashboardWidgets.widgetId, widgetId),
+                eq(dashboardWidgets.dashboardId, dashboardId)
+              )
+            );
+            
+          // Log the result of the update
+          const updatedDashboardWidget = await db.query.dashboardWidgets.findFirst({
+            where: and(
+              eq(dashboardWidgets.widgetId, widgetId),
+              eq(dashboardWidgets.dashboardId, dashboardId)
+            )
+          });
+          
+          console.log(`Updated widget ${widgetId} position in dashboard ${dashboardId}:`, updatedDashboardWidget?.position);
         }
       } else {
         // Create new dashboard-widget relationship
