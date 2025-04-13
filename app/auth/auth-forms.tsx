@@ -36,8 +36,11 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
     setError(null);
 
     try {
+      console.log('Attempting login with:', formData.username);
+      
       // Check for callback URL from search parameters
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      console.log('Callback URL:', callbackUrl);
       
       // Use NextAuth's signIn function directly
       const result = await signIn('credentials', {
@@ -46,13 +49,22 @@ export function AuthForms({ defaultView = 'login' }: AuthFormProps) {
         redirect: false
       });
 
+      console.log('Sign in result:', result);
+
       if (result?.error) {
+        console.error('Login error:', result.error);
         setError(result.error);
       } else {
-        // Redirect to dashboard or callback URL
-        router.push(callbackUrl);
+        console.log('Login successful, redirecting to:', callbackUrl);
+        
+        // Add a slight delay to ensure the session is set
+        setTimeout(() => {
+          // Redirect to dashboard or callback URL
+          router.push(callbackUrl);
+        }, 500);
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsSubmitting(false);

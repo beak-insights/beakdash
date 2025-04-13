@@ -47,27 +47,34 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log("Authorize function called with credentials:", credentials ? "credentials provided" : "no credentials");
+        
         // Check if credentials are provided
         if (!credentials?.username || !credentials.password) {
+          console.log("Missing credentials");
           return null;
         }
         
         try {
           // Find user by username
+          console.log(`Looking for user with username: ${credentials.username}`);
           const userResults = await db.select()
             .from(users)
             .where(eq(users.username, credentials.username));
           
           if (!userResults || userResults.length === 0) {
+            console.log("User not found");
             return null;
           }
           
           const user = userResults[0];
+          console.log(`Found user: ${user.username}, comparing passwords...`);
           
           // Check if password matches
           const passwordMatch = await bcrypt.compare(credentials.password, user.password);
           
           if (passwordMatch) {
+            console.log("Password match successful");
             // Return user without password
             return {
               id: user.id.toString(),
@@ -78,6 +85,7 @@ export const authOptions: NextAuthOptions = {
             };
           }
           
+          console.log("Password does not match");
           return null;
         } catch (error) {
           console.error("Error during authentication:", error);

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useAuth } from '@/lib/hooks/use-auth';
+import React, { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -10,18 +10,31 @@ interface DashboardProps {
 }
 
 export function DashboardClient({ children }: DashboardProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state when component mounts
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Debug session state
+  useEffect(() => {
+    console.log('Session status:', status);
+    console.log('Session data:', session);
+  }, [session, status]);
 
   // Check if the user is authenticated
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (mounted && status === 'unauthenticated') {
+      console.log('User is not authenticated, redirecting to login');
       router.push('/auth?callbackUrl=/dashboard');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [mounted, status, router]);
 
   // Show loading spinner while checking auth
-  if (isLoading) {
+  if (!mounted || status === 'loading') {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Spinner size="lg" />
@@ -30,7 +43,9 @@ export function DashboardClient({ children }: DashboardProps) {
   }
 
   // If authenticated, render the dashboard
-  if (isAuthenticated) {
+  if (status === 'authenticated' && session?.user) {
+    const user = session.user;
+    
     return (
       <div className="flex flex-col min-h-screen">
         <header className="bg-primary text-primary-foreground shadow-md">
@@ -38,7 +53,7 @@ export function DashboardClient({ children }: DashboardProps) {
             <h1 className="text-xl font-bold">BeakDash</h1>
             <div className="flex items-center gap-4">
               <div className="text-sm">
-                {user?.name || user?.username}
+                {user?.name || 'User'}
               </div>
               <button 
                 onClick={() => router.push('/profile')}
@@ -52,7 +67,7 @@ export function DashboardClient({ children }: DashboardProps) {
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary-foreground/30 flex items-center justify-center">
-                    {(user?.name || user?.username || 'U').charAt(0).toUpperCase()}
+                    {(user?.name || 'U').charAt(0).toUpperCase()}
                   </div>
                 )}
               </button>
@@ -66,6 +81,13 @@ export function DashboardClient({ children }: DashboardProps) {
     );
   }
 
-  // Default return null while redirecting
-  return null;
+  // Show loading indicator while redirecting
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+      <div className="text-center">
+        <Spinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
+      </div>
+    </div>
+  );
 }
