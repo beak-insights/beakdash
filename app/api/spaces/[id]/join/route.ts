@@ -10,7 +10,7 @@ import { eq, and } from 'drizzle-orm';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +19,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const spaceId = parseInt(params.id);
+    const { id } = await params;
+    const spaceId = parseInt(id);
     
     if (isNaN(spaceId)) {
       return NextResponse.json({ error: 'Invalid space ID' }, { status: 400 });
