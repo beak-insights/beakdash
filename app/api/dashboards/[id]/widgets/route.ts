@@ -17,7 +17,8 @@ export async function GET(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const dashboardId = parseInt(params.id);
+    const id = await params.id;
+    const dashboardId = parseInt(id);
     
     // Check if dashboard exists
     const dashboard = await db.query.dashboards.findFirst({
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest, { params }: Props) {
   }
 
   try {
-    const dashboardId = parseInt(params.id);
+    const id = await params.id;
+    const dashboardId = parseInt(id);
     const json = await request.json();
     
     // Check if dashboard exists
