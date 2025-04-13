@@ -1,0 +1,133 @@
+
+
+1/2
+
+Next.js 0.0.0 (unknown)
+Webpack
+Runtime Error
+
+
+Error: Maximum call stack size exceeded
+
+app/components/layout/sidebar-fixed.tsx (545:11) @ Sidebar
+
+
+  543 |       <div className="flex-1 px-3 py-4 space-y-1">
+  544 |         <Dialog>
+> 545 |           <SpaceSelector collapsed={collapsed} />
+      |           ^
+  546 |         </Dialog>
+  547 |         
+  548 |         {!collapsed && <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MAIN</p>}
+Call Stack
+53
+
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Module.useToast
+./app/components/ui/use-toast.ts
+Module.useToast
+./app/hooks/use-toast.ts
+Sidebar
+app/components/layout/sidebar-fixed.tsx (545:11)
+AppLayout
+app/components/layout/app-layout.tsx (65:9)
+DashboardPage
+app/dashboard/page.tsx (51:5)
+1
+2
+Was this helpful?
