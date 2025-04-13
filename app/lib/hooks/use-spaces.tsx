@@ -1,7 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Space, InsertSpace } from "@/lib/db/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/lib/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { Toast } from "@/components/ui/toast";
 import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { useWebSocket } from "@/lib/websocket-service";
@@ -36,6 +37,14 @@ export function useSpaces() {
     error: spacesError
   } = useQuery<Space[]>({
     queryKey: ['/api/spaces'],
+    queryFn: async () => {
+      const response = await fetch('/api/spaces');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to fetch spaces');
+      }
+      return response.json();
+    },
     retry: 1,
     staleTime: 60000 // 1 minute
   });
@@ -233,8 +242,9 @@ export function useSpaces() {
     // Listen for space switch success events
     const unsubscribeSuccess = subscribe('space_switch_success', (event) => {
       if (event.space && event.space.id) {
-        // Update state with the new space details
-        setCurrentSpaceId(event.space.id);
+        // Update state with the new space details - ensure ID is numeric
+        const spaceId = typeof event.space.id === 'string' ? parseInt(event.space.id, 10) : event.space.id;
+        setCurrentSpaceId(spaceId);
         setSwitchingSpace(false);
         
         // Invalidate related queries to refresh data for the new space
@@ -293,7 +303,9 @@ export function useSpaces() {
     }
     
     setSwitchingSpace(true);
-    switchSpace(user.id, spaceId);
+    // Ensure user ID is numeric for WebSocket
+    const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    switchSpace(userId, spaceId);
     
     // Also update local state immediately for better UX
     setCurrentSpaceId(spaceId);

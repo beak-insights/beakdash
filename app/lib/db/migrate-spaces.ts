@@ -21,13 +21,24 @@ export async function migrateSpacesTable() {
     if (!columns.rows || columns.rows.length === 0) {
       console.log("Adding is_default column to spaces table...");
       
-      // Add the is_default column
-      await db.execute(sql`
-        ALTER TABLE spaces 
-        ADD COLUMN is_default BOOLEAN DEFAULT FALSE
-      `);
-      
-      console.log("Migration completed successfully");
+      try {
+        // Add the is_default column
+        await db.execute(sql`
+          ALTER TABLE spaces 
+          ADD COLUMN is_default BOOLEAN DEFAULT FALSE
+        `);
+        
+        console.log("Migration completed successfully");
+      } catch (error) {
+        // Check if the error is because the column already exists
+        if (error instanceof Error && 
+            error.message.includes("column \"is_default\" of relation \"spaces\" already exists")) {
+          console.log("is_default column already exists, skipping this step");
+        } else {
+          // If it's a different error, rethrow it
+          throw error;
+        }
+      }
     } else {
       console.log("is_default column already exists, no migration needed");
     }
