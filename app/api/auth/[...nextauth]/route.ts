@@ -47,10 +47,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("Authorize function called with credentials:", credentials ? "credentials provided" : "no credentials");
+        console.log("Authorize function called with credentials:", credentials);
         
         // Check if credentials are provided
-        if (!credentials?.username || !credentials.password) {
+        if (!credentials || !credentials.username || !credentials.password) {
           console.log("Missing credentials");
           return null;
         }
@@ -58,12 +58,45 @@ export const authOptions: NextAuthOptions = {
         try {
           // Find user by username
           console.log(`Looking for user with username: ${credentials.username}`);
+          
+          // Debug: Check all users in the database
+          const allUsers = await db.select().from(users);
+          console.log("All users in database:", allUsers.map(u => ({ id: u.id, username: u.username })));
+          
+          // Query for the user
           const userResults = await db.select()
             .from(users)
             .where(eq(users.username, credentials.username));
           
           if (!userResults || userResults.length === 0) {
-            console.log("User not found");
+            console.log(`User not found with username: ${credentials.username}`);
+            // Try case-insensitive search as a fallback
+            const allUsersLower = allUsers.find(u => 
+              u.username.toLowerCase() === credentials.username.toLowerCase()
+            );
+            if (allUsersLower) {
+              console.log(`Found user with case-insensitive match: ${allUsersLower.username}`);
+              // Use the correctly cased username
+              const userResultsCase = await db.select()
+                .from(users)
+                .where(eq(users.username, allUsersLower.username));
+              if (userResultsCase.length > 0) {
+                console.log(`Successfully retrieved user with correct case: ${allUsersLower.username}`);
+                const user = userResultsCase[0];
+                // Check password
+                const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+                if (passwordMatch) {
+                  console.log("Password match successful for case-insensitive match");
+                  return {
+                    id: user.id.toString(),
+                    name: user.displayName || user.username,
+                    email: user.email,
+                    image: user.avatarUrl,
+                    role: user.role
+                  };
+                }
+              }
+            }
             return null;
           }
           
