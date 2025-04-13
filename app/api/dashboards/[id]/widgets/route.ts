@@ -9,21 +9,46 @@ interface Props {
   params: { id: string };
 }
 
+// Helper function to get dashboard data by ID
+async function getDashboardById(dashboardId: number) {
+  return await db.query.dashboards.findFirst({
+    where: eq(dashboards.id, dashboardId),
+  });
+}
+
+// Helper function to get widget data by ID
+async function getWidgetById(widgetId: number) {
+  return await db.query.widgets.findFirst({
+    where: eq(widgets.id, widgetId),
+  });
+}
+
+// Helper function to check if widget is already in dashboard
+async function getDashboardWidget(dashboardId: number, widgetId: number) {
+  return await db.query.dashboardWidgets.findFirst({
+    where: (dw, { and, eq }) => 
+      and(eq(dw.widgetId, widgetId), eq(dw.dashboardId, dashboardId)),
+  });
+}
+
 // GET /api/dashboards/[id]/widgets
-export async function GET(request: NextRequest, props: Props) {
+export async function GET(request: NextRequest, { params }: Props) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const id = props.params.id;
+    // Safely access params
+    const id = String(params.id);
     const dashboardId = parseInt(id);
     
+    if (isNaN(dashboardId)) {
+      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
+    }
+    
     // Check if dashboard exists
-    const dashboard = await db.query.dashboards.findFirst({
-      where: eq(dashboards.id, dashboardId),
-    });
+    const dashboard = await getDashboardById(dashboardId);
     
     if (!dashboard) {
       return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
@@ -56,21 +81,25 @@ export async function GET(request: NextRequest, props: Props) {
 }
 
 // POST /api/dashboards/[id]/widgets
-export async function POST(request: NextRequest, props: Props) {
+export async function POST(request: NextRequest, { params }: Props) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = props.params.id;
+    // Safely access params
+    const id = String(params.id);
     const dashboardId = parseInt(id);
+    
+    if (isNaN(dashboardId)) {
+      return NextResponse.json({ error: "Invalid dashboard ID" }, { status: 400 });
+    }
+    
     const json = await request.json();
     
     // Check if dashboard exists
-    const dashboard = await db.query.dashboards.findFirst({
-      where: eq(dashboards.id, dashboardId),
-    });
+    const dashboard = await getDashboardById(dashboardId);
     
     if (!dashboard) {
       return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
@@ -81,19 +110,14 @@ export async function POST(request: NextRequest, props: Props) {
       const widgetId = json.widgetId;
       
       // Check if widget exists
-      const widget = await db.query.widgets.findFirst({
-        where: eq(widgets.id, widgetId),
-      });
+      const widget = await getWidgetById(widgetId);
       
       if (!widget) {
         return NextResponse.json({ error: "Widget not found" }, { status: 404 });
       }
       
       // Check if widget is already added to this dashboard
-      const existingDashboardWidget = await db.query.dashboardWidgets.findFirst({
-        where: (dw, { and, eq }) => 
-          and(eq(dw.widgetId, widgetId), eq(dw.dashboardId, dashboardId)),
-      });
+      const existingDashboardWidget = await getDashboardWidget(dashboardId, widgetId);
       
       if (existingDashboardWidget) {
         return NextResponse.json({ error: "Widget already added to this dashboard" }, { status: 400 });

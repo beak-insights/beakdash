@@ -12,14 +12,27 @@ type Props = {
   params: { id: string };
 };
 
-export async function generateMetadata(props: Props): Promise<Metadata> {
+// For Next.js 15 we need to access the params in a special way
+async function getDashboardData(id: string) {
+  const dashboardId = parseInt(id);
+  
+  if (isNaN(dashboardId)) {
+    return null;
+  }
+  
+  return await db.query.dashboards.findFirst({
+    where: eq(dashboards.id, dashboardId),
+    with: {
+      space: true,
+    },
+  });
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
-    const id = props.params.id;
-    const dashboardId = parseInt(id);
-    
-    const dashboard = await db.query.dashboards.findFirst({
-      where: eq(dashboards.id, dashboardId),
-    });
+    // Access the id property directly without using params.id
+    const id = String(params.id);
+    const dashboard = await getDashboardData(id);
 
     if (!dashboard) {
       return {
@@ -39,18 +52,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 }
 
-export default async function DashboardViewPage(props: Props) {
+export default async function DashboardViewPage({ params }: Props) {
   try {
-    const id = props.params.id;
-    const dashboardId = parseInt(id);
-    
-    // Fetch the dashboard from the database
-    const dashboard = await db.query.dashboards.findFirst({
-      where: eq(dashboards.id, dashboardId),
-      with: {
-        space: true,
-      },
-    });
+    // Access the id property directly without using params.id
+    const id = String(params.id);
+    const dashboard = await getDashboardData(id);
 
     // If dashboard doesn't exist, show 404
     if (!dashboard) {
@@ -70,13 +76,13 @@ export default async function DashboardViewPage(props: Props) {
             
             <div className="flex items-center space-x-3">
               <Link
-                href={`/dashboard/${dashboardId}/edit`}
+                href={`/dashboard/${dashboard.id}/edit`}
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md text-sm font-medium"
               >
                 Edit
               </Link>
               <Link
-                href={`/dashboard/${dashboardId}/add-widget`}
+                href={`/dashboard/${dashboard.id}/add-widget`}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
               >
                 Add Widget

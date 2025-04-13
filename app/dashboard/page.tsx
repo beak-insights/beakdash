@@ -2,174 +2,165 @@ import React from 'react';
 import { Metadata } from 'next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/db';
-import { dashboards, spaces, users } from '@/lib/db/schema';
+import { dashboards } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'BeakDash - Dashboards',
-  description: 'View and manage your dashboards',
+type PageProps = {
+  searchParams: { id?: string };
 };
 
-// This is a server component that can fetch data
-export default async function DashboardPage() {
-  // Fetch dashboards from the database
-  const allDashboards = await db.query.dashboards.findMany({
+export const metadata: Metadata = {
+  title: 'BeakDash - Dashboard',
+  description: 'View your dashboard',
+};
+
+async function getDashboardData(id: string) {
+  const dashboardId = parseInt(id);
+  
+  if (isNaN(dashboardId)) {
+    return null;
+  }
+  
+  return await db.query.dashboards.findFirst({
+    where: eq(dashboards.id, dashboardId),
     with: {
       space: true,
     },
-    limit: 6
   });
+}
 
-  const hasDashboards = allDashboards.length > 0;
-
-  return (
-    <AppLayout>
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboards</h1>
-          <Link
-            href="/dashboard/create"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Create Dashboard
-          </Link>
-        </div>
-
-        {/* Dashboard grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hasDashboards ? (
-            // Show available dashboards
-            <>
-              {allDashboards.map((dashboard) => (
-                <div 
-                  key={dashboard.id}
-                  className="bg-card text-card-foreground rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
-                >
-                  <h3 className="text-lg font-medium mb-2">{dashboard.name}</h3>
-                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{dashboard.description || "No description"}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">{dashboard.space?.name || "Unknown Space"}</span>
-                    <Link 
-                      href={`/dashboard/${dashboard.id}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      View
-                    </Link>
-                  </div>
-                </div>
-              ))}
-              
-              {/* Add dashboard card */}
-              <Link 
-                href="/dashboard/create"
-                className="bg-card text-card-foreground rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow border-dashed border-muted-foreground/50 flex flex-col items-center justify-center text-center"
+export default async function DashboardPage({ searchParams }: PageProps) {
+  // If no ID provided, redirect to dashboards list
+  if (!searchParams.id) {
+    return (
+      <AppLayout>
+        <div>
+          <h1 className="text-2xl font-bold mb-6">Dashboards</h1>
+          
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Link 
+              href="/dashboard/create" 
+              className="border border-dashed p-6 rounded-lg text-center hover:border-primary hover:text-primary transition-colors flex flex-col items-center justify-center min-h-[180px]"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="mb-4"
               >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <path d="M5 12h14"></path>
-                    <path d="M12 5v14"></path>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium mb-1">Create New Dashboard</h3>
-                <p className="text-muted-foreground text-sm">Start building a custom analytics view</p>
-              </Link>
-            </>
-          ) : (
-            // Empty state
-            <div className="col-span-full flex flex-col items-center justify-center border border-dashed rounded-lg p-8 bg-muted/50">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-muted-foreground"
-                >
-                  <path d="M5 3a2 2 0 0 0-2 2" />
-                  <path d="M19 3a2 2 0 0 1 2 2" />
-                  <path d="M21 19a2 2 0 0 1-2 2" />
-                  <path d="M5 21a2 2 0 0 1-2-2" />
-                  <path d="M9 3h1" />
-                  <path d="M9 21h1" />
-                  <path d="M14 3h1" />
-                  <path d="M14 21h1" />
-                  <path d="M3 9v1" />
-                  <path d="M21 9v1" />
-                  <path d="M3 14v1" />
-                  <path d="M21 14v1" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium mb-1">No dashboards yet</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-                Create your first dashboard to start visualizing your data.
-              </p>
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
+              <span>Create New Dashboard</span>
+            </Link>
+            
+            {/* We can fetch and display existing dashboards here */}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  try {
+    const dashboard = await getDashboardData(searchParams.id);
+
+    // If dashboard doesn't exist, show 404
+    if (!dashboard) {
+      return (
+        <AppLayout>
+          <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+            Dashboard not found. The dashboard may have been deleted or you don't have permission to view it.
+          </div>
+        </AppLayout>
+      );
+    }
+
+    return (
+      <AppLayout>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{dashboard.name}</h1>
+              {dashboard.description && (
+                <p className="text-muted-foreground mt-1">{dashboard.description}</p>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-3">
               <Link
-                href="/dashboard/create"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
+                href={`/dashboard?id=${dashboard.id}&mode=edit`}
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md text-sm font-medium"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-2"
-                >
-                  <path d="M5 12h14" />
-                  <path d="M12 5v14" />
-                </svg>
-                Create Dashboard
+                Edit
+              </Link>
+              <Link
+                href={`/dashboard/add-widget?dashboardId=${dashboard.id}`}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Add Widget
               </Link>
             </div>
-          )}
-        </div>
-        
-        {hasDashboards && (
-          <>
-            <h2 className="text-xl font-bold mt-10 mb-4">Quick Access</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link 
-                href="/datasets"
-                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
-              >
-                <h3 className="text-md font-medium mb-1">Datasets</h3>
-                <p className="text-muted-foreground text-xs">Manage your data</p>
-              </Link>
-              
-              <Link 
-                href="/connections"
-                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
-              >
-                <h3 className="text-md font-medium mb-1">Connections</h3>
-                <p className="text-muted-foreground text-xs">Configure data sources</p>
-              </Link>
-              
-              <Link 
-                href="/widgets"
-                className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors"
-              >
-                <h3 className="text-md font-medium mb-1">Widgets</h3>
-                <p className="text-muted-foreground text-xs">Customize your views</p>
-              </Link>
-              
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-4 hover:bg-muted/25 transition-colors">
-                <h3 className="text-md font-medium mb-1">Spaces</h3>
-                <p className="text-muted-foreground text-xs">Organize your work</p>
+          </div>
+
+          {/* Dashboard widgets - This would be a client component */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="border rounded-lg p-4 shadow-sm">
+              <h3 className="font-medium">Sample Widget</h3>
+              <div className="h-[200px] mt-2 flex items-center justify-center bg-muted/20 rounded-md">
+                <p className="text-muted-foreground">Widget Content</p>
               </div>
             </div>
-          </>
-        )}
-      </div>
-    </AppLayout>
-  );
+          </div>
+
+          {/* Dashboard info */}
+          <div className="mt-10 border-t pt-6">
+            <h2 className="text-lg font-medium mb-4">Dashboard Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm text-muted-foreground mb-1">Space</h3>
+                <p className="font-medium">{dashboard.space?.name || "Default Space"}</p>
+              </div>
+              
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm text-muted-foreground mb-1">Created</h3>
+                <p className="font-medium">{dashboard.createdAt 
+                  ? new Date(dashboard.createdAt).toLocaleDateString() 
+                  : "Unknown"}</p>
+              </div>
+              
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm text-muted-foreground mb-1">Last Updated</h3>
+                <p className="font-medium">{dashboard.updatedAt 
+                  ? new Date(dashboard.updatedAt).toLocaleDateString()
+                  : "Not updated yet"}</p>
+              </div>
+              
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm text-muted-foreground mb-1">Visibility</h3>
+                <p className="font-medium">{dashboard.isPublic ? "Public" : "Private"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  } catch (error) {
+    console.error('Error rendering dashboard:', error);
+    return (
+      <AppLayout>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+          An error occurred while loading this dashboard. Please try again later.
+        </div>
+      </AppLayout>
+    );
+  }
 }
