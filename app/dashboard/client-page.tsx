@@ -4,6 +4,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
+import { Header } from '@/components/layout/header';
 
 interface DashboardProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export function DashboardClient({ children }: DashboardProps) {
   // Check if the user is authenticated
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/auth');
+      router.push('/auth?callbackUrl=/dashboard');
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -31,7 +32,14 @@ export function DashboardClient({ children }: DashboardProps) {
 
   // If authenticated, render the dashboard
   if (isAuthenticated) {
-    return <>{children}</>;
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    );
   }
 
   // Default return null while redirecting
