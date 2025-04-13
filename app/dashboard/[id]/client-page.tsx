@@ -72,23 +72,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
   // Setup auto-save debounce timer 
   const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
   
-  // Handle layout change with debounced auto-save
-  const onLayoutChange = useCallback((currentLayout: Layout[], allLayouts: any) => {
-    setLayouts(allLayouts);
-    
-    // Clear any existing timer
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-    }
-    
-    // Set new timer for auto-save
-    const newTimer = setTimeout(() => {
-      saveLayout();
-    }, 2000); // 2 second debounce
-    
-    setSaveTimer(newTimer);
-  }, [saveTimer, saveLayout]);
-  
   // Save updated layout positions to database
   const saveLayout = async () => {
     try {
@@ -130,6 +113,23 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  // Handle layout change with auto-save
+  const onLayoutChange = (currentLayout: Layout[], allLayouts: any) => {
+    setLayouts(allLayouts);
+    
+    // Clear existing timer
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+    }
+    
+    // Set new timer for auto-save with debounce
+    const newTimer = setTimeout(() => {
+      saveLayout();
+    }, 2000); // 2 second debounce
+    
+    setSaveTimer(newTimer);
   };
   
   return (
