@@ -19,17 +19,21 @@ export async function GET(request: NextRequest) {
     const spaceId = searchParams.get('spaceId');
     
     // Fetch dashboards with optional filters
-    let query = db.select().from(dashboards);
+    let allDashboards;
     
-    if (userId) {
-      query = query.where(eq(dashboards.userId, parseInt(userId)));
+    if (userId && spaceId) {
+      allDashboards = await db.select().from(dashboards)
+        .where(eq(dashboards.userId, parseInt(userId)))
+        .where(eq(dashboards.spaceId, parseInt(spaceId)));
+    } else if (userId) {
+      allDashboards = await db.select().from(dashboards)
+        .where(eq(dashboards.userId, parseInt(userId)));
+    } else if (spaceId) {
+      allDashboards = await db.select().from(dashboards)
+        .where(eq(dashboards.spaceId, parseInt(spaceId)));
+    } else {
+      allDashboards = await db.select().from(dashboards);
     }
-    
-    if (spaceId) {
-      query = query.where(eq(dashboards.spaceId, parseInt(spaceId)));
-    }
-    
-    const allDashboards = await query;
     
     return NextResponse.json(allDashboards);
   } catch (error) {

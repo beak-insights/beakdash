@@ -17,7 +17,8 @@ import {
   User, 
   LogOut, 
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Layers
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -64,6 +65,12 @@ export function AppLayout({ children }: AppLayoutProps) {
       href: '/dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
       active: pathname === '/dashboard' || pathname.startsWith('/dashboard/'),
+    },
+    {
+      label: 'Spaces',
+      href: '/spaces',
+      icon: <Layers className="w-5 h-5" />,
+      active: pathname === '/spaces' || pathname.startsWith('/spaces/'),
     },
     {
       label: 'Datasets',

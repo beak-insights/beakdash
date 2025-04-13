@@ -78,8 +78,8 @@ export default async function CreateDashboardPage() {
               >
                 <option value="">Select a space</option>
                 {allSpaces.map((space) => (
-                  <option key={space.id} value={space.id} selected={space.isDefault}>
-                    {space.name}{space.isDefault ? ' (Default)' : ''}
+                  <option key={space.id} value={space.id} selected={space.isDefault === true}>
+                    {space.name}{space.isDefault === true ? ' (Default)' : ''}
                   </option>
                 ))}
               </select>
