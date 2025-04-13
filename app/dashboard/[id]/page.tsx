@@ -50,13 +50,6 @@ export default async function DashboardViewPage({ params }: Props) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="flex items-center space-x-2 mb-1">
-              <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-                Dashboards
-              </Link>
-              <span className="text-sm text-muted-foreground">/</span>
-              <span className="text-sm">{dashboard.name}</span>
-            </div>
             <h1 className="text-2xl font-bold tracking-tight">{dashboard.name}</h1>
             {dashboard.description && (
               <p className="text-muted-foreground mt-1">{dashboard.description}</p>

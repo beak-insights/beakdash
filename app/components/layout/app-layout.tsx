@@ -16,8 +16,8 @@ import {
   Settings, 
   User, 
   LogOut, 
-  Menu, 
-  X 
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -29,31 +29,25 @@ export function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // For mobile devices, we want the sidebar to be closed by default
-  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Set mounted state when component mounts
   useEffect(() => {
     setMounted(true);
-    setIsMobile(window.innerWidth < 768);
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
+    
+    // Check local storage for sidebar collapsed state
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    if (savedState) {
+      setSidebarCollapsed(savedState === 'true');
     }
-    
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Save sidebar state to local storage
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
+    }
+  }, [sidebarCollapsed, mounted]);
 
   // Check if the user is authenticated
   useEffect(() => {
@@ -69,25 +63,25 @@ export function AppLayout({ children }: AppLayoutProps) {
       label: 'Dashboard',
       href: '/dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
-      active: pathname === '/dashboard',
+      active: pathname === '/dashboard' || pathname.startsWith('/dashboard/'),
     },
     {
       label: 'Datasets',
       href: '/datasets',
       icon: <Database className="w-5 h-5" />,
-      active: pathname === '/datasets',
+      active: pathname === '/datasets' || pathname.startsWith('/datasets/'),
     },
     {
       label: 'Connections',
       href: '/connections',
       icon: <LinkIcon className="w-5 h-5" />,
-      active: pathname === '/connections',
+      active: pathname === '/connections' || pathname.startsWith('/connections/'),
     },
     {
       label: 'Widgets',
       href: '/widgets',
       icon: <BarChart className="w-5 h-5" />,
-      active: pathname === '/widgets',
+      active: pathname === '/widgets' || pathname.startsWith('/widgets/'),
     },
     {
       label: 'Profile',
@@ -123,21 +117,21 @@ export function AppLayout({ children }: AppLayoutProps) {
     
     return (
       <div className="flex min-h-screen bg-background">
-        {/* Sidebar */}
+        {/* Sidebar - always visible, even on mobile, but collapsible */}
         <aside 
           className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-card transition-all duration-300 
-            ${sidebarOpen ? 'w-64' : 'w-16'} 
-            ${isMobile ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
+            ${sidebarCollapsed ? 'w-16' : 'w-64'}`}
         >
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <h1 className={`text-xl font-bold transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-              BeakDash
-            </h1>
+            {!sidebarCollapsed && (
+              <h1 className="text-xl font-bold">BeakDash</h1>
+            )}
             <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-md hover:bg-muted"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-2 rounded-md hover:bg-muted ${sidebarCollapsed ? 'ml-auto mr-auto' : ''}`}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
           </div>
           
@@ -147,12 +141,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                 key={index}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors
-                  ${item.active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'}`}
+                  ${item.active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'}
+                  ${sidebarCollapsed ? 'justify-center' : ''}`}
+                title={sidebarCollapsed ? item.label : ''}
               >
                 {item.icon}
-                <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-                  {item.label}
-                </span>
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </Link>
             ))}
           </nav>
@@ -160,35 +154,19 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="border-t p-4">
             <button
               onClick={handleLogout} 
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive"
+              className={`flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive
+                ${sidebarCollapsed ? 'justify-center' : ''}`}
+              title={sidebarCollapsed ? "Log Out" : ''}
             >
               <LogOut className="w-5 h-5" />
-              <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-                Log Out
-              </span>
+              {!sidebarCollapsed && <span>Log Out</span>}
             </button>
           </div>
         </aside>
         
-        {/* Mobile overlay */}
-        {isMobile && sidebarOpen && (
-          <div 
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        
         {/* Main content */}
-        <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
+        <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
           <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10">
-            {isMobile && (
-              <button 
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-md hover:bg-muted md:hidden"
-              >
-                <Menu size={20} />
-              </button>
-            )}
             <h2 className="text-lg font-medium">
               {navItems.find(item => item.active)?.label || 'Dashboard'}
             </h2>

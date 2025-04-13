@@ -52,18 +52,10 @@ export default async function AddWidgetPage({ params }: Props) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="flex items-center space-x-2 mb-1">
-              <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-                Dashboards
-              </Link>
-              <span className="text-sm text-muted-foreground">/</span>
-              <Link href={`/dashboard/${dashboardId}`} className="text-sm text-muted-foreground hover:text-foreground">
-                {dashboard.name}
-              </Link>
-              <span className="text-sm text-muted-foreground">/</span>
-              <span className="text-sm">Add Widget</span>
-            </div>
             <h1 className="text-2xl font-bold tracking-tight">Add Widget</h1>
+            <p className="text-muted-foreground mt-1">
+              Dashboard: {dashboard.name}
+            </p>
           </div>
           
           <Link
