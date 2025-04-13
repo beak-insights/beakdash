@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { DashboardClient } from './client-page';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Dashboards',
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function DashboardPage() {
   return (
-    <DashboardLayout>
+    <DashboardClient>
       <div className="container px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Dashboards</h1>
@@ -78,6 +78,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardClient>
   );
 }

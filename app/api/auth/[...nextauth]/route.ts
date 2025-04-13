@@ -1,27 +1,13 @@
 import NextAuth from "next-auth";
 import type { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { users } from "@/lib/auth/mock-users";
 
 // For more information on each option (and a full list of options) go to
 // https://next-auth.js.org/configuration/options
 export const authOptions: NextAuthOptions = {
-  // Configure one or more authentication providers
+  // Configure credentials provider
   providers: [
-    // Google OAuth provider
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-    
-    // GitHub OAuth provider
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID || "",
-      clientSecret: process.env.GITHUB_SECRET || "",
-    }),
-    
-    // Credentials provider for email/password login
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -29,19 +15,19 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // In a real app, validate credentials against your database
+        // Check if credentials are provided
         if (!credentials?.email || !credentials.password) {
           return null;
         }
         
-        // For development/testing, we can return a mock user
-        // Replace this with actual database lookup in production
-        if (credentials.email === "user@example.com" && credentials.password === "password") {
-          return {
-            id: "1",
-            email: "user@example.com",
-            name: "Demo User",
-          };
+        // Find user by email (in a real app, this would query your database)
+        const user = users.find(user => user.email === credentials.email);
+        
+        // Check if user exists and password matches
+        if (user && user.password === credentials.password) {
+          // Return user without password
+          const { password, ...userWithoutPassword } = user;
+          return userWithoutPassword;
         }
         
         return null;
@@ -60,23 +46,31 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.sub || "";
+        // Add additional user properties to session if needed
+        session.user.role = token.role as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
+        // Add user data to token
         token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
   },
   
-  // Enable JWT sessions by default (can switch to database sessions with an adapter)
+  // Secret for JWT encryption
+  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
+  
+  // Enable JWT sessions by default 
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   
-  // Debug in development
+  // Enable debug in development
   debug: process.env.NODE_ENV === "development",
 };
 
