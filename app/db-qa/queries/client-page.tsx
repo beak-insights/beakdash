@@ -80,8 +80,8 @@ const mockQueries = [
 export function DbQaQueriesClient() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
 
   // These would be fetched from an API in a production app
@@ -95,12 +95,12 @@ export function DbQaQueriesClient() {
     }
     
     // Filter by category
-    if (categoryFilter && query.category !== categoryFilter) {
+    if (categoryFilter && categoryFilter !== 'all' && query.category !== categoryFilter) {
       return false;
     }
     
     // Filter by status
-    if (statusFilter && query.lastStatus !== statusFilter) {
+    if (statusFilter && statusFilter !== 'all' && query.lastStatus !== statusFilter) {
       return false;
     }
     

@@ -149,8 +149,8 @@ const mockNotifications = [
 
 export function DbQaAlertsClient() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('alerts');
 
   // These would be fetched from an API in a production app
@@ -166,12 +166,12 @@ export function DbQaAlertsClient() {
     }
     
     // Filter by status
-    if (statusFilter && alert.status !== statusFilter) {
+    if (statusFilter && statusFilter !== 'all' && alert.status !== statusFilter) {
       return false;
     }
     
     // Filter by severity
-    if (severityFilter && alert.severity !== severityFilter) {
+    if (severityFilter && severityFilter !== 'all' && alert.severity !== severityFilter) {
       return false;
     }
     
