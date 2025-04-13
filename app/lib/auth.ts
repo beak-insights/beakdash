@@ -89,20 +89,36 @@ export const authOptions: NextAuthOptions = {
           
           let passwordMatch = false;
           
-          try {
-            // First try with bcrypt (for hashed passwords)
-            passwordMatch = await bcrypt.compare(password, user.password);
-          } catch (error) {
-            // If bcrypt fails (might be plaintext password), try direct comparison
+          // Console log for debugging
+          console.log("Authenticating user:", usernameOrEmail);
+          
+          // Check if the password is a bcrypt hash (starts with $2a$, $2b$, etc.)
+          const isBcryptHash = user.password.startsWith('$2');
+          
+          if (isBcryptHash) {
+            try {
+              // Try with bcrypt for hashed passwords
+              passwordMatch = await bcrypt.compare(password, user.password);
+              console.log("Bcrypt comparison result:", passwordMatch);
+            } catch (error) {
+              console.error("Bcrypt comparison error:", error);
+              passwordMatch = false;
+            }
+          } else {
+            // Direct string comparison for plain text passwords
             passwordMatch = password === user.password;
+            console.log("Direct comparison result:", passwordMatch);
             
             // If it matched with direct comparison, we should update to bcrypt
+            // Disabling this for now to make testing easier
+            /* 
             if (passwordMatch) {
               const hashedPassword = await bcrypt.hash(password, 10);
               await db.update(users)
                 .set({ password: hashedPassword })
                 .where(eq(users.id, user.id));
             }
+            */
           }
           
           if (passwordMatch) {
