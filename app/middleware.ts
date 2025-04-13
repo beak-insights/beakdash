@@ -1,9 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { runMigrations } from "@/lib/db";
 
-// Middleware for authentication protection
+// Track if migrations have run
+let migrationStatus = {
+  hasRun: false,
+  isRunning: false
+};
+
+// Middleware for authentication protection and running migrations
 export async function middleware(request: NextRequest) {
+  // Only run migrations once per server instance
+  if (!migrationStatus.hasRun && !migrationStatus.isRunning) {
+    migrationStatus.isRunning = true;
+    try {
+      console.log('Running database migrations...');
+      await runMigrations();
+      console.log('Database migrations completed successfully');
+    } catch (error) {
+      console.error('Error running migrations:', error);
+    } finally {
+      migrationStatus.hasRun = true;
+      migrationStatus.isRunning = false;
+    }
+  }
   const { pathname } = request.nextUrl;
   
   // Check if the path should be protected (requires authentication)
