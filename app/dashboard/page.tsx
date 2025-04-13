@@ -5,7 +5,6 @@ import { db } from '@/lib/db';
 import { dashboards, spaces, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Dashboards',
@@ -13,17 +12,19 @@ export const metadata: Metadata = {
 };
 
 // This is a server component that can fetch data
-export default async function DashboardPage() {
-  // Get the current space ID from cookies (if any)
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { spaceId?: string };
+}) {
+  // Get the current space ID from the search parameters
   let currentSpaceId = null;
-  try {
-    const cookieStore = cookies();
-    const currentSpaceIdCookie = cookieStore.get('currentSpaceId');
-    if (currentSpaceIdCookie && currentSpaceIdCookie.value) {
-      currentSpaceId = parseInt(currentSpaceIdCookie.value);
+  
+  if (searchParams?.spaceId) {
+    const spaceIdParam = parseInt(searchParams.spaceId);
+    if (!isNaN(spaceIdParam)) {
+      currentSpaceId = spaceIdParam;
     }
-  } catch (error) {
-    console.error('Error accessing cookie:', error);
   }
   
   // Build the query based on the current space selection

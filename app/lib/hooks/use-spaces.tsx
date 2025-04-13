@@ -96,34 +96,54 @@ export function useSpaces() {
     }
   }, [userSpacesError, toast]);
   
-  // Load user settings for default space
+  // Load space ID from URL query parameters or user settings
   useEffect(() => {
-    if (!user || !user.id || userSettingsLoaded) return;
+    if (userSettingsLoaded) return;
+
+    // Check URL for space ID parameter first
+    const urlParams = new URLSearchParams(window.location.search);
+    const spaceIdParam = urlParams.get('spaceId');
     
-    const loadUserSettings = async () => {
-      try {
-        const response = await fetch(`/api/user/settings/${user.id}`);
-        if (response.ok) {
-          const settings = await response.json();
-          // If user has a default space preference, set it
-          if (settings && settings.defaultSpaceId !== undefined) {
-            if (settings.defaultSpaceId === null) {
-              // If default is explicitly set to null, use "All Spaces"
-              setCurrentSpaceId(null);
-            } else if (settings.defaultSpaceId) {
-              // Otherwise use the specified space
-              setCurrentSpaceId(Number(settings.defaultSpaceId));
+    if (spaceIdParam) {
+      // If URL has spaceId param, use that
+      const parsedSpaceId = parseInt(spaceIdParam, 10);
+      if (!isNaN(parsedSpaceId)) {
+        setCurrentSpaceId(parsedSpaceId);
+        setUserSettingsLoaded(true);
+        return;
+      }
+    }
+    
+    // If no URL param and user is logged in, load from settings
+    if (user && user.id) {
+      const loadUserSettings = async () => {
+        try {
+          const response = await fetch(`/api/user/settings/${user.id}`);
+          if (response.ok) {
+            const settings = await response.json();
+            // If user has a default space preference, set it
+            if (settings && settings.defaultSpaceId !== undefined) {
+              if (settings.defaultSpaceId === null) {
+                // If default is explicitly set to null, use "All Spaces"
+                setCurrentSpaceId(null);
+              } else if (settings.defaultSpaceId) {
+                // Otherwise use the specified space
+                setCurrentSpaceId(Number(settings.defaultSpaceId));
+              }
             }
           }
+        } catch (error) {
+          console.error('Error loading user settings:', error);
+        } finally {
+          setUserSettingsLoaded(true);
         }
-      } catch (error) {
-        console.error('Error loading user settings:', error);
-      } finally {
-        setUserSettingsLoaded(true);
-      }
-    };
-    
-    loadUserSettings();
+      };
+      
+      loadUserSettings();
+    } else {
+      // If not logged in and no URL param, just mark as loaded
+      setUserSettingsLoaded(true);
+    }
   }, [user, setCurrentSpaceId, userSettingsLoaded]);
 
   // Create a new space
@@ -280,8 +300,13 @@ export function useSpaces() {
     // Set to null to indicate no specific space is selected
     setCurrentSpaceId(null);
     
-    // Update cookie to reflect the change - remove the cookie
-    document.cookie = "currentSpaceId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    // For any routes that need space filtering, update the URL by removing space query params
+    // This handles changes for the current route
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has('spaceId')) {
+      currentUrl.searchParams.delete('spaceId');
+      window.history.replaceState({}, '', currentUrl.toString());
+    }
     
     // Invalidate related queries to show all content
     queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
@@ -313,10 +338,16 @@ export function useSpaces() {
     // Also update local state immediately for better UX
     setCurrentSpaceId(spaceId);
     
-    // Store the current space ID in a cookie for server-side access
-    const expirationDate = new Date();
-    expirationDate.setTime(expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
-    document.cookie = `currentSpaceId=${spaceId}; expires=${expirationDate.toUTCString()}; path=/;`;
+    // For any routes that need space filtering, update the URL with the space ID
+    // This handles changes for the current route
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('spaceId', spaceId.toString());
+    window.history.replaceState({}, '', currentUrl.toString());
+    
+    // If we're on a dashboard-related page, refresh to load the filtered dashboards
+    if (window.location.pathname.startsWith('/dashboard')) {
+      window.location.href = currentUrl.toString();
+    }
   };
   
   // Get current space
