@@ -1,204 +1,112 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useToast } from '@/lib/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+'use client';
 
-// Define a session user interface compatible with NextAuth
+import { useMemo } from 'react';
+import { signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
 export interface AuthUser {
   id: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
   role?: string;
+  username?: string;
+  displayName?: string;
 }
 
-// Structure for login credentials
 interface LoginCredentials {
   username: string;
   password: string;
 }
 
-// Structure for registration data
 interface RegisterData extends LoginCredentials {
   displayName?: string;
   email?: string;
 }
 
 /**
- * Hook for authentication operations
+ * Hook for authentication operations using NextAuth
  */
 export function useAuth() {
-  const { toast } = useToast();
-  const [isInitialized, setIsInitialized] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  // Fetch current user
-  const { 
-    data: user, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery<AuthUser | null>({
-    queryKey: ['/api/auth/me'],
-    queryFn: async () => {
-      try {
-        const data = await apiRequest<AuthUser>('GET', '/api/auth/me');
-        return data as AuthUser;
-      } catch (error) {
-        // If we get a 401 or similar, it means the user is not authenticated
-        // We don't want to throw an error in this case
-        if (error instanceof Error && (error as any).status === 401) {
-          return null;
-        }
-        throw error;
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    meta: {
-      // Custom meta property for initialization tracking
-      initialized: false
-    },
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: true,
-    refetchOnMount: true
-  });
-  
-  // Handle initialization after query completes
-  useEffect(() => {
-    if (user !== undefined || error) {
-      setIsInitialized(true);
-    }
-  }, [user, error]);
-
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginCredentials) => {
-      return apiRequest('POST', '/api/auth/login', credentials);
-    },
-    onSuccess: () => {
-      refetch(); // Refetch user after login
-      toast({
-        title: 'Login Successful',
-        description: 'You have been successfully logged in.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Login Failed',
-        description: error.message || 'Invalid username or password',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      return apiRequest('POST', '/api/auth/register', data);
-    },
-    onSuccess: () => {
-      refetch(); // Refetch user after registration
-      toast({
-        title: 'Registration Successful',
-        description: 'Your account has been created successfully.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Registration Failed',
-        description: error.message || 'Unable to create account',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('POST', '/api/auth/logout', {});
-    },
-    onSuccess: () => {
-      refetch(); // Refetch user after logout to clear user data
-      toast({
-        title: 'Logout Successful',
-        description: 'You have been successfully logged out.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Logout Failed',
-        description: error.message || 'An error occurred during logout',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (profile: Partial<AuthUser>) => {
-      if (!user || !user.id) {
-        throw new Error('You must be logged in to update your profile');
-      }
-      return apiRequest('PUT', `/api/user/profile/${user.id}`, profile);
-    },
-    onSuccess: () => {
-      refetch(); // Refetch user after profile update
-      toast({
-        title: 'Profile Updated',
-        description: 'Your profile has been successfully updated.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Update Failed',
-        description: error.message || 'Failed to update profile',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Update password mutation
-  const updatePasswordMutation = useMutation({
-    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
-      if (!user || !user.id) {
-        throw new Error('You must be logged in to change your password');
-      }
-      return apiRequest('PUT', `/api/user/password/${user.id}`, { currentPassword, newPassword });
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Password Updated',
-        description: 'Your password has been successfully changed.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Password Change Failed',
-        description: error.message || 'Failed to change password',
-        variant: 'destructive',
-      });
-    },
-  });
+  // Derive user from session
+  const user: AuthUser | null = useMemo(() => {
+    if (!session?.user) return null;
+    return session.user as AuthUser;
+  }, [session]);
 
   // Check if user is authenticated
   const isAuthenticated = useMemo(() => {
     return !!user;
   }, [user]);
 
+  // Login function
+  const login = async (username: string, password: string) => {
+    try {
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.error('Login error:', result.error);
+        throw new Error(result.error);
+      }
+
+      // Redirect after successful login
+      router.push('/dashboard');
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      await signOut({ redirect: false });
+      router.push('/auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  };
+
+  // Register function - uses the API route
+  const register = async (registerData: RegisterData) => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registerData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      // After registration, log the user in
+      await login(registerData.username, registerData.password);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
+
   return {
     user,
     isAuthenticated,
-    isLoading,
-    error,
-    isInitialized,
-    login: loginMutation.mutate,
-    isPendingLogin: loginMutation.isPending,
-    register: registerMutation.mutate,
-    isPendingRegister: registerMutation.isPending,
-    logoutMutation,
-    updateProfile: updateProfileMutation.mutate,
-    isPendingProfileUpdate: updateProfileMutation.isPending,
-    updatePassword: updatePasswordMutation.mutate,
-    isPendingPasswordUpdate: updatePasswordMutation.isPending,
+    isLoading: status === 'loading',
+    login,
+    register,
+    logout,
   };
 }

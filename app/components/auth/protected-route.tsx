@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Spinner } from '@/components/ui/spinner';
+import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,25 +11,31 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isLoading = status === 'loading';
-  const isUnauthenticated = status === 'unauthenticated';
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // If the user is not authenticated, redirect to login
-    if (isUnauthenticated) {
-      router.push('/auth');
+    // Check if the user is authenticated
+    if (status === 'loading') {
+      return; // Do nothing while loading
     }
-  }, [isUnauthenticated, router]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+    if (!session) {
+      // Redirect to login page if not authenticated
+      router.push('/auth');
+    } else {
+      setIsAuthenticated(true);
+    }
+  }, [session, status, router]);
+
+  // Show loading or nothing while checking authentication
+  if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Spinner size="lg" />
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Only render children if authenticated
-  return session ? <>{children}</> : null;
+  // If authenticated, render children
+  return <>{children}</>;
 }
