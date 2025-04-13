@@ -1,7 +1,4 @@
 {
-  "/api/db-qa/queries/route": "app/api/db-qa/queries/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/connections/page": "app/connections/page.js",
-  "/auth/page": "app/auth/page.js",
-  "/db-qa/queries/page": "app/db-qa/queries/page.js"
+  "/page": "app/page.js"
 }

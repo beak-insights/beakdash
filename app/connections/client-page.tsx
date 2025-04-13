@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, Link as LinkIcon, Edit, Trash2 } from 'lucide-react';
@@ -24,9 +24,24 @@ interface Connection {
 export function ConnectionsClient() {
   const { toast } = useToast();
   
-  // Fetch connections
-  const { data: connections = [], isLoading, isError } = useQuery<Connection[]>({
+  // Fetch connections with proper error handling
+  const { data: connections = [], isLoading, isError, refetch } = useQuery<Connection[]>({
     queryKey: ['/api/connections'],
+    queryFn: async () => {
+      try {
+        console.log('Fetching connections from the API...');
+        const response = await fetch('/api/connections');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch connections: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log('Connections fetched successfully:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching connections:', error);
+        throw error;
+      }
+    },
   });
 
   const handleDeleteConnection = async (id: number) => {
@@ -42,7 +57,7 @@ export function ConnectionsClient() {
             description: 'The connection has been successfully deleted.',
           });
           // Refresh the connections list
-          window.location.reload();
+          refetch();
         } else {
           throw new Error('Failed to delete connection');
         }
@@ -199,7 +214,7 @@ export function ConnectionsClient() {
             <p className="text-sm text-muted-foreground mb-4">
               There was a problem loading your connections. Please try again.
             </p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
+            <Button variant="outline" onClick={() => refetch()}>
               Retry
             </Button>
           </div>

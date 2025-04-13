@@ -29,16 +29,26 @@ export async function GET(request: NextRequest) {
     // Make sure userId is a number
     const userIdNum = typeof userId === 'string' ? parseInt(userId) : userId;
     
-    if (spaceId) {
-      const spaceIdNum = parseInt(spaceId);
-      connectionData = await db.execute(
-        sql`SELECT * FROM connections WHERE space_id = ${spaceIdNum} OR user_id = ${userIdNum}`
-      );
-    } else {
-      // By default, get connections accessible to the user
-      connectionData = await db.execute(
-        sql`SELECT * FROM connections WHERE user_id = ${userIdNum}`
-      );
+    console.log('Fetching connections for user ID:', userIdNum);
+    
+    try {
+      if (spaceId) {
+        const spaceIdNum = parseInt(spaceId);
+        console.log('Fetching connections for space ID:', spaceIdNum);
+        connectionData = await db.execute(
+          sql`SELECT * FROM connections WHERE space_id = ${spaceIdNum} OR user_id = ${userIdNum}`
+        );
+      } else {
+        // By default, get connections accessible to the user
+        connectionData = await db.execute(
+          sql`SELECT * FROM connections WHERE user_id = ${userIdNum}`
+        );
+      }
+      
+      console.log('Connection data retrieved, row count:', Array.isArray(connectionData) ? connectionData.length : 'unknown');
+    } catch (queryError) {
+      console.error('Database query error:', queryError);
+      throw queryError;
     }
     
     // Transform the result to a serializable array
