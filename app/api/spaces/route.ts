@@ -1,98 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { db } from '@/lib/db';
+import { spaces } from '@/lib/db/schema';
+import { authOptions } from '@/lib/auth';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    
-    // Build query string
-    let queryString = '';
-    if (userId) queryString += `userId=${userId}&`;
-    
-    // Forward request to existing backend
-    const url = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces${queryString ? `?${queryString.slice(0, -1)}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
+    const allSpaces = await db.query.spaces.findMany({
+      orderBy: (spaces, { asc }) => [asc(spaces.name)],
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to fetch spaces' },
-        { status: response.status }
-      );
-    }
-    
-    const spaces = await response.json();
-    return NextResponse.json(spaces);
+    return NextResponse.json(allSpaces);
   } catch (error) {
-    console.error('Spaces fetch error:', error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching spaces:', error);
+    return NextResponse.json({ error: 'Failed to fetch spaces' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authentication token
-    const authToken = cookies().get('authToken')?.value;
+    const session = await getServerSession(authOptions);
     
-    if (!authToken) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get request body
-    const body = await request.json();
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const isDefault = formData.get('isDefault') === 'on';
     
-    // Forward request to existing backend
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/spaces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || 'Failed to create space' },
-        { status: response.status }
-      );
+    if (!name) {
+      return NextResponse.json({ error: 'Space name is required' }, { status: 400 });
     }
     
-    const space = await response.json();
-    return NextResponse.json(space);
+    // If this space is to be the default, update all existing spaces to not be default
+    if (isDefault) {
+      await db.update(spaces)
+        .set({ isDefault: false })
+        .where(eq(spaces.isDefault, true));
+    }
+    
+    // Insert the new space
+    const [newSpace] = await db.insert(spaces)
+      .values({
+        name,
+        description,
+        isDefault,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    
+    return NextResponse.redirect(new URL('/spaces', request.url));
   } catch (error) {
-    console.error('Space creation error:', error);
-    
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error creating space:', error);
+    return NextResponse.json({ error: 'Failed to create space' }, { status: 500 });
   }
 }

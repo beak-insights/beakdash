@@ -11,6 +11,7 @@ export const spaces = pgTable("spaces", {
   logoUrl: text("logo_url"),
   settings: jsonb("settings").default({}),
   isPrivate: boolean("is_private").default(false),
+  isDefault: boolean("is_default").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -22,6 +23,7 @@ export const insertSpaceSchema = createInsertSchema(spaces).pick({
   logoUrl: true,
   settings: true,
   isPrivate: true,
+  isDefault: true,
 });
 
 export const updateSpaceSchema = createInsertSchema(spaces).pick({
@@ -31,6 +33,7 @@ export const updateSpaceSchema = createInsertSchema(spaces).pick({
   logoUrl: true,
   settings: true,
   isPrivate: true,
+  isDefault: true,
 });
 
 // Users schema
