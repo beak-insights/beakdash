@@ -3,9 +3,24 @@
 import React, { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { 
-  CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
-  BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer 
-} from 'recharts';
+  Column, Line, Area, Pie, G2, DualAxes, Scatter, 
+  Rose, Radar, Gauge, Waterfall, WordCloud 
+} from '@ant-design/charts';
+import { EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
+
+// Configure G2 theme
+G2.registerTheme('beakdash-theme', {
+  colors10: [
+    '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
+    '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107'
+  ],
+  colors20: [
+    '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
+    '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107',
+    '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', 
+    '#673ab7', '#9c27b0', '#e91e63', '#f44336', '#5e35b1'
+  ]
+});
 
 // Define widget type
 interface Widget {
@@ -78,103 +93,134 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
   const renderBarChart = (widget: Widget, data: any[]) => {
     const { config } = widget;
     
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          {config.showGrid && <CartesianGrid strokeDasharray="3 3" />}
-          <XAxis dataKey={config.xAxis} />
-          <YAxis />
-          {config.showTooltip && <RechartsTooltip />}
-          {config.showLegend && <Legend />}
-          <Bar 
-            dataKey={config.yAxis} 
-            fill={config.colors?.[0] || chartColors[0]} 
-            stackId={config.isStacked ? 'stack' : undefined}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    );
+    const barConfig = {
+      data,
+      xField: config.xAxis || 'name',
+      yField: config.yAxis || 'value',
+      seriesField: config.groupBy,
+      isStack: config.isStacked,
+      label: config.showLabel ? {} : undefined,
+      color: config.colors || chartColors,
+      columnStyle: {
+        radius: [4, 4, 0, 0],
+      },
+      legend: {
+        visible: config.showLegend !== false,
+      },
+      xAxis: {
+        title: { text: config.xAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      yAxis: {
+        title: { text: config.yAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      tooltip: {
+        showContent: config.showTooltip !== false,
+      },
+    };
+    
+    return <Column {...barConfig} />;
   };
   
   // Render a line chart
   const renderLineChart = (widget: Widget, data: any[]) => {
     const { config } = widget;
     
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          {config.showGrid && <CartesianGrid strokeDasharray="3 3" />}
-          <XAxis dataKey={config.xAxis} />
-          <YAxis />
-          {config.showTooltip && <RechartsTooltip />}
-          {config.showLegend && <Legend />}
-          <Line 
-            type="monotone" 
-            dataKey={config.yAxis} 
-            stroke={config.colors?.[0] || chartColors[0]} 
-            activeDot={{ r: 8 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    );
+    const lineConfig = {
+      data,
+      xField: config.xAxis || 'date',
+      yField: config.yAxis || 'value',
+      seriesField: config.groupBy,
+      smooth: true,
+      color: config.colors || chartColors,
+      lineStyle: { lineWidth: 2 },
+      point: {
+        size: 5,
+        shape: 'circle',
+        style: { fillOpacity: 0.8 },
+      },
+      legend: {
+        visible: config.showLegend !== false,
+      },
+      xAxis: {
+        title: { text: config.xAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      yAxis: {
+        title: { text: config.yAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      tooltip: {
+        showContent: config.showTooltip !== false,
+      },
+    };
+    
+    return <Line {...lineConfig} />;
   };
   
   // Render an area chart
   const renderAreaChart = (widget: Widget, data: any[]) => {
     const { config } = widget;
     
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          {config.showGrid && <CartesianGrid strokeDasharray="3 3" />}
-          <XAxis dataKey={config.xAxis} />
-          <YAxis />
-          {config.showTooltip && <RechartsTooltip />}
-          {config.showLegend && <Legend />}
-          <Area 
-            type="monotone" 
-            dataKey={config.yAxis} 
-            fill={config.colors?.[0] || chartColors[0]} 
-            stroke={config.colors?.[0] || chartColors[0]} 
-            stackId={config.isStacked ? 'stack' : undefined}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    );
+    const areaConfig = {
+      data,
+      xField: config.xAxis || 'date',
+      yField: config.yAxis || 'value',
+      seriesField: config.groupBy,
+      isStack: config.isStacked,
+      smooth: true,
+      color: config.colors || chartColors,
+      areaStyle: { fillOpacity: 0.6 },
+      legend: {
+        visible: config.showLegend !== false,
+      },
+      xAxis: {
+        title: { text: config.xAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      yAxis: {
+        title: { text: config.yAxisLabel || '' },
+        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
+      },
+      tooltip: {
+        showContent: config.showTooltip !== false,
+      },
+    };
+    
+    return <Area {...areaConfig} />;
   };
   
   // Render a pie chart
   const renderPieChart = (widget: Widget, data: any[]) => {
     const { config } = widget;
     
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={true}
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey={config.yAxis}
-            nameKey={config.xAxis}
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={config.colors?.[index % config.colors.length] || chartColors[index % chartColors.length]} />
-            ))}
-          </Pie>
-          {config.showTooltip && <RechartsTooltip />}
-          {config.showLegend && <Legend />}
-        </PieChart>
-      </ResponsiveContainer>
-    );
+    const pieConfig = {
+      data,
+      angleField: config.yAxis || 'value',
+      colorField: config.xAxis || 'name',
+      color: config.colors || chartColors,
+      radius: 0.8,
+      innerRadius: config.innerRadius || 0,
+      label: {
+        type: 'outer',
+        content: config.showLabel !== false ? '{name}: {percentage}' : '',
+      },
+      legend: {
+        visible: config.showLegend !== false,
+      },
+      tooltip: {
+        showContent: config.showTooltip !== false,
+      },
+      interactions: [{ type: 'element-active' }],
+    };
+    
+    return <Pie {...pieConfig} />;
   };
   
-  // Mock data for testing - replace with real data loading
-  const getMockData = (widget: Widget) => {
-    const mockDataMap = {
+  // Sample data for testing - replace with real data loading
+  const getSampleData = (widget: Widget) => {
+    const sampleDataMap = {
       bar: [
         { name: 'Jan', value: 400 },
         { name: 'Feb', value: 300 },
@@ -207,7 +253,7 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     
     const config = widget.config || {};
     const chartType = config.chartType || 'bar';
-    return mockDataMap[chartType] || [];
+    return sampleDataMap[chartType] || [];
   };
   
   // Render widget based on type
@@ -219,9 +265,11 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
       return (
         <div className="h-full p-4 overflow-auto">
           <div className="prose max-w-none">
-            {config.textContent.split('\n').map((line: string, i: number) => (
+            {config.textContent?.split('\n').map((line: string, i: number) => (
               <p key={i}>{line || <br />}</p>
-            ))}
+            )) || (
+              <p className="text-muted-foreground">No content available</p>
+            )}
           </div>
         </div>
       );
@@ -230,23 +278,52 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     // For chart widget type
     if (type === 'chart') {
       const chartType = config.chartType || 'bar';
-      const mockData = getMockData(widget);
+      const sampleData = getSampleData(widget);
       
-      switch (chartType) {
-        case 'bar':
-          return renderBarChart(widget, mockData);
-        case 'line':
-          return renderLineChart(widget, mockData);
-        case 'area':
-          return renderAreaChart(widget, mockData);
-        case 'pie':
-          return renderPieChart(widget, mockData);
-        default:
-          return <div className="p-4">Unsupported chart type: {chartType}</div>;
-      }
+      // Set chart height to fill container with some padding
+      const chartContainerStyle = { 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column' as const,
+        padding: '8px'
+      };
+      
+      // Render different chart types
+      return (
+        <div style={chartContainerStyle}>
+          {(() => {
+            switch (chartType) {
+              case 'bar':
+                return renderBarChart(widget, sampleData);
+              case 'line':
+                return renderLineChart(widget, sampleData);
+              case 'area':
+                return renderAreaChart(widget, sampleData);
+              case 'pie':
+                return renderPieChart(widget, sampleData);
+              default:
+                return (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center">
+                      <AppstoreOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
+                      <p>Unsupported chart type: {chartType}</p>
+                    </div>
+                  </div>
+                );
+            }
+          })()}
+        </div>
+      );
     }
     
-    return <div className="p-4">Unsupported widget type: {type}</div>;
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <div className="text-center">
+          <AppstoreOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
+          <p>Unsupported widget type: {type}</p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -327,40 +404,13 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
                     className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground"
                     aria-label="Edit widget"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
+                    <EditOutlined />
                   </button>
                   <button 
                     className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive"
                     aria-label="Delete widget"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
+                    <DeleteOutlined />
                   </button>
                 </div>
               </div>
