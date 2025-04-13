@@ -124,29 +124,45 @@ export async function POST(request: NextRequest) {
     const spaceIdNum = body.spaceId ? parseInt(body.spaceId) : null;
     const configJson = JSON.stringify(config);
     
-    // Check if the table exists, create it if not
+    // The datasets table already exists with different columns
+    // Based on the existing structure, we'll adapt our insert query
+    
+    // Check for space_id column existence first
+    let hasSpaceIdColumn = false;
     try {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS datasets (
-          id SERIAL PRIMARY KEY,
-          name TEXT NOT NULL,
-          description TEXT,
-          user_id INTEGER NOT NULL,
-          space_id INTEGER,
-          config JSONB NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
+      const columnsResult = await db.execute(sql`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'datasets' AND column_name = 'space_id'
       `);
-    } catch (tableError) {
-      console.error('Error creating datasets table:', tableError);
+      hasSpaceIdColumn = Array.isArray(columnsResult) && columnsResult.length > 0;
+      console.log('Space ID column exists:', hasSpaceIdColumn);
+    } catch (error) {
+      console.error('Error checking columns:', error);
     }
     
-    // Create new dataset
-    await db.execute(sql`
-      INSERT INTO datasets (name, description, user_id, space_id, config)
-      VALUES (${body.name}, ${body.description || ''}, ${userIdNum}, ${spaceIdNum}, ${configJson}::jsonb)
-    `);
+    // Prepare query and refresh interval
+    const queryString = body.sqlQuery || '';
+    const refreshInterval = body.refreshFrequency || 'manual';
+    const connectionId = parseInt(body.connectionId);
+    
+    try {
+      if (hasSpaceIdColumn) {
+        // If space_id column exists, use it
+        await db.execute(sql`
+          INSERT INTO datasets (name, user_id, space_id, connection_id, query, refresh_interval, config)
+          VALUES (${body.name}, ${userIdNum}, ${spaceIdNum}, ${connectionId}, ${queryString}, ${refreshInterval}, ${configJson}::jsonb)
+        `);
+      } else {
+        // Otherwise use the base schema without space_id
+        await db.execute(sql`
+          INSERT INTO datasets (name, user_id, connection_id, query, refresh_interval, config)
+          VALUES (${body.name}, ${userIdNum}, ${connectionId}, ${queryString}, ${refreshInterval}, ${configJson}::jsonb)
+        `);
+      }
+    } catch (insertError) {
+      console.error('Insert error details:', insertError);
+      throw insertError;
+    }
     
     // Get inserted dataset
     const insertedDataset = await db.execute(sql`

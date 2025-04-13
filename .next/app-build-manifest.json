@@ -56,6 +56,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/datasets/create/page.js"
     ],
+    "/api/datasets/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/datasets/route.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
