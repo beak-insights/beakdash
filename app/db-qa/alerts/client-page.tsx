@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -101,63 +102,59 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 export function AlertsClient() {
   const router = useRouter();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [toggleLoading, setToggleLoading] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
-  // Use the custom hook
-  const { 
-    getAlerts, 
-    toggleAlertStatus: toggleStatus, 
-    deleteAlert,
-    isLoading: hookLoading 
-  } = useDbQaAlerts();
+  // Create the filters object
+  const filters: DbQaAlertFilters = {};
+  if (statusFilter) filters.status = statusFilter;
+  if (severityFilter) filters.severity = severityFilter;
 
-  // Fetch alerts
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      setIsLoading(true);
-      try {
-        // Create filters
-        const filters: DbQaAlertFilters = {};
-        if (statusFilter) filters.status = statusFilter;
-        if (severityFilter) filters.severity = severityFilter;
-        
-        // Get alerts using our hook
-        const data = await getAlerts(filters);
-        if (Array.isArray(data)) {
-          setAlerts(data);
-        }
-      } catch (error) {
-        console.error("Error fetching alerts:", error);
-        // Error already handled by the hook
-      } finally {
-        setIsLoading(false);
+  // Use the API directly with query params
+  const queryString = new URLSearchParams();
+  if (statusFilter) queryString.append('status', statusFilter);
+  if (severityFilter) queryString.append('severity', severityFilter);
+  
+  // Use React Query for data fetching
+  const { data: alerts = [], isLoading, refetch } = useQuery({
+    queryKey: ['alerts', statusFilter, severityFilter],
+    queryFn: async () => {
+      const url = `/api/db-qa/alerts${queryString.toString() ? `?${queryString.toString()}` : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch alerts');
       }
-    };
-
-    fetchAlerts();
-  }, [statusFilter, severityFilter, getAlerts]);
+      return response.json();
+    }
+  });
 
   // Handle toggle alert status
   const handleToggleStatus = async (alert: Alert) => {
     setToggleLoading(alert.id);
     try {
-      // Use the hook to toggle alert status
-      await toggleStatus(alert.id);
+      const response = await fetch(`/api/db-qa/alerts/${alert.id}/toggle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
       
-      // Update local state
-      setAlerts(alerts.map(a => 
-        a.id === alert.id 
-          ? { ...a, enabled: !a.enabled } 
-          : a
-      ));
+      if (!response.ok) {
+        throw new Error('Failed to toggle alert status');
+      }
+      
+      // Refetch alerts after toggling
+      refetch();
     } catch (error) {
       console.error("Error toggling alert status:", error);
-      // Error handling already done by the hook
+      toast({
+        title: "Error",
+        description: "Failed to toggle alert status",
+        variant: "destructive",
+      });
     } finally {
       setToggleLoading(null);
     }
@@ -171,16 +168,28 @@ export function AlertsClient() {
     
     setDeleteLoading(alert.id);
     try {
-      // Use the hook to delete the alert
-      const success = await deleteAlert(alert.id);
+      const response = await fetch(`/api/db-qa/alerts/${alert.id}`, {
+        method: 'DELETE',
+      });
       
-      if (success) {
-        // Update local state
-        setAlerts(alerts.filter(a => a.id !== alert.id));
+      if (!response.ok) {
+        throw new Error('Failed to delete alert');
       }
+      
+      // Refetch alerts after deleting
+      refetch();
+      
+      toast({
+        title: "Success",
+        description: "Alert deleted successfully",
+      });
     } catch (error) {
       console.error("Error deleting alert:", error);
-      // Error handling already done by the hook
+      toast({
+        title: "Error",
+        description: "Failed to delete alert",
+        variant: "destructive",
+      });
     } finally {
       setDeleteLoading(null);
     }

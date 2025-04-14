@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { get, post, put, del } from "@/lib/api-client";
 
@@ -61,8 +61,8 @@ export function useDbQaAlerts() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get all alerts with optional filters
-  const getAlerts = async (filters: DbQaAlertFilters = {}) => {
+  // Get all alerts with optional filters - using useCallback to prevent recreation on each render
+  const getAlerts = useCallback(async (filters: DbQaAlertFilters = {}) => {
     setIsLoading(true);
     setError(null);
     
@@ -90,7 +90,7 @@ export function useDbQaAlerts() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Get a single alert by ID
   const getAlertById = async (id: string | number) => {
