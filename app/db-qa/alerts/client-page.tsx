@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -39,8 +38,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/hooks/use-toast";
-import { useDbQaAlerts, DbQaAlertFilters, DbQaAlertFrontend } from "@/lib/hooks/use-db-qa-alerts";
+import { DbQaAlertFilters, DbQaAlertFrontend } from "@/lib/hooks/use-db-qa-alerts";
+import { useDbQaAlertsQuery } from "@/lib/hooks/use-db-qa-alerts-query";
 import { cn } from "@/lib/utils";
 
 // Use the DbQaAlertFrontend interface from our hook
@@ -102,96 +101,33 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 export function AlertsClient() {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("");
-  const [toggleLoading, setToggleLoading] = useState<number | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [severityFilter, setSeverityFilter] = useState<string>("");
 
   // Create the filters object
   const filters: DbQaAlertFilters = {};
   if (statusFilter) filters.status = statusFilter;
   if (severityFilter) filters.severity = severityFilter;
 
-  // Use the API directly with query params
-  const queryString = new URLSearchParams();
-  if (statusFilter) queryString.append('status', statusFilter);
-  if (severityFilter) queryString.append('severity', severityFilter);
-  
-  // Use React Query for data fetching
-  const { data: alerts = [], isLoading, refetch } = useQuery({
-    queryKey: ['alerts', statusFilter, severityFilter],
-    queryFn: async () => {
-      const url = `/api/db-qa/alerts${queryString.toString() ? `?${queryString.toString()}` : ''}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch alerts');
-      }
-      return response.json();
-    }
-  });
+  // Use our custom React Query hook
+  const {
+    alerts,
+    isLoading,
+    toggleAlert,
+    deleteAlert,
+    isTogglingAlert,
+    isDeletingAlert
+  } = useDbQaAlertsQuery(filters);
 
   // Handle toggle alert status
-  const handleToggleStatus = async (alert: Alert) => {
-    setToggleLoading(alert.id);
-    try {
-      const response = await fetch(`/api/db-qa/alerts/${alert.id}/toggle`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to toggle alert status');
-      }
-      
-      // Refetch alerts after toggling
-      refetch();
-    } catch (error) {
-      console.error("Error toggling alert status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to toggle alert status",
-        variant: "destructive",
-      });
-    } finally {
-      setToggleLoading(null);
-    }
+  const handleToggleStatus = (alert: Alert) => {
+    toggleAlert(alert.id);
   };
 
   // Handle delete alert
-  const handleDeleteAlert = async (alert: Alert) => {
-    if (!confirm(`Are you sure you want to delete the alert "${alert.name}"? This action cannot be undone.`)) {
-      return;
-    }
-    
-    setDeleteLoading(alert.id);
-    try {
-      const response = await fetch(`/api/db-qa/alerts/${alert.id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete alert');
-      }
-      
-      // Refetch alerts after deleting
-      refetch();
-      
-      toast({
-        title: "Success",
-        description: "Alert deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting alert:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete alert",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleteLoading(null);
+  const handleDeleteAlert = (alert: Alert) => {
+    if (confirm(`Are you sure you want to delete the alert "${alert.name}"? This action cannot be undone.`)) {
+      deleteAlert(alert.id);
     }
   };
 
@@ -301,9 +237,10 @@ export function AlertsClient() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
-                          {toggleLoading === alert.id ? (
+                          {isTogglingAlert && (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
+                          )}
+                          {!isTogglingAlert && (
                             <span
                               className={cn(
                                 "h-2 w-2 rounded-full mr-2",
@@ -330,7 +267,7 @@ export function AlertsClient() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
-                              {deleteLoading === alert.id ? (
+                              {isDeletingAlert ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <MoreHorizontal className="h-4 w-4" />
