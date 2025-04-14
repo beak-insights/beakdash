@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
 import { AppLayout } from "@/components/layout/app-layout";
-import { ViewAlertClient } from "./client-page";
+import { AlertDetailClient } from "./client-page";
 
 export const metadata: Metadata = {
-  title: "View DB Quality Alert",
-  description: "View and manage database quality alert details",
+  title: "DB Quality Alert Details",
+  description: "View database quality alert details and history",
 };
 
-interface ViewAlertPageProps {
+interface AlertDetailPageProps {
   params: {
     id: string;
   };
 }
 
-export default async function ViewAlertPage({ params }: ViewAlertPageProps) {
+export default async function AlertDetailPage({ params }: AlertDetailPageProps) {
   const id = await params.id;
   
   return (
     <AppLayout>
       <div className="flex flex-col p-6 max-w-7xl mx-auto w-full">
-        <ViewAlertClient id={id} />
+        <AlertDetailClient id={id} />
       </div>
     </AppLayout>
   );

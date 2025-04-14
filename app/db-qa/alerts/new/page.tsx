@@ -3,8 +3,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { NewAlertClient } from "./client-page";
 
 export const metadata: Metadata = {
-  title: "Create DB Quality Alert",
-  description: "Create a new database quality alert",
+  title: "Create New DB Quality Alert",
+  description: "Set up automated notifications for database quality issues",
 };
 
 export default async function NewAlertPage() {
@@ -15,7 +15,7 @@ export default async function NewAlertPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Create New Alert</h1>
             <p className="text-muted-foreground mt-1">
-              Configure a new alert for your database quality checks
+              Set up automated notifications for database quality issues
             </p>
           </div>
         </div>

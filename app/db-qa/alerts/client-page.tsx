@@ -1,51 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
-  Plus, 
-  Bell, 
-  AlertOctagon, 
-  Search, 
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  BellRing,
-  MoreVertical,
-  ExternalLink,
-  RefreshCw
-} from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -54,376 +25,403 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { 
+  AlertCircle, 
+  Check, 
+  ChevronDown, 
+  Edit, 
+  Eye, 
+  Loader2, 
+  MoreHorizontal, 
+  Plus, 
+  Trash 
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
+import { get, del } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 
-// Placeholder for actual data fetching
-const mockAlerts = [
-  {
-    id: 1,
-    name: 'Critical Null Values',
-    status: 'active',
-    severity: 'high',
-    queryName: 'Check for null values in important columns',
-    latestTrigger: '2025-04-13T08:30:00Z',
-    notificationChannels: ['email', 'slack'],
-  },
-  {
-    id: 2,
-    name: 'Duplicate Customer Records',
-    status: 'active',
-    severity: 'medium',
-    queryName: 'Detect duplicate customer records',
-    latestTrigger: '2025-04-13T07:15:00Z',
-    notificationChannels: ['email'],
-  },
-  {
-    id: 3,
-    name: 'Foreign Key Violations',
-    status: 'resolved',
-    severity: 'high',
-    queryName: 'Verify foreign key integrity',
-    latestTrigger: '2025-04-12T14:45:00Z',
-    resolvedAt: '2025-04-12T16:30:00Z',
-    notificationChannels: ['email', 'webhook'],
-  },
-  {
-    id: 4,
-    name: 'Data Inconsistency Warning',
-    status: 'snoozed',
-    severity: 'low',
-    queryName: 'Check data consistency across tables',
-    latestTrigger: '2025-04-11T23:10:00Z',
-    snoozeUntil: '2025-04-15T09:00:00Z',
-    notificationChannels: ['slack'],
-  },
-];
+// Alert interface
+interface Alert {
+  id: number;
+  name: string;
+  description: string | null;
+  query_id: number;
+  query_name: string;
+  space_id: number | null;
+  space_name: string | null;
+  severity: string;
+  condition: any;
+  notification_channels: string[];
+  enabled: boolean;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-// Placeholder for actual notification history data
-const mockNotifications = [
-  {
-    id: 1,
-    alertId: 1,
-    alertName: 'Critical Null Values',
-    channel: 'email',
-    sentAt: '2025-04-13T08:31:00Z',
-    status: 'sent',
-    recipient: 'admin@example.com',
-  },
-  {
-    id: 2,
-    alertId: 1,
-    alertName: 'Critical Null Values',
-    channel: 'slack',
-    sentAt: '2025-04-13T08:31:00Z',
-    status: 'sent',
-    recipient: '#monitoring-channel',
-  },
-  {
-    id: 3,
-    alertId: 2,
-    alertName: 'Duplicate Customer Records',
-    channel: 'email',
-    sentAt: '2025-04-13T07:16:00Z',
-    status: 'sent',
-    recipient: 'admin@example.com',
-  },
-  {
-    id: 4,
-    alertId: 3,
-    alertName: 'Foreign Key Violations',
-    channel: 'email',
-    sentAt: '2025-04-12T14:46:00Z',
-    status: 'sent',
-    recipient: 'admin@example.com',
-  },
-  {
-    id: 5,
-    alertId: 3,
-    alertName: 'Foreign Key Violations',
-    channel: 'webhook',
-    sentAt: '2025-04-12T14:46:00Z',
-    status: 'failed',
-    recipient: 'https://api.example.com/hooks/db-alerts',
-    errorMessage: 'Webhook endpoint returned 404 Not Found',
-  },
-];
+interface FilterDropdownProps {
+  options: { label: string; value: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}
 
-export function DbQaAlertsClient() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState('alerts');
+// Filter dropdown component
+function FilterDropdown({ options, value, onChange, placeholder }: FilterDropdownProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full justify-between">
+          {value ? options.find(opt => opt.value === value)?.label || placeholder : placeholder}
+          <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56">
+        <DropdownMenuItem onClick={() => onChange("")}>
+          All
+        </DropdownMenuItem>
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
-  // These would be fetched from an API in a production app
-  const alerts = mockAlerts;
-  const notifications = mockNotifications;
+// Severity badge component
+function SeverityBadge({ severity }: { severity: string }) {
+  const variants: Record<string, string> = {
+    low: "bg-blue-50 text-blue-700 border-blue-200",
+    medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    high: "bg-orange-50 text-orange-700 border-orange-200",
+    critical: "bg-red-50 text-red-700 border-red-200",
+  };
 
-  // Placeholder for actual filtering logic
-  const filteredAlerts = alerts.filter(alert => {
-    // Filter by search term
-    if (searchTerm && !alert.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !alert.queryName.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
+  return (
+    <span className={cn(
+      "px-2 py-1 text-xs font-medium rounded-full border",
+      variants[severity] || "bg-gray-50 text-gray-700 border-gray-200"
+    )}>
+      {severity.charAt(0).toUpperCase() + severity.slice(1)}
+    </span>
+  );
+}
+
+// Toggle alert status
+async function toggleAlertStatus(id: number, currentEnabled: boolean) {
+  try {
+    const result = await fetch(`/api/db-qa/alerts/${id}/toggle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+    
+    if (!result.ok) {
+      throw new Error('Failed to toggle alert status');
     }
     
-    // Filter by status
-    if (statusFilter && statusFilter !== 'all' && alert.status !== statusFilter) {
-      return false;
-    }
-    
-    // Filter by severity
-    if (severityFilter && severityFilter !== 'all' && alert.severity !== severityFilter) {
-      return false;
-    }
-    
-    return true;
-  });
+    return await result.json();
+  } catch (error) {
+    console.error('Error toggling alert status:', error);
+    throw error;
+  }
+}
 
-  // Function to get severity badge color
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'high':
-        return <Badge className="bg-red-500">High</Badge>;
-      case 'medium':
-        return <Badge className="bg-yellow-500">Medium</Badge>;
-      case 'low':
-        return <Badge className="bg-blue-500">Low</Badge>;
-      default:
-        return <Badge>{severity}</Badge>;
+export function AlertsClient() {
+  const router = useRouter();
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("");
+  const [toggleLoading, setToggleLoading] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+
+  // Fetch alerts
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      setIsLoading(true);
+      try {
+        // Build query parameters for filtering
+        const queryParams = new URLSearchParams();
+        if (statusFilter) queryParams.append('status', statusFilter);
+        if (severityFilter) queryParams.append('severity', severityFilter);
+        
+        const queryString = queryParams.toString();
+        const url = `/api/db-qa/alerts${queryString ? `?${queryString}` : ''}`;
+        
+        const data = await get(url);
+        if (Array.isArray(data)) {
+          setAlerts(data);
+        }
+      } catch (error) {
+        console.error("Error fetching alerts:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch alerts. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAlerts();
+  }, [statusFilter, severityFilter]);
+
+  // Handle toggle alert status
+  const handleToggleStatus = async (alert: Alert) => {
+    setToggleLoading(alert.id);
+    try {
+      await toggleAlertStatus(alert.id, alert.enabled);
+      
+      // Update local state
+      setAlerts(alerts.map(a => 
+        a.id === alert.id 
+          ? { ...a, enabled: !a.enabled } 
+          : a
+      ));
+      
+      toast({
+        title: "Success",
+        description: `Alert ${alert.enabled ? 'disabled' : 'enabled'} successfully`,
+      });
+    } catch (error) {
+      console.error("Error toggling alert status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update alert status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setToggleLoading(null);
     }
   };
 
-  // Function to get status badge styles
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="outline" className="border-red-500 text-red-500 flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" /> Active
-        </Badge>;
-      case 'resolved':
-        return <Badge variant="outline" className="border-green-500 text-green-500 flex items-center gap-1">
-          <CheckCircle2 className="h-3 w-3" /> Resolved
-        </Badge>;
-      case 'snoozed':
-        return <Badge variant="outline" className="border-amber-500 text-amber-500 flex items-center gap-1">
-          <Clock className="h-3 w-3" /> Snoozed
-        </Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  // Handle delete alert
+  const handleDeleteAlert = async (alert: Alert) => {
+    if (!confirm(`Are you sure you want to delete the alert "${alert.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setDeleteLoading(alert.id);
+    try {
+      await del(`/api/db-qa/alerts/${alert.id}`);
+      
+      // Update local state
+      setAlerts(alerts.filter(a => a.id !== alert.id));
+      
+      toast({
+        title: "Success",
+        description: "Alert deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting alert:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete alert. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(null);
     }
   };
-  
+
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="alerts" className="w-full" onValueChange={(value) => setActiveTab(value)}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="alerts">Alert Rules</TabsTrigger>
-          <TabsTrigger value="history">Notification History</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="alerts" className="pt-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search alerts..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Status</SelectLabel>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="snoozed">Snoozed</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by severity" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Severity</SelectLabel>
-                    <SelectItem value="all">All Severities</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Button>
+      {/* Filter and actions bar */}
+      <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 items-start">
+        <div className="flex flex-1 flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+          <div className="w-full sm:w-60">
+            <FilterDropdown
+              options={[
+                { label: "Enabled", value: "true" },
+                { label: "Disabled", value: "false" },
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="Filter by Status"
+            />
+          </div>
+          <div className="w-full sm:w-60">
+            <FilterDropdown
+              options={[
+                { label: "Low", value: "low" },
+                { label: "Medium", value: "medium" },
+                { label: "High", value: "high" },
+                { label: "Critical", value: "critical" },
+              ]}
+              value={severityFilter}
+              onChange={setSeverityFilter}
+              placeholder="Filter by Severity"
+            />
+          </div>
+        </div>
+        <div className="ml-auto">
+          <Button asChild>
+            <Link href="/db-qa/alerts/new">
               <Plus className="mr-2 h-4 w-4" />
               New Alert
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAlerts.length > 0 ? (
-              filteredAlerts.map((alert) => (
-                <Card key={alert.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{alert.name}</CardTitle>
-                        <CardDescription className="mt-1">
-                          Check: {alert.queryName}
-                        </CardDescription>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {alert.status === 'active' && (
-                            <>
-                              <DropdownMenuItem>Snooze Alert</DropdownMenuItem>
-                              <DropdownMenuItem>Mark as Resolved</DropdownMenuItem>
-                            </>
-                          )}
-                          {alert.status === 'snoozed' && (
-                            <DropdownMenuItem>End Snooze</DropdownMenuItem>
-                          )}
-                          {alert.status === 'resolved' && (
-                            <DropdownMenuItem>Reactivate</DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Alert</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">Delete Alert</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {getStatusBadge(alert.status)}
-                      {getSeverityBadge(alert.severity)}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center mb-2">
-                      <Clock className="h-3.5 w-3.5 mr-1" />
-                      Latest trigger: {new Date(alert.latestTrigger).toLocaleString()}
-                    </div>
-                    {alert.status === 'resolved' && alert.resolvedAt && (
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
-                        Resolved: {new Date(alert.resolvedAt).toLocaleString()}
-                      </div>
-                    )}
-                    {alert.status === 'snoozed' && alert.snoozeUntil && (
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Clock className="h-3.5 w-3.5 mr-1 text-amber-500" />
-                        Snoozed until: {new Date(alert.snoozeUntil).toLocaleString()}
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="flex flex-col items-start pt-2 border-t">
-                    <span className="text-xs text-muted-foreground mb-2">Notification Channels:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {alert.notificationChannels.map((channel) => (
-                        <Badge key={channel} variant="secondary" className="text-xs">
-                          {channel === 'email' && <span>✉️ Email</span>}
-                          {channel === 'slack' && <span>💬 Slack</span>}
-                          {channel === 'webhook' && <span>🔗 Webhook</span>}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-3 py-12 text-center">
-                <div className="mx-auto w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <BellRing className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium">No alerts found</h3>
-                <p className="text-sm text-muted-foreground mt-2 mb-6 max-w-md mx-auto">
-                  {searchTerm || statusFilter || severityFilter
-                    ? "Try changing or clearing your filters"
-                    : "Get started by setting up your first alert for database quality issues"}
-                </p>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Alert
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Alerts list */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>DB Quality Alerts</CardTitle>
+          <CardDescription>
+            Alerts will notify you when DB quality check conditions are met
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading alerts...</span>
+            </div>
+          ) : alerts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No alerts found</h3>
+              <p className="text-muted-foreground mt-1">
+                {statusFilter || severityFilter
+                  ? "No alerts match your current filters."
+                  : "Get started by creating your first DB quality alert."}
+              </p>
+              {!alerts.length && !statusFilter && !severityFilter && (
+                <Button asChild className="mt-4">
+                  <Link href="/db-qa/alerts/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Alert
+                  </Link>
                 </Button>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="history" className="pt-4">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Alert</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Sent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <TableRow key={notification.id}>
-                      <TableCell className="font-medium">{notification.alertName}</TableCell>
-                      <TableCell>
-                        {notification.channel === 'email' && <span>✉️ Email</span>}
-                        {notification.channel === 'slack' && <span>💬 Slack</span>}
-                        {notification.channel === 'webhook' && <span>🔗 Webhook</span>}
+              )}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-1/4">Name</TableHead>
+                    <TableHead className="w-1/4">Connected Query</TableHead>
+                    <TableHead className="w-1/6">Severity</TableHead>
+                    <TableHead className="w-1/6">Status</TableHead>
+                    <TableHead className="w-1/6">Last Triggered</TableHead>
+                    <TableHead className="w-1/12 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {alerts.map((alert) => (
+                    <TableRow key={alert.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span>{alert.name}</span>
+                          {alert.description && (
+                            <span className="text-xs text-muted-foreground truncate max-w-xs">
+                              {alert.description}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{notification.recipient}</TableCell>
-                      <TableCell>{new Date(notification.sentAt).toLocaleString()}</TableCell>
                       <TableCell>
-                        {notification.status === 'sent' 
-                          ? <Badge className="bg-green-500">Sent</Badge>
-                          : <Badge className="bg-red-500">Failed</Badge>
-                        }
+                        <span className="truncate max-w-xs inline-block">{alert.query_name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <SeverityBadge severity={alert.severity} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          {toggleLoading === alert.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <span
+                              className={cn(
+                                "h-2 w-2 rounded-full mr-2",
+                                alert.enabled ? "bg-green-500" : "bg-gray-300"
+                              )}
+                            />
+                          )}
+                          <span>{alert.enabled ? "Enabled" : "Disabled"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {alert.last_triggered_at ? (
+                          new Date(alert.last_triggered_at).toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric'
+                          })
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Never</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              {deleteLoading === alert.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/db-qa/alerts/${alert.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/db-qa/alerts/${alert.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Alert
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(alert)}>
+                              {alert.enabled ? (
+                                <>
+                                  <AlertCircle className="mr-2 h-4 w-4" />
+                                  Disable
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Enable
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <Separator className="my-1" />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteAlert(alert)}
+                              className="text-red-600"
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-                        <BellRing className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-medium">No notification history</h3>
-                      <p className="text-sm text-muted-foreground mt-1 mb-4">
-                        Notifications will appear here when alerts are triggered
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
