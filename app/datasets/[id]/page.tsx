@@ -8,11 +8,14 @@ export const metadata: Metadata = {
   description: 'View and manage dataset details',
 };
 
-export default function DatasetDetailPage({ params }: { params: { id: string } }) {
+export default async function DatasetDetailPage({ params }: { params: { id: string } }) {
+  // In Next.js 15, we need to await params before using them
+  const datasetId = params?.id || "";
+  
   return (
     <AppLayout>
       <div className="container px-4 py-6">
-        <DatasetDetailClient id={params.id} />
+        <DatasetDetailClient id={datasetId} />
       </div>
     </AppLayout>
   );
