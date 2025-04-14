@@ -212,7 +212,7 @@ export function QueryList({
                   asChild
                 >
                   <Link href={`/db-qa/queries/${query.id}`}>
-                    Edit
+                    View
                   </Link>
                 </Button>
                 
