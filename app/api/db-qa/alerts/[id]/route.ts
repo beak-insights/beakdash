@@ -161,6 +161,7 @@ export async function PUT(
         custom_webhook = ${body.customWebhook || null},
         enabled = ${body.enabled !== undefined ? body.enabled : true},
         throttle_minutes = ${body.throttleMinutes || 60},
+        status = ${body.status || 'pending'},
         updated_at = NOW()
       WHERE id = ${alertId} AND user_id = ${session.user.id}
     `);

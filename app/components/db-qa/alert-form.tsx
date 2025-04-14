@@ -59,6 +59,7 @@ const formSchema = z.object({
   customWebhook: z.string().optional(),
   enabled: z.boolean().default(true),
   throttleMinutes: z.coerce.number().int().positive().default(60),
+  status: z.string().default("pending"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -93,6 +94,7 @@ export function AlertForm({ alertId, isEdit = false }: AlertFormProps) {
       customWebhook: "",
       enabled: true,
       throttleMinutes: 60,
+      status: "pending",
     },
   });
 
@@ -159,6 +161,7 @@ export function AlertForm({ alertId, isEdit = false }: AlertFormProps) {
             customWebhook: alertData.custom_webhook || "",
             enabled: alertData.enabled === true || alertData.enabled === "true",
             throttleMinutes: alertData.throttle_minutes || 60,
+            status: alertData.status || "pending",
           });
         } catch (error) {
           console.error("Error fetching alert details:", error);
@@ -208,6 +211,7 @@ export function AlertForm({ alertId, isEdit = false }: AlertFormProps) {
         customWebhook: values.customWebhook,
         enabled: values.enabled,
         throttleMinutes: values.throttleMinutes,
+        status: values.status || 'pending',
       };
 
       if (isEdit && alertId) {
