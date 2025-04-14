@@ -10,6 +10,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { NotificationHistory } from "@/components/db-qa/notification-history";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -337,6 +338,10 @@ export function AlertDetailClient({ id }: AlertDetailClientProps) {
             <Clock className="mr-2 h-4 w-4" />
             Alert History
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center">
+            <BellRing className="mr-2 h-4 w-4" />
+            Notification History
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="details" className="space-y-4">
@@ -567,6 +572,11 @@ export function AlertDetailClient({ id }: AlertDetailClientProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          {/* Use the NotificationHistory component here */}
+          <NotificationHistory alertId={id} />
         </TabsContent>
       </Tabs>
     </div>
