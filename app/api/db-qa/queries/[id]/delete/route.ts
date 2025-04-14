@@ -36,18 +36,7 @@ export async function POST(
       FROM db_qa_queries q
       LEFT JOIN spaces s ON q.space_id = s.id
       WHERE q.id = ${queryId}
-      AND (
-        q.user_id = ${userId}
-        OR (
-          q.space_id IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM space_members 
-            WHERE user_id = ${userId} 
-            AND space_id = q.space_id
-            AND role = 'admin'
-          )
-        )
-      )
+      AND q.user_id = ${userId}
     `;
     
     if (queryResult.length === 0) {

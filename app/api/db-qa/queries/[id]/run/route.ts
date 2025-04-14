@@ -37,17 +37,7 @@ export async function POST(
       FROM db_qa_queries q
       LEFT JOIN connections c ON q.connection_id = c.id
       WHERE q.id = ${queryId}
-      AND (
-        q.user_id = ${userId}
-        OR (
-          q.space_id IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM space_members 
-            WHERE user_id = ${userId} 
-            AND space_id = q.space_id
-          )
-        )
-      )
+      AND q.user_id = ${userId}
     `;
     
     if (queryResult.length === 0) {
@@ -61,31 +51,36 @@ export async function POST(
     
     // Run the query on the connection
     try {
-      // Mock implementation - in production, this would use a real database connection
-      // based on the connection type and config
+      // Call the utility to run the query on the connection
       const results = await runQueryOnConnection({
         query: query.query,
         connectionConfig: query.connection_config,
         connectionType: query.connection_type
       });
       
-      // Save the execution result
-      await sql`
-        INSERT INTO db_qa_query_runs (
-          query_id, 
-          user_id, 
-          status, 
-          results, 
-          execution_time_ms
-        )
-        VALUES (
-          ${query.id}, 
-          ${userId}, 
-          ${'success'}, 
-          ${JSON.stringify(results)},
-          ${results.executionTimeMs || 0}
-        )
-      `;
+      // Check if the db_qa_query_runs table exists
+      try {
+        // Save the execution result
+        await sql`
+          INSERT INTO db_qa_query_runs (
+            query_id, 
+            user_id, 
+            status, 
+            results, 
+            execution_time_ms
+          )
+          VALUES (
+            ${query.id}, 
+            ${userId}, 
+            ${'success'}, 
+            ${JSON.stringify(results)},
+            ${results.executionTimeMs || 0}
+          )
+        `;
+      } catch (dbError) {
+        console.error("Error saving query run:", dbError);
+        // Continue even if saving fails
+      }
       
       return NextResponse.json({
         status: 'success',
@@ -95,23 +90,28 @@ export async function POST(
         executionTimeMs: results.executionTimeMs
       });
     } catch (error: any) {
-      // Save the execution error
-      await sql`
-        INSERT INTO db_qa_query_runs (
-          query_id, 
-          user_id, 
-          status, 
-          results, 
-          execution_time_ms
-        )
-        VALUES (
-          ${query.id}, 
-          ${userId}, 
-          ${'error'}, 
-          ${JSON.stringify({ error: error.message })},
-          0
-        )
-      `;
+      // Try to save the execution error
+      try {
+        await sql`
+          INSERT INTO db_qa_query_runs (
+            query_id, 
+            user_id, 
+            status, 
+            results, 
+            execution_time_ms
+          )
+          VALUES (
+            ${query.id}, 
+            ${userId}, 
+            ${'error'}, 
+            ${JSON.stringify({ error: error.message })},
+            0
+          )
+        `;
+      } catch (dbError) {
+        console.error("Error saving query run error:", dbError);
+        // Continue even if saving fails
+      }
       
       return NextResponse.json({
         status: 'error',

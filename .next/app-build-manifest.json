@@ -51,6 +51,26 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/db-qa/queries/route.js"
     ],
+    "/db-qa/queries/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/db-qa/queries/[id]/page.js"
+    ],
+    "/api/db-qa/queries/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/db-qa/queries/[id]/route.js"
+    ],
+    "/db-qa/queries/new/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/db-qa/queries/new/page.js"
+    ],
+    "/api/connections/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/connections/route.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",

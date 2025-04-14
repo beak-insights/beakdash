@@ -13,11 +13,13 @@ interface ViewQueryPageProps {
   };
 }
 
-export default function ViewQueryPage({ params }: ViewQueryPageProps) {
+export default async function ViewQueryPage({ params }: ViewQueryPageProps) {
+  const id = await params.id;
+  
   return (
     <AppLayout>
       <div className="container mx-auto py-10">
-        <ViewQueryClient id={params.id} />
+        <ViewQueryClient id={id} />
       </div>
     </AppLayout>
   );

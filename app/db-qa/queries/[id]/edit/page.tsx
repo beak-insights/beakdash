@@ -13,7 +13,9 @@ interface EditQueryPageProps {
   };
 }
 
-export default function EditQueryPage({ params }: EditQueryPageProps) {
+export default async function EditQueryPage({ params }: EditQueryPageProps) {
+  const id = await params.id;
+  
   return (
     <AppLayout>
       <div className="container mx-auto py-10">
@@ -24,7 +26,7 @@ export default function EditQueryPage({ params }: EditQueryPageProps) {
           </p>
         </div>
         
-        <EditQueryClient id={params.id} />
+        <EditQueryClient id={id} />
       </div>
     </AppLayout>
   );

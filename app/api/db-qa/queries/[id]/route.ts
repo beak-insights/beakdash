@@ -47,17 +47,7 @@ export async function GET(
         spaces s ON q.space_id = s.id
       WHERE 
         q.id = ${queryId}
-        AND (
-          q.user_id = ${userId}
-          OR (
-            q.space_id IS NOT NULL
-            AND EXISTS (
-              SELECT 1 FROM space_members 
-              WHERE user_id = ${userId} 
-              AND space_id = q.space_id
-            )
-          )
-        )
+        AND q.user_id = ${userId}
     `;
     
     if (result.length === 0) {
@@ -121,22 +111,11 @@ export async function PUT(
     // Get user ID from session
     const userId = session.user.id;
     
-    // Check if query exists and belongs to the user or their space
+    // Check if query exists and belongs to the user
     const queryCheck = await sql`
       SELECT * FROM db_qa_queries
       WHERE id = ${queryId}
-      AND (
-        user_id = ${userId}
-        OR (
-          space_id IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM space_members 
-            WHERE user_id = ${userId} 
-            AND space_id = space_id
-            AND role IN ('admin', 'editor')
-          )
-        )
-      )
+      AND user_id = ${userId}
     `;
     
     if (queryCheck.length === 0) {
@@ -163,17 +142,7 @@ export async function PUT(
       const connectionResult = await sql`
         SELECT * FROM connections 
         WHERE id = ${body.connectionId}
-        AND (
-          user_id = ${userId}
-          OR (
-            space_id IS NOT NULL
-            AND EXISTS (
-              SELECT 1 FROM space_members 
-              WHERE user_id = ${userId} 
-              AND space_id = space_id
-            )
-          )
-        )
+        AND user_id = ${userId}
       `;
       
       if (connectionResult.length === 0) {
