@@ -9,12 +9,23 @@ interface UseDbQaQueriesOptions {
   spaceId?: number | string | null;
   category?: string | null;
   connectionId?: number | string | null;
+  runStatus?: string | null;
+  frequency?: string | null;
+  enabledStatus?: string | null;
   enabled?: boolean;
 }
 
 export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
   const queryClient = useQueryClient();
-  const { spaceId, category, connectionId, enabled = true } = options;
+  const { 
+    spaceId, 
+    category, 
+    connectionId, 
+    runStatus, 
+    frequency, 
+    enabledStatus,
+    enabled = true 
+  } = options;
 
   // Build query string for filtering
   const buildQueryString = () => {
@@ -22,10 +33,21 @@ export function useDbQaQueries(options: UseDbQaQueriesOptions = {}) {
     if (spaceId) params.append("spaceId", String(spaceId));
     if (category && category !== "all") params.append("category", category);
     if (connectionId) params.append("connectionId", String(connectionId));
+    if (runStatus && runStatus !== "all") params.append("runStatus", runStatus);
+    if (frequency && frequency !== "all") params.append("frequency", frequency);
+    if (enabledStatus && enabledStatus !== "all") params.append("enabledStatus", enabledStatus);
     return params.toString();
   };
 
-  const queryKey = ["db-qa-queries", spaceId, category, connectionId];
+  const queryKey = [
+    "db-qa-queries", 
+    spaceId, 
+    category, 
+    connectionId, 
+    runStatus, 
+    frequency, 
+    enabledStatus
+  ];
 
   // Fetch queries with optional filtering
   const { data, isLoading, error, refetch } = useQuery({

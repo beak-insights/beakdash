@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
     const spaceId = searchParams.get('spaceId');
     const category = searchParams.get('category');
     const connectionId = searchParams.get('connectionId');
+    const runStatus = searchParams.get('runStatus');
+    const frequency = searchParams.get('frequency');
+    const enabledStatus = searchParams.get('enabledStatus');
     
     // Build the query with filters
     const userIdNum = typeof userId === 'string' ? parseInt(userId) : userId;
@@ -35,7 +38,8 @@ export async function GET(request: NextRequest) {
         c.name as connection_name,
         s.name as space_name,
         (SELECT count(*) FROM db_qa_execution_results WHERE query_id = q.id) as execution_count,
-        (SELECT status FROM db_qa_execution_results WHERE query_id = q.id ORDER BY execution_time DESC LIMIT 1) as last_status
+        (SELECT status FROM db_qa_execution_results WHERE query_id = q.id ORDER BY execution_time DESC LIMIT 1) as last_run_status,
+        (SELECT execution_time FROM db_qa_execution_results WHERE query_id = q.id ORDER BY execution_time DESC LIMIT 1) as last_run_at
       FROM db_qa_queries q
       LEFT JOIN connections c ON q.connection_id = c.id
       LEFT JOIN spaces s ON q.space_id = s.id
@@ -60,6 +64,38 @@ export async function GET(request: NextRequest) {
     if (connectionId) {
       query += ` AND q.connection_id = $${paramCounter}`;
       queryParams.push(parseInt(connectionId));
+      paramCounter++;
+    }
+    
+    // Add filter for run status
+    if (runStatus) {
+      if (runStatus === 'not_run') {
+        query += ` AND NOT EXISTS (SELECT 1 FROM db_qa_execution_results WHERE query_id = q.id)`;
+      } else {
+        query += ` AND EXISTS (
+          SELECT 1 FROM db_qa_execution_results 
+          WHERE query_id = q.id 
+          AND status = $${paramCounter} 
+          ORDER BY execution_time DESC 
+          LIMIT 1
+        )`;
+        queryParams.push(runStatus);
+        paramCounter++;
+      }
+    }
+    
+    // Add filter for execution frequency
+    if (frequency) {
+      query += ` AND q.execution_frequency = $${paramCounter}`;
+      queryParams.push(frequency);
+      paramCounter++;
+    }
+    
+    // Add filter for enabled status
+    if (enabledStatus) {
+      const isEnabled = enabledStatus === 'enabled';
+      query += ` AND q.enabled = $${paramCounter}`;
+      queryParams.push(isEnabled);
       paramCounter++;
     }
     

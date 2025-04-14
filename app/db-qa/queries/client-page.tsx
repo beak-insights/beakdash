@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { CategoryFilter } from "@/components/db-qa/category-filter";
 import { QueryList } from "@/components/db-qa/query-list";
+import { QueryFilters, type QueryRunStatus, type ExecutionFrequency, type EnabledStatus } from "@/components/db-qa/query-filters";
 import { useDbQaQueries } from "@/lib/hooks/use-db-qa-queries";
 import { useToast } from "@/hooks/use-toast";
 import { Icons } from "@/components/ui/icons";
+import { useQuery } from "@tanstack/react-query";
+import { get } from "@/lib/api-client";
 
 export function DbQaQueriesClient() {
   const router = useRouter();
@@ -20,11 +23,23 @@ export function DbQaQueriesClient() {
   const defaultCategory = searchParams.get("category") || "all";
   const defaultSpaceId = searchParams.get("spaceId") || null;
   const defaultConnectionId = searchParams.get("connectionId") || null;
+  const defaultRunStatus = (searchParams.get("runStatus") as QueryRunStatus) || "all";
+  const defaultFrequency = (searchParams.get("frequency") as ExecutionFrequency) || "all";
+  const defaultEnabledStatus = (searchParams.get("enabledStatus") as EnabledStatus) || "all";
   
   // State for filters
   const [category, setCategory] = useState(defaultCategory);
   const [spaceId, setSpaceId] = useState(defaultSpaceId);
   const [connectionId, setConnectionId] = useState(defaultConnectionId);
+  const [runStatus, setRunStatus] = useState<QueryRunStatus>(defaultRunStatus);
+  const [frequency, setFrequency] = useState<ExecutionFrequency>(defaultFrequency);
+  const [enabledStatus, setEnabledStatus] = useState<EnabledStatus>(defaultEnabledStatus);
+  
+  // Fetch all connections for filter dropdown
+  const { data: connections = [] } = useQuery({
+    queryKey: ['/api/connections'],
+    queryFn: () => get('/api/connections'),
+  });
   
   // Fetch queries with current filters
   const { 
@@ -40,6 +55,9 @@ export function DbQaQueriesClient() {
     category,
     spaceId,
     connectionId,
+    runStatus: runStatus === "all" ? null : runStatus,
+    frequency: frequency === "all" ? null : frequency,
+    enabledStatus: enabledStatus === "all" ? null : enabledStatus,
   });
   
   // Update URL when filters change
@@ -64,6 +82,42 @@ export function DbQaQueriesClient() {
   const handleCategoryChange = (newCategory: string) => {
     setCategory(newCategory);
     updateQueryParams({ category: newCategory });
+  };
+  
+  // Handle run status change
+  const handleRunStatusChange = (status: QueryRunStatus) => {
+    setRunStatus(status);
+    updateQueryParams({ runStatus: status });
+  };
+  
+  // Handle frequency change
+  const handleFrequencyChange = (newFrequency: ExecutionFrequency) => {
+    setFrequency(newFrequency);
+    updateQueryParams({ frequency: newFrequency });
+  };
+  
+  // Handle enabled status change
+  const handleEnabledStatusChange = (status: EnabledStatus) => {
+    setEnabledStatus(status);
+    updateQueryParams({ enabledStatus: status });
+  };
+  
+  // Handle connection change
+  const handleConnectionChange = (id: string | null) => {
+    setConnectionId(id);
+    updateQueryParams({ connectionId: id });
+  };
+  
+  // Reset all filters
+  const handleResetFilters = () => {
+    setCategory("all");
+    setRunStatus("all");
+    setFrequency("all");
+    setEnabledStatus("all");
+    setConnectionId(null);
+    
+    // Update URL to remove all filter params
+    router.push(window.location.pathname);
   };
   
   // Handle query deletion
@@ -125,10 +179,23 @@ export function DbQaQueriesClient() {
         </Button>
       </div>
       
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
         <CategoryFilter
           currentCategory={category}
           onCategoryChange={handleCategoryChange}
+        />
+        
+        <QueryFilters
+          status={runStatus}
+          frequency={frequency}
+          enabledStatus={enabledStatus}
+          connections={connections}
+          selectedConnectionId={connectionId}
+          onStatusChange={handleRunStatusChange}
+          onFrequencyChange={handleFrequencyChange}
+          onEnabledStatusChange={handleEnabledStatusChange}
+          onConnectionChange={handleConnectionChange}
+          onResetFilters={handleResetFilters}
         />
       </div>
       
