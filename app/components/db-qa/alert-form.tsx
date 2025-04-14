@@ -44,7 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { get } from "@/lib/api-client";
-import { useDbQaAlerts } from "@/lib/hooks/use-db-qa-alerts";
+import { useDbQaAlerts, CreateDbQaAlertPayload } from "@/lib/hooks/use-db-qa-alerts";
 
 // Define form schema with Zod
 const formSchema = z.object({

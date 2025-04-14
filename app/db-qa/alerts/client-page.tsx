@@ -39,7 +39,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { useDbQaAlerts, DbQaAlertFilters } from "@/lib/hooks/use-db-qa-alerts";
+import { useDbQaAlerts, DbQaAlertFilters, DbQaAlertFrontend } from "@/lib/hooks/use-db-qa-alerts";
 import { cn } from "@/lib/utils";
 
 // Use the DbQaAlertFrontend interface from our hook

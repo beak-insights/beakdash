@@ -44,33 +44,52 @@ export async function GET(
       );
     }
 
+    // Check if alert history table exists
+    const tableCheck = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        AND table_name = 'db_qa_alert_history'
+      );
+    `);
+    
+    const tableExists = Array.isArray(tableCheck) && tableCheck.length > 0 && tableCheck[0].exists;
+    
+    if (!tableExists) {
+      // If table doesn't exist yet, return empty array
+      return NextResponse.json([]);
+    }
+
     // Get alert history
     const historyResult = await db.execute(sql`
-      SELECT *
-      FROM db_qa_alert_history
-      WHERE alert_id = ${alertId}
-      ORDER BY triggered_at DESC
-      LIMIT 50
+      SELECT h.*, er.execution_time, er.status as execution_status, q.name as query_name
+      FROM db_qa_alert_history h
+      LEFT JOIN db_qa_execution_results er ON h.execution_id = er.id
+      LEFT JOIN db_qa_queries q ON er.query_id = q.id
+      WHERE h.alert_id = ${alertId}
+      ORDER BY h.triggered_at DESC
+      LIMIT 100
     `);
 
-    // Transform the result to a serializable array
-    const rows = Array.isArray(historyResult) ? historyResult : [];
+    // Process and return the results
+    const history = Array.isArray(historyResult) ? historyResult : [];
     
-    const serializedRows = rows.map(row => {
-      // Create a plain object with all enumerable properties
-      const plainObject: Record<string, any> = {};
-      for (const key in row) {
-        let value = row[key];
-        // Convert dates to ISO strings
+    // Serialize the history entries
+    const serializedHistory = history.map(entry => {
+      const serialized: Record<string, any> = {};
+      
+      for (const key in entry) {
+        let value = entry[key];
         if (value instanceof Date) {
           value = value.toISOString();
         }
-        plainObject[key] = value;
+        serialized[key] = value;
       }
-      return plainObject;
+      
+      return serialized;
     });
-    
-    return NextResponse.json(serializedRows);
+
+    return NextResponse.json(serializedHistory);
   } catch (error) {
     console.error('Error fetching alert history:', error);
     
