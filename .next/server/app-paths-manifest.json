@@ -1,8 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/api/spaces/route": "app/api/spaces/route.js",
-  "/api/connections/route": "app/api/connections/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/db-qa/queries/page": "app/db-qa/queries/page.js",
   "/db-qa/alerts/page": "app/db-qa/alerts/page.js",

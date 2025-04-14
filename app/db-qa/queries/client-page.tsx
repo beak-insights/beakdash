@@ -7,7 +7,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CategoryFilter } from "@/components/db-qa/category-filter";
 import { QueryList } from "@/components/db-qa/query-list";
-import { QueryFilters, type QueryRunStatus, type ExecutionFrequency, type EnabledStatus } from "@/components/db-qa/query-filters";
+import { 
+  StatusFilter, 
+  FrequencyFilter, 
+  EnabledFilter, 
+  ConnectionFilter,
+  ResetFilterButton,
+  type QueryRunStatus, 
+  type ExecutionFrequency, 
+  type EnabledStatus 
+} from "@/components/db-qa/filter-dropdowns";
 import { useDbQaQueries } from "@/lib/hooks/use-db-qa-queries";
 import { useToast } from "@/hooks/use-toast";
 import { Icons } from "@/components/ui/icons";
@@ -185,17 +194,30 @@ export function DbQaQueriesClient() {
           onCategoryChange={handleCategoryChange}
         />
         
-        <QueryFilters
-          status={runStatus}
-          frequency={frequency}
-          enabledStatus={enabledStatus}
+        <StatusFilter
+          currentStatus={runStatus}
+          onStatusChange={handleRunStatusChange}
+        />
+        
+        <FrequencyFilter
+          currentFrequency={frequency}
+          onFrequencyChange={handleFrequencyChange}
+        />
+        
+        <EnabledFilter
+          currentStatus={enabledStatus}
+          onStatusChange={handleEnabledStatusChange}
+        />
+        
+        <ConnectionFilter
           connections={connections}
           selectedConnectionId={connectionId}
-          onStatusChange={handleRunStatusChange}
-          onFrequencyChange={handleFrequencyChange}
-          onEnabledStatusChange={handleEnabledStatusChange}
           onConnectionChange={handleConnectionChange}
-          onResetFilters={handleResetFilters}
+        />
+        
+        <ResetFilterButton
+          onReset={handleResetFilters}
+          show={runStatus !== "all" || frequency !== "all" || enabledStatus !== "all" || connectionId !== null || category !== "all"}
         />
       </div>
       
