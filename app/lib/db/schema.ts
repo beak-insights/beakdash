@@ -470,11 +470,20 @@ export const dbQaAlerts = pgTable("db_qa_alerts", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   queryId: integer("query_id").notNull().references(() => dbQaQueries.id),
+  spaceId: integer("space_id").references(() => spaces.id),
   executionResultId: integer("execution_result_id").references(() => dbQaExecutionResults.id),
   name: text("name").notNull(),
+  description: text("description"),
+  severity: text("severity").notNull().default("medium"),
   condition: jsonb("condition").notNull(),
-  status: text("status").notNull(), // active, resolved, snoozed
+  status: text("status").notNull().default("active"), // active, resolved, snoozed
+  enabled: boolean("enabled").default(true),
   notificationChannels: jsonb("notification_channels").default([]),
+  emailRecipients: text("email_recipients"),
+  slackWebhook: text("slack_webhook"),
+  customWebhook: text("custom_webhook"),
+  throttleMinutes: integer("throttle_minutes").default(60),
+  lastTriggeredAt: timestamp("last_triggered_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   resolvedAt: timestamp("resolved_at"),
@@ -483,11 +492,19 @@ export const dbQaAlerts = pgTable("db_qa_alerts", {
 export const insertDbQaAlertSchema = createInsertSchema(dbQaAlerts).pick({
   userId: true,
   queryId: true,
+  spaceId: true,
   executionResultId: true,
   name: true,
+  description: true,
+  severity: true,
   condition: true,
   status: true,
+  enabled: true,
   notificationChannels: true,
+  emailRecipients: true,
+  slackWebhook: true,
+  customWebhook: true,
+  throttleMinutes: true,
 });
 
 // DB QA Alert Notifications schema

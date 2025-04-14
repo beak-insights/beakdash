@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import { migrateAlertsTables } from "./migrate-alerts";
 
 /**
  * Initialize the database schema and run any necessary migrations
@@ -25,6 +26,10 @@ export async function runMigrations() {
     // Check if DB QA tables exist and create them if they don't
     console.log('Checking if DB QA tables exist...');
     await createDbQaTables();
+    
+    // Check if DB QA alert tables need to be updated
+    console.log('Checking if DB QA alert tables need to be updated...');
+    await migrateAlertsTables();
     
     console.log('Database migrations completed successfully');
   } catch (error) {
