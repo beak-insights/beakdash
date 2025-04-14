@@ -158,14 +158,14 @@ export async function POST(request: NextRequest) {
       INSERT INTO db_qa_alerts (
         user_id, query_id, space_id, name, description, severity, 
         condition, notification_channels, email_recipients, slack_webhook, 
-        custom_webhook, enabled, throttle_minutes
+        custom_webhook, enabled, throttle_minutes, status
       ) VALUES (
         ${userIdNum}, ${queryIdNum}, ${spaceId}, ${body.name}, 
         ${body.description || null}, ${body.severity}, 
         ${JSON.stringify(body.condition)}::jsonb, ${JSON.stringify(body.notificationChannels)}::jsonb, 
         ${body.emailRecipients || null}, ${body.slackWebhook || null}, 
         ${body.customWebhook || null}, ${body.enabled !== undefined ? body.enabled : true}, 
-        ${body.throttleMinutes || 60}
+        ${body.throttleMinutes || 60}, ${body.status || 'pending'}
       )
     `);
     

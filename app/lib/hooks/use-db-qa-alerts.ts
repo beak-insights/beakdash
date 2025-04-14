@@ -48,6 +48,7 @@ export interface CreateDbQaAlertPayload {
   customWebhook?: string;
   enabled: boolean;
   throttleMinutes: number;
+  status?: string; // Added status field
 }
 
 // Alert filters interface
