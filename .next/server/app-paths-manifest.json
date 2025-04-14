@@ -2,5 +2,6 @@
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/db-qa/queries/page": "app/db-qa/queries/page.js",
   "/db-qa/alerts/page": "app/db-qa/alerts/page.js",
+  "/db-qa/queries/[id]/page": "app/db-qa/queries/[id]/page.js",
   "/auth/page": "app/auth/page.js"
 }

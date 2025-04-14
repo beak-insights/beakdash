@@ -66,6 +66,16 @@ export function ViewQueryClient({ id }: ViewQueryClientProps) {
     queryKey: ['/api/db-qa/queries', id],
     queryFn: () => get(`/api/db-qa/queries/${id}`),
   });
+  
+  // Fetch execution history
+  const {
+    data: executionHistory = [],
+    isLoading: isLoadingHistory,
+    error: historyError
+  } = useQuery({
+    queryKey: ['/api/db-qa/queries', id, 'history'],
+    queryFn: () => get(`/api/db-qa/queries/${id}/history`),
+  });
 
   // Mutation for running query
   const runQueryMutation = useMutation({
@@ -76,6 +86,16 @@ export function ViewQueryClient({ id }: ViewQueryClientProps) {
       toast({
         title: "Query executed successfully",
         description: "View the results in the Results tab",
+      });
+      
+      // Refresh execution history
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/db-qa/queries', id, 'history']
+      });
+      
+      // Refresh query details
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/db-qa/queries', id]
       });
     },
     onError: (error: any) => {
@@ -422,11 +442,134 @@ export function ViewQueryClient({ id }: ViewQueryClientProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">
-                  Execution history will be available in a future update.
-                </p>
-              </div>
+              {isLoadingHistory ? (
+                <div className="flex justify-center items-center min-h-[200px]">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Loading execution history...</span>
+                </div>
+              ) : historyError ? (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+                  <div className="flex items-center mb-2">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    <h3 className="font-medium">Error loading history</h3>
+                  </div>
+                  <p className="text-sm">
+                    Failed to load execution history. Please try again.
+                  </p>
+                </div>
+              ) : executionHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <p className="text-muted-foreground mb-4">
+                    No execution history found for this query.
+                  </p>
+                  <Button 
+                    onClick={handleRunQuery} 
+                    disabled={runningQuery}
+                  >
+                    {runningQuery ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Run Query Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-slate-800">
+                          <th className="px-4 py-2 text-left text-sm font-medium">Date & Time</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium">Status</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium">Duration</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium">Rows</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {executionHistory.map((execution: any) => (
+                          <tr 
+                            key={execution.id} 
+                            className="border-b border-slate-200 dark:border-slate-700"
+                          >
+                            <td className="px-4 py-3 text-sm">
+                              {formatDate(execution.execution_time)}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <Badge 
+                                variant={
+                                  execution.status === 'success' 
+                                    ? 'success' 
+                                    : execution.status === 'warning'
+                                    ? 'secondary'
+                                    : 'destructive'
+                                }
+                              >
+                                {execution.status}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {execution.duration_ms ? `${(execution.duration_ms / 1000).toFixed(2)}s` : 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {execution.row_count ?? 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() => {
+                                  // Set query results to show the details
+                                  setQueryResults({
+                                    status: execution.status,
+                                    executedAt: execution.execution_time,
+                                    data: execution.result_summary?.data || [],
+                                    error: execution.error_message,
+                                    metrics: execution.metrics
+                                  });
+                                  setActiveTab('results');
+                                }}
+                              >
+                                View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">
+                      Showing the last {executionHistory.length} executions
+                    </p>
+                    <Button 
+                      onClick={handleRunQuery} 
+                      disabled={runningQuery}
+                      size="sm"
+                    >
+                      {runningQuery ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Running...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Run Query Now
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
