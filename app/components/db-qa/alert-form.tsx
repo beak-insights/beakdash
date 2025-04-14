@@ -43,7 +43,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
-import { apiRequest, get, post, put } from "@/lib/api-client";
+import { get } from "@/lib/api-client";
+import { useDbQaAlerts } from "@/lib/hooks/use-db-qa-alerts";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -183,36 +184,52 @@ export function AlertForm({ alertId, isEdit = false }: AlertFormProps) {
     setSelectedQuery(query);
   };
 
+  // Import useDbQaAlerts hook
+  const { createAlert, updateAlert, isLoading: hookLoading, error } = useDbQaAlerts();
+
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     try {
+      // Create a properly structured payload
+      const payload: CreateDbQaAlertPayload = {
+        name: values.name,
+        description: values.description,
+        queryId: values.queryId,
+        severity: values.severity,
+        condition: {
+          field: values.condition.field || '',
+          operator: values.condition.operator || '',
+          value: values.condition.value || '',
+        },
+        notificationChannels: values.notificationChannels,
+        emailRecipients: values.emailRecipients,
+        slackWebhook: values.slackWebhook,
+        customWebhook: values.customWebhook,
+        enabled: values.enabled,
+        throttleMinutes: values.throttleMinutes,
+      };
+
       if (isEdit && alertId) {
         // Update existing alert
-        await put(`/api/db-qa/alerts/${alertId}`, values);
-        toast({
-          title: "Success",
-          description: "Alert updated successfully",
-        });
+        const updated = await updateAlert(alertId, payload);
+        if (updated) {
+          // Redirect to alerts list
+          router.push("/db-qa/alerts");
+          router.refresh();
+        }
       } else {
         // Create new alert
-        await post("/api/db-qa/alerts", values);
-        toast({
-          title: "Success",
-          description: "Alert created successfully",
-        });
+        const created = await createAlert(payload);
+        if (created) {
+          // Redirect to alerts list
+          router.push("/db-qa/alerts");
+          router.refresh();
+        }
       }
-      
-      // Redirect to alerts list
-      router.push("/db-qa/alerts");
-      router.refresh();
     } catch (error) {
       console.error("Error saving alert:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save alert. Please try again.",
-        variant: "destructive",
-      });
+      // Error is handled by the hook, we don't need to display another toast here
     } finally {
       setIsLoading(false);
     }

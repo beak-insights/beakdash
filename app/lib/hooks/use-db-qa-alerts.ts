@@ -1,216 +1,254 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/components/ui/use-toast';
-import { DbQaAlert } from '@/lib/db/schema';
-import { useSpaces } from './use-spaces';
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import { get, post, put, del } from "@/lib/api-client";
 
-interface UseDbQaAlertsProps {
-  enabled?: boolean;
-}
-
-interface CreateDbQaAlertData {
-  name: string;
-  queryId: number;
-  condition: any;
-  notificationChannels: string[];
-}
-
-interface UpdateDbQaAlertData extends Partial<CreateDbQaAlertData> {
+// Alert interface
+export interface DbQaAlertFrontend {
   id: number;
-  status?: 'active' | 'resolved' | 'snoozed';
+  name: string;
+  description: string | null;
+  query_id: number;
+  query_name?: string;
+  space_id: number | null;
+  space_name?: string | null;
+  severity: string;
+  condition: {
+    field: string;
+    operator: string;
+    value: string | number;
+  };
+  notification_channels: string[];
+  email_recipients?: string | null;
+  slack_webhook?: string | null;
+  custom_webhook?: string | null;
+  enabled: boolean;
+  throttle_minutes: number;
+  status: string;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export function useDbQaAlerts({ enabled = true }: UseDbQaAlertsProps = {}) {
-  const queryClient = useQueryClient();
-  const { currentSpaceId } = useSpaces();
-  const { toast } = useToast();
-  
-  // Get all DB QA alerts
-  const {
-    data: dbQaAlerts,
-    isLoading: isLoadingAlerts,
-    refetch: refetchAlerts,
-  } = useQuery({
-    queryKey: ['dbQaAlerts', currentSpaceId],
-    queryFn: async () => {
-      const spaceParam = currentSpaceId ? `?spaceId=${currentSpaceId}` : '';
-      const response = await fetch(`/api/db-qa/alerts${spaceParam}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch DB QA alerts');
-      }
-      return response.json();
-    },
-    enabled,
-  });
+// Alert creation interface
+export interface CreateDbQaAlertPayload {
+  name: string;
+  description?: string;
+  queryId: string;
+  severity: string;
+  condition: {
+    field: string;
+    operator: string;
+    value: string;
+  };
+  notificationChannels: string[];
+  emailRecipients?: string;
+  slackWebhook?: string;
+  customWebhook?: string;
+  enabled: boolean;
+  throttleMinutes: number;
+}
 
-  // Get all DB QA alert notifications
-  const {
-    data: dbQaAlertNotifications,
-    isLoading: isLoadingAlertNotifications,
-    refetch: refetchAlertNotifications,
-  } = useQuery({
-    queryKey: ['dbQaAlertNotifications'],
-    queryFn: async () => {
-      const response = await fetch('/api/db-qa/alert-notifications');
-      if (!response.ok) {
-        throw new Error('Failed to fetch DB QA alert notifications');
-      }
-      return response.json();
-    },
-    enabled,
-  });
+// Alert filters interface
+export interface DbQaAlertFilters {
+  spaceId?: string | null;
+  status?: string | null;
+  severity?: string | null;
+}
 
-  // Create a new DB QA alert
-  const createDbQaAlertMutation = useMutation({
-    mutationFn: async (newAlert: CreateDbQaAlertData) => {
-      const response = await fetch('/api/db-qa/alerts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newAlert),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create DB QA alert');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dbQaAlerts'] });
-      toast({
-        title: 'Success',
-        description: 'Database quality alert created successfully',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create database quality alert',
-        variant: 'destructive',
-      });
-    },
-  });
+export function useDbQaAlerts() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Update an existing DB QA alert
-  const updateDbQaAlertMutation = useMutation({
-    mutationFn: async ({ id, ...data }: UpdateDbQaAlertData) => {
-      const response = await fetch(`/api/db-qa/alerts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+  // Get all alerts with optional filters
+  const getAlerts = async (filters: DbQaAlertFilters = {}) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (filters.spaceId) queryParams.append('spaceId', filters.spaceId);
+      if (filters.status) queryParams.append('status', filters.status);
+      if (filters.severity) queryParams.append('severity', filters.severity);
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update DB QA alert');
-      }
+      const queryString = queryParams.toString();
+      const url = `/api/db-qa/alerts${queryString ? `?${queryString}` : ''}`;
       
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dbQaAlerts'] });
+      const result = await get<DbQaAlertFrontend[]>(url);
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch alerts';
+      setError(errorMessage);
       toast({
-        title: 'Success',
-        description: 'Database quality alert updated successfully',
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
       });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update database quality alert',
-        variant: 'destructive',
-      });
-    },
-  });
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Delete a DB QA alert
-  const deleteDbQaAlertMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/db-qa/alerts/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete DB QA alert');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dbQaAlerts'] });
+  // Get a single alert by ID
+  const getAlertById = async (id: string | number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await get<DbQaAlertFrontend>(`/api/db-qa/alerts/${id}`);
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch alert details';
+      setError(errorMessage);
       toast({
-        title: 'Success',
-        description: 'Database quality alert deleted successfully',
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
       });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete database quality alert',
-        variant: 'destructive',
-      });
-    },
-  });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Update alert status (resolve, snooze, reactivate)
-  const updateAlertStatusMutation = useMutation({
-    mutationFn: async ({ id, status, ...data }: UpdateDbQaAlertData) => {
-      const response = await fetch(`/api/db-qa/alerts/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status, ...data }),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update alert status');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['dbQaAlerts'] });
-      
-      const statusMessages = {
-        'active': 'Alert activated successfully',
-        'resolved': 'Alert resolved successfully',
-        'snoozed': 'Alert snoozed successfully',
-      };
-      
+  // Create a new alert
+  const createAlert = async (alertData: CreateDbQaAlertPayload) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await post('/api/db-qa/alerts', alertData);
       toast({
-        title: 'Status Updated',
-        description: statusMessages[variables.status as keyof typeof statusMessages] || 'Alert status updated',
+        title: "Success",
+        description: "Alert created successfully",
       });
-    },
-    onError: (error: Error) => {
+      return result.alert;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to create alert';
+      setError(errorMessage);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update alert status',
-        variant: 'destructive',
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
       });
-    },
-  });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update an existing alert
+  const updateAlert = async (id: string | number, alertData: CreateDbQaAlertPayload) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await put(`/api/db-qa/alerts/${id}`, alertData);
+      toast({
+        title: "Success",
+        description: "Alert updated successfully",
+      });
+      return result.alert;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update alert';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete an alert
+  const deleteAlert = async (id: string | number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await del(`/api/db-qa/alerts/${id}`);
+      toast({
+        title: "Success",
+        description: "Alert deleted successfully",
+      });
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete alert';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Toggle alert enabled status
+  const toggleAlertStatus = async (id: string | number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await post(`/api/db-qa/alerts/${id}/toggle`, {});
+      toast({
+        title: "Success",
+        description: `Alert ${result.enabled ? 'enabled' : 'disabled'} successfully`,
+      });
+      return result.enabled;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to toggle alert status';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get alert history
+  const getAlertHistory = async (id: string | number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await get(`/api/db-qa/alerts/${id}/history`);
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch alert history';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
-    dbQaAlerts,
-    isLoadingAlerts,
-    refetchAlerts,
-    dbQaAlertNotifications,
-    isLoadingAlertNotifications,
-    refetchAlertNotifications,
-    createDbQaAlertMutation,
-    updateDbQaAlertMutation,
-    deleteDbQaAlertMutation,
-    updateAlertStatusMutation,
+    getAlerts,
+    getAlertById,
+    createAlert,
+    updateAlert,
+    deleteAlert,
+    toggleAlertStatus,
+    getAlertHistory,
+    isLoading,
+    error,
   };
 }

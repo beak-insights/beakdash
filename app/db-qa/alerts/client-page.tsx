@@ -39,26 +39,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { get, del } from "@/lib/api-client";
+import { useDbQaAlerts, DbQaAlertFilters } from "@/lib/hooks/use-db-qa-alerts";
 import { cn } from "@/lib/utils";
 
-// Alert interface
-interface Alert {
-  id: number;
-  name: string;
-  description: string | null;
-  query_id: number;
-  query_name: string;
-  space_id: number | null;
-  space_name: string | null;
-  severity: string;
-  condition: any;
-  notification_channels: string[];
-  enabled: boolean;
-  last_triggered_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Use the DbQaAlertFrontend interface from our hook
+// to maintain type consistency
+type Alert = DbQaAlertFrontend;
 
 interface FilterDropdownProps {
   options: { label: string; value: string }[];
@@ -113,28 +99,6 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
-// Toggle alert status
-async function toggleAlertStatus(id: number, currentEnabled: boolean) {
-  try {
-    const result = await fetch(`/api/db-qa/alerts/${id}/toggle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    
-    if (!result.ok) {
-      throw new Error('Failed to toggle alert status');
-    }
-    
-    return await result.json();
-  } catch (error) {
-    console.error('Error toggling alert status:', error);
-    throw error;
-  }
-}
-
 export function AlertsClient() {
   const router = useRouter();
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -144,43 +108,46 @@ export function AlertsClient() {
   const [toggleLoading, setToggleLoading] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
+  // Use the custom hook
+  const { 
+    getAlerts, 
+    toggleAlertStatus: toggleStatus, 
+    deleteAlert,
+    isLoading: hookLoading 
+  } = useDbQaAlerts();
+
   // Fetch alerts
   useEffect(() => {
     const fetchAlerts = async () => {
       setIsLoading(true);
       try {
-        // Build query parameters for filtering
-        const queryParams = new URLSearchParams();
-        if (statusFilter) queryParams.append('status', statusFilter);
-        if (severityFilter) queryParams.append('severity', severityFilter);
+        // Create filters
+        const filters: DbQaAlertFilters = {};
+        if (statusFilter) filters.status = statusFilter;
+        if (severityFilter) filters.severity = severityFilter;
         
-        const queryString = queryParams.toString();
-        const url = `/api/db-qa/alerts${queryString ? `?${queryString}` : ''}`;
-        
-        const data = await get(url);
+        // Get alerts using our hook
+        const data = await getAlerts(filters);
         if (Array.isArray(data)) {
           setAlerts(data);
         }
       } catch (error) {
         console.error("Error fetching alerts:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch alerts. Please try again.",
-          variant: "destructive",
-        });
+        // Error already handled by the hook
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchAlerts();
-  }, [statusFilter, severityFilter]);
+  }, [statusFilter, severityFilter, getAlerts]);
 
   // Handle toggle alert status
   const handleToggleStatus = async (alert: Alert) => {
     setToggleLoading(alert.id);
     try {
-      await toggleAlertStatus(alert.id, alert.enabled);
+      // Use the hook to toggle alert status
+      await toggleStatus(alert.id);
       
       // Update local state
       setAlerts(alerts.map(a => 
@@ -188,18 +155,9 @@ export function AlertsClient() {
           ? { ...a, enabled: !a.enabled } 
           : a
       ));
-      
-      toast({
-        title: "Success",
-        description: `Alert ${alert.enabled ? 'disabled' : 'enabled'} successfully`,
-      });
     } catch (error) {
       console.error("Error toggling alert status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update alert status. Please try again.",
-        variant: "destructive",
-      });
+      // Error handling already done by the hook
     } finally {
       setToggleLoading(null);
     }
@@ -213,22 +171,16 @@ export function AlertsClient() {
     
     setDeleteLoading(alert.id);
     try {
-      await del(`/api/db-qa/alerts/${alert.id}`);
+      // Use the hook to delete the alert
+      const success = await deleteAlert(alert.id);
       
-      // Update local state
-      setAlerts(alerts.filter(a => a.id !== alert.id));
-      
-      toast({
-        title: "Success",
-        description: "Alert deleted successfully",
-      });
+      if (success) {
+        // Update local state
+        setAlerts(alerts.filter(a => a.id !== alert.id));
+      }
     } catch (error) {
       console.error("Error deleting alert:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete alert. Please try again.",
-        variant: "destructive",
-      });
+      // Error handling already done by the hook
     } finally {
       setDeleteLoading(null);
     }
