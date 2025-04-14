@@ -1,4 +1,4 @@
-import { sql } from "./postgres";
+import { sql } from "@/lib/db/postgres";
 
 interface RunQueryOptions {
   query: string;
