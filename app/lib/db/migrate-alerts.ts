@@ -230,6 +230,123 @@ export async function migrateAlertsTables() {
       `);
     }
     
+    // Check if db_qa_alert_notifications table exists and needs additional columns
+    const notificationsTableCheck = await db.execute<{ exists: boolean }>(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        AND table_name = 'db_qa_alert_notifications'
+      );
+    `);
+    
+    // Handle DrizzleORM result
+    const notificationsRows = notificationsTableCheck as unknown as Array<{ exists: boolean }>;
+    const hasNotificationsTable = notificationsRows.length > 0 && notificationsRows[0].exists;
+    
+    if (!hasNotificationsTable) {
+      console.log('Creating db_qa_alert_notifications table...');
+      
+      // Create the db_qa_alert_notifications table to track notification delivery
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS db_qa_alert_notifications (
+          id SERIAL PRIMARY KEY,
+          alert_id INTEGER NOT NULL REFERENCES db_qa_alerts(id) ON DELETE CASCADE,
+          channel TEXT NOT NULL,
+          sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          status TEXT NOT NULL,
+          content JSONB DEFAULT '{}',
+          error_message TEXT
+        );
+        
+        CREATE INDEX db_qa_alert_notifications_alert_id_idx ON db_qa_alert_notifications(alert_id);
+        CREATE INDEX db_qa_alert_notifications_sent_at_idx ON db_qa_alert_notifications(sent_at);
+      `);
+    } else {
+      // Check if 'attempts' column exists
+      const attemptsColumnCheck = await db.execute<{ exists: boolean }>(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'db_qa_alert_notifications'
+          AND column_name = 'attempts'
+        );
+      `);
+      
+      // Handle DrizzleORM result
+      const attemptsRows = attemptsColumnCheck as unknown as Array<{ exists: boolean }>;
+      const hasAttemptsColumn = attemptsRows.length > 0 && attemptsRows[0].exists;
+      
+      if (!hasAttemptsColumn) {
+        console.log('Adding attempts column to db_qa_alert_notifications...');
+        await db.execute(sql`
+          ALTER TABLE db_qa_alert_notifications
+          ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1;
+        `);
+      }
+      
+      // Check if 'alert_history_id' column exists
+      const alertHistoryIdColumnCheck = await db.execute<{ exists: boolean }>(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'db_qa_alert_notifications'
+          AND column_name = 'alert_history_id'
+        );
+      `);
+      
+      // Handle DrizzleORM result
+      const alertHistoryIdRows = alertHistoryIdColumnCheck as unknown as Array<{ exists: boolean }>;
+      const hasAlertHistoryIdColumn = alertHistoryIdRows.length > 0 && alertHistoryIdRows[0].exists;
+      
+      if (!hasAlertHistoryIdColumn) {
+        console.log('Adding alert_history_id column to db_qa_alert_notifications...');
+        await db.execute(sql`
+          ALTER TABLE db_qa_alert_notifications
+          ADD COLUMN alert_history_id INTEGER REFERENCES db_qa_alert_history(id) ON DELETE CASCADE;
+        `);
+      }
+      
+      // Check if 'retry_scheduled_for' column exists
+      const retryScheduledForColumnCheck = await db.execute<{ exists: boolean }>(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'db_qa_alert_notifications'
+          AND column_name = 'retry_scheduled_for'
+        );
+      `);
+      
+      // Handle DrizzleORM result
+      const retryScheduledForRows = retryScheduledForColumnCheck as unknown as Array<{ exists: boolean }>;
+      const hasRetryScheduledForColumn = retryScheduledForRows.length > 0 && retryScheduledForRows[0].exists;
+      
+      if (!hasRetryScheduledForColumn) {
+        console.log('Adding retry_scheduled_for column to db_qa_alert_notifications...');
+        await db.execute(sql`
+          ALTER TABLE db_qa_alert_notifications
+          ADD COLUMN retry_scheduled_for TIMESTAMP;
+        `);
+      }
+      
+      // Check if 'recipient' column exists
+      const recipientColumnCheck = await db.execute<{ exists: boolean }>(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'db_qa_alert_notifications'
+          AND column_name = 'recipient'
+        );
+      `);
+      
+      // Handle DrizzleORM result
+      const recipientRows = recipientColumnCheck as unknown as Array<{ exists: boolean }>;
+      const hasRecipientColumn = recipientRows.length > 0 && recipientRows[0].exists;
+      
+      if (!hasRecipientColumn) {
+        console.log('Adding recipient column to db_qa_alert_notifications...');
+        await db.execute(sql`
+          ALTER TABLE db_qa_alert_notifications
+          ADD COLUMN recipient TEXT;
+        `);
+      }
+    }
+    
     console.log('DB QA alert tables updated successfully');
     return true;
   } catch (error) {
