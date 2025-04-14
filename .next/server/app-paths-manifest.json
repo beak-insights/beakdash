@@ -1,11 +1,4 @@
 {
-  "/api/db-qa/queries/route": "app/api/db-qa/queries/route.js",
-  "/api/spaces/route": "app/api/spaces/route.js",
-  "/api/connections/route": "app/api/connections/route.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/db-qa/queries/page": "app/db-qa/queries/page.js",
-  "/db-qa/queries/new/page": "app/db-qa/queries/new/page.js",
-  "/auth/page": "app/auth/page.js"
+  "/page": "app/page.js"
 }
