@@ -515,10 +515,10 @@ export function ViewQueryClient({ id }: ViewQueryClientProps) {
                               </Badge>
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {execution.duration_ms ? `${(execution.duration_ms / 1000).toFixed(2)}s` : 'N/A'}
+                              {execution.execution_duration ? `${(execution.execution_duration / 1000).toFixed(2)}s` : 'N/A'}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {execution.row_count ?? 'N/A'}
+                              {execution.result_summary?.data?.length ?? 'N/A'}
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <Button 

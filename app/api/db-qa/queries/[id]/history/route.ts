@@ -52,11 +52,10 @@ export async function GET(
         er.query_id,
         er.execution_time,
         er.status,
-        er.duration_ms,
-        er.row_count,
+        er.execution_duration,
         er.error_message,
         er.metrics,
-        er.result_summary
+        er.result as result_summary
       FROM db_qa_execution_results er
       WHERE er.query_id = ${queryId}
       ORDER BY er.execution_time DESC
