@@ -23,16 +23,12 @@ export function EditWidgetClient({ dashboardId, widget }: EditWidgetClientProps)
 
   return (
     <AppLayout>
-      <div className="container py-10">
-        <div className="max-w-5xl mx-auto">
-          <WidgetEditor
-            dashboardId={dashboardId}
-            widget={widget}
-            onClose={handleClose}
-            onSave={handleSave}
-          />
-        </div>
-      </div>
+      <WidgetEditor
+        dashboardId={dashboardId}
+        widget={widget}
+        onClose={handleClose}
+        onSave={handleSave}
+      />
     </AppLayout>
   );
 } 

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -37,7 +38,7 @@ import {
 } from "@/lib/db/schema";
 import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
-import { MonacoSQLEditor } from "@/components/ui/monaco-sql-editor";
+import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
 
 interface WidgetEditorProps {
   dashboardId?: number;
@@ -59,6 +60,7 @@ export default function WidgetEditor({
   isTemplate = false,
 }: WidgetEditorProps) {
   const [name, setName] = useState(widget?.name || "New Widget");
+  const [description, setDescription] = useState(widget?.description || "");
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(
     widget?.datasetId || null,
   );
@@ -73,19 +75,22 @@ export default function WidgetEditor({
     widget?.config || {},
   );
   const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
-  const [currentTab, setCurrentTab] = useState("chart-type");
+  const [currentTab, setCurrentTab] = useState("query-view");
   const [customQuery, setCustomQuery] = useState<string>(
     widget?.customQuery || "SELECT * FROM table_name LIMIT 10",
   );
-  const [useCustomQuery, setUseCustomQuery] = useState<boolean>(
-    !!widget?.customQuery,
-  );
-  const [showDataPreview, setShowDataPreview] = useState<boolean>(false);
-  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(
-    dashboardId || null,
+  const [textContent, setTextContent] = useState<string>(
+    widget?.textContent || "",
   );
   const [sqlTables, setSqlTables] = useState<string[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>("");
+  const [widgetType, setWidgetType] = useState<"text" | "table" | "chart">(
+    widget?.type === "text" 
+      ? "text" 
+      : widget?.type === "table" 
+        ? "table" 
+        : "chart"
+  );
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -131,7 +136,7 @@ export default function WidgetEditor({
         return [];
       }
     },
-    enabled: !!selectedConnectionId && useCustomQuery,
+    enabled: !!selectedConnectionId,
   });
 
   // Fetch dataset data when selected
@@ -159,6 +164,59 @@ export default function WidgetEditor({
     enabled: !!selectedDatasetId,
   });
 
+  // Execute SQL query
+  const handleExecuteQuery = async () => {
+    if (!selectedConnectionId || !customQuery.trim()) {
+      toast({
+        title: "Error",
+        description: "Please select a connection and enter a valid SQL query.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/connections/${selectedConnectionId}/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: customQuery }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to execute SQL query");
+      }
+
+      const data = await response.json();
+      setPreviewData(data);
+      
+      if (data.length > 0) {
+        const columns = extractColumns(data);
+        setDataColumns(columns);
+        
+        // Initialize default config if not already set
+        if (!config.xAxis && columns.length > 0) {
+          setConfig((prevConfig) => ({
+            ...prevConfig,
+            xAxis: columns[0],
+            yAxis: columns[1] || columns[0],
+          }));
+        }
+      }
+      
+      // Auto switch to table preview tab after query execution
+      setCurrentTab("table-preview");
+    } catch (error: any) {
+      toast({
+        title: "Query execution failed",
+        description: error.message || "Failed to execute SQL query",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle changes to dataset or chart type
   useEffect(() => {
     if (datasetData && datasetData.length > 0) {
@@ -177,50 +235,92 @@ export default function WidgetEditor({
     }
   }, [datasetData, chartType]);
 
+  // Update SQL tables when connection changes
+  useEffect(() => {
+    if (sqlTablesData) {
+      setSqlTables(sqlTablesData);
+    }
+  }, [sqlTablesData]);
+
   // Handle form submission
   const handleSubmit = () => {
     // Check for required fields
-    if (!useCustomQuery && !selectedDatasetId) {
+    if (!name.trim()) {
       toast({
         title: "Error",
-        description: "Please select a dataset.",
+        description: "Please enter a widget name.",
         variant: "destructive",
       });
       return;
     }
 
-    if (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) {
-      toast({
-        title: "Error",
-        description: "Please select a connection and enter a SQL query.",
-        variant: "destructive",
-      });
-      return;
+    // Validate based on widget type
+    if (widgetType === "text") {
+      if (!textContent.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter some text content.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (!selectedConnectionId) {
+        toast({
+          title: "Error",
+          description: "Please select a data connection.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!customQuery.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a SQL query.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    // Make sure we explicitly set the fields that should be null
-    const widgetData = {
+    // Prepare widget data based on type
+    const widgetData: any = {
       name,
-      dashboardId: selectedDashboardId,
-      type: chartType,
-      config,
+      description,
+      dashboardId: dashboardId || null,
       position: widget?.position || { x: 0, y: 0, w: 3, h: 2 },
       isTemplate: isTemplate,
       sourceWidgetId: widget?.sourceWidgetId || null,
     };
-    
-    // When using custom query, explicitly set these fields
-    if (useCustomQuery) {
+
+    // Set type-specific fields
+    if (widgetType === "text") {
       Object.assign(widgetData, {
+        type: "text",
+        textContent: textContent,
+        connectionId: null,
         datasetId: null,
+        customQuery: null,
+        config: {}
+      });
+    } else if (widgetType === "table") {
+      Object.assign(widgetData, {
+        type: "table",
+        textContent: null,
         connectionId: selectedConnectionId,
-        customQuery: customQuery
+        datasetId: null,
+        customQuery: customQuery,
+        config: {}
       });
     } else {
       Object.assign(widgetData, {
-        datasetId: selectedDatasetId,
-        connectionId: null,
-        customQuery: null
+        type: chartType,
+        textContent: null,
+        connectionId: selectedConnectionId,
+        datasetId: null,
+        customQuery: customQuery,
+        config: config
       });
     }
 
@@ -267,321 +367,195 @@ export default function WidgetEditor({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Panel */}
-        <div className="lg:col-span-1 space-y-6">
-          <div>
-            <Label htmlFor="widget-name">Widget Name</Label>
-            <Input
-              id="widget-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter widget name"
-            />
+      {/* Title and Description Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="widget-name">Widget Title</Label>
+          <Input
+            id="widget-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter widget title"
+          />
+        </div>
+        <div>
+          <Label htmlFor="widget-description">Description</Label>
+          <Input
+            id="widget-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter a short description"
+          />
+        </div>
+      </div>
+
+      {/* Widget Type Selection */}
+      <div className="flex justify-between items-center">
+        <Label>Widget Type</Label>
+        <div className="grid grid-cols-3 gap-4 mt-2">
+          <Button
+            variant={widgetType === "text" ? "default" : "outline"}
+            onClick={() => setWidgetType("text")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="4 7 4 4 20 4 20 7"></polyline>
+              <line x1="9" y1="20" x2="15" y2="20"></line>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+          </Button>
+          <Button
+            variant={widgetType === "table" ? "default" : "outline"}
+            onClick={() => setWidgetType("table")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+          </Button>
+          <Button
+            variant={widgetType === "chart" ? "default" : "outline"}
+            onClick={() => setWidgetType("chart")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+              <line x1="2" y1="20" x2="22" y2="20"></line>
+            </svg>
+          </Button>
+        </div>
+      </div>
+
+      {/* Widget Type Specific Content */}
+      {widgetType === "text" ? (
+        <div className="mt-4">
+          <Label htmlFor="text-content">Text Content</Label>
+          <Textarea
+            id="text-content"
+            value={textContent}
+            onChange={(e) => setTextContent(e.target.value)}
+            placeholder="Enter your text content here..."
+            className="min-h-[300px]"
+          />
+        </div>
+      ) : widgetType === "table" || widgetType === "chart" ? (
+        <div className="mt-4">
+          {/* Data Connection Section */}
+          <div className="mb-4">
+            <Label>Data Connection</Label>
+            <Select
+              value={selectedConnectionId?.toString() || ""}
+              onValueChange={(value) => setSelectedConnectionId(Number(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a connection" />
+              </SelectTrigger>
+              <SelectContent>
+                {connections.map((connection) => (
+                  <SelectItem
+                    key={connection.id}
+                    value={connection.id.toString()}
+                  >
+                    {connection.name} ({connection.type.toUpperCase()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <Label>Data Source</Label>
-              <Select
-                value={selectedConnectionId?.toString() || "0"}
-                onValueChange={(value) => {
-                  const connectionId = Number(value);
-                  setSelectedConnectionId(connectionId);
-                  setSelectedDatasetId(null);
-                  if (connectionId) {
-                    const connection = connections.find(
-                      (c) => c.id === connectionId,
-                    );
-                    if (connection?.type === "sql") {
-                      setUseCustomQuery(true);
-                    } else {
-                      setUseCustomQuery(false);
-                    }
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a connection" />
-                </SelectTrigger>
-                <SelectContent>
-                  {connections.map((connection) => (
-                    <SelectItem
-                      key={connection.id}
-                      value={connection.id.toString()}
-                    >
-                      {connection.name} ({connection.type.toUpperCase()})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {selectedConnectionId && (
+            <Tabs value={currentTab} onValueChange={setCurrentTab}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="query-view">Query View</TabsTrigger>
+                <TabsTrigger value="table-preview">Table Preview</TabsTrigger>
+                {widgetType === "chart" && (
+                  <TabsTrigger value="chart-preview">Chart Preview</TabsTrigger>
+                )}
+              </TabsList>
 
-            {selectedConnectionId && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Query Type</Label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="dataset-source"
-                        checked={!useCustomQuery}
-                        onChange={() => setUseCustomQuery(false)}
-                        className="rounded-full"
-                        disabled={
-                          connections.find(
-                            (c) => c.id === selectedConnectionId,
-                          )?.type !== "sql"
-                        }
-                      />
-                      <Label htmlFor="dataset-source">Dataset</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="sql-source"
-                        checked={useCustomQuery}
-                        onChange={() => setUseCustomQuery(true)}
-                        className="rounded-full"
-                        disabled={
-                          connections.find(
-                            (c) => c.id === selectedConnectionId,
-                          )?.type !== "sql"
-                        }
-                      />
-                      <Label htmlFor="sql-source">Custom SQL</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {!useCustomQuery ? (
+              {/* Query View Tab */}
+              <TabsContent value="query-view" className="space-y-4">
+                {sqlTables.length > 0 && (
                   <div>
-                    <Label>Dataset</Label>
+                    <Label>Available Tables</Label>
                     <Select
-                      value={selectedDatasetId?.toString() || "0"}
-                      onValueChange={(value) =>
-                        setSelectedDatasetId(Number(value))
-                      }
+                      value={selectedTable || ""}
+                      onValueChange={(value) => {
+                        setSelectedTable(value);
+                        setCustomQuery(`SELECT * FROM ${value} LIMIT 10`);
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a dataset" />
+                        <SelectValue placeholder="Select a table" />
                       </SelectTrigger>
                       <SelectContent>
-                        {datasets
-                          .filter(
-                            (dataset) =>
-                              dataset.connectionId === selectedConnectionId,
-                          )
-                          .map((dataset) => (
-                            <SelectItem
-                              key={dataset.id}
-                              value={dataset.id.toString()}
-                            >
-                              {dataset.name}
-                            </SelectItem>
-                          ))}
+                        {sqlTables.map((table) => (
+                          <SelectItem key={table} value={table}>
+                            {table}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                ) : (
-                  <div>
-                    {sqlTables.length > 0 && (
-                      <div className="mb-4">
-                        <Label>Table</Label>
-                        <Select
-                          value={selectedTable || ""}
-                          onValueChange={(value) => setSelectedTable(value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a table" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sqlTables.map((table) => (
-                              <SelectItem key={table} value={table}>
-                                {table}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label>SQL Query</Label>
-                      <MonacoSQLEditor
-                        value={customQuery}
-                        onChange={setCustomQuery}
-                        height="200px"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={handleExecuteQuery}
-                        disabled={!selectedConnectionId || !customQuery.trim()}
-                      >
-                        <PlayIcon className="w-4 h-4 mr-2" />
-                        Run Query
-                      </Button>
-                    </div>
-                  </div>
                 )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Panel */}
-        <div className="lg:col-span-2 space-y-6">
-          <Tabs value={currentTab} onValueChange={setCurrentTab}>
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="chart-type">Chart Type</TabsTrigger>
-              <TabsTrigger value="data-mapping">Data</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="chart-type" className="mt-4">
-              <div className="grid grid-cols-2 gap-2">
-                {chartTypes.map((type) => (
-                  <Button
-                    key={type}
-                    variant={chartType === type ? "default" : "outline"}
-                    className="flex flex-col items-center justify-center h-16 p-2"
-                    onClick={() => setChartType(type)}
-                  >
-                    {getChartTypeIcon(type)}
-                    <span className="text-xs mt-1">
-                      {getChartTypeDisplayName(type)}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-              <div className="mt-4">
-                <ChartConfig
-                  chartType={chartType}
-                  config={config}
-                  onChange={(newConfig) =>
-                    setConfig({ ...config, ...newConfig })
-                  }
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="data-mapping" className="mt-4">
-              {selectedDatasetId ? (
-                <AxisMapping
-                  chartType={chartType}
-                  columns={dataColumns}
-                  config={config}
-                  onChange={(newConfig) =>
-                    setConfig({ ...config, ...newConfig })
-                  }
-                />
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  Please select a dataset first
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="advanced" className="mt-4">
-              <div className="space-y-4">
                 <div>
-                  <Label>Visual Options</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="show-legend"
-                        checked={config.showLegend !== false}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            showLegend: e.target.checked,
-                          })
-                        }
-                        className="rounded border-gray-300"
-                      />
-                      <Label htmlFor="show-legend">Show Legend</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="show-grid"
-                        checked={config.showGrid !== false}
-                        onChange={(e) =>
-                          setConfig({ ...config, showGrid: e.target.checked })
-                        }
-                        className="rounded border-gray-300"
-                      />
-                      <Label htmlFor="show-grid">Show Grid</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="show-tooltip"
-                        checked={config.showTooltip !== false}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            showTooltip: e.target.checked,
-                          })
-                        }
-                        className="rounded border-gray-300"
-                      />
-                      <Label htmlFor="show-tooltip">Show Tooltip</Label>
-                    </div>
+                  <Label>SQL Query</Label>
+                  <div className="mt-2">
+                    <MonacoSQLEditor
+                      value={customQuery}
+                      onChange={setCustomQuery}
+                      height="300px"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <Button
+                      onClick={handleExecuteQuery}
+                      disabled={!selectedConnectionId || !customQuery.trim()}
+                    >
+                      <PlayIcon className="w-4 h-4 mr-2" />
+                      Execute Query
+                    </Button>
                   </div>
                 </div>
+              </TabsContent>
 
-                <div>
-                  <Label>Custom Colors</Label>
-                  <Input
-                    value={config.colors?.join(", ") || ""}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        colors: e.target.value
-                          ? e.target.value.split(",").map((c) => c.trim())
-                          : undefined,
-                      })
-                    }
-                    placeholder="E.g., #3B82F6, #10B981, #F59E0B"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Comma-separated list of colors (hex codes)
-                  </p>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          {/* Preview Section */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <Label>Preview</Label>
-              {previewData.length > 0 && (
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant={!showDataPreview ? "default" : "outline"}
-                    onClick={() => setShowDataPreview(false)}
-                  >
-                    Chart
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={showDataPreview ? "default" : "outline"}
-                    onClick={() => setShowDataPreview(true)}
-                  >
-                    Data Table
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div className="h-[400px]">
-              {previewData.length > 0 ? (
-                showDataPreview ? (
-                  <div className="overflow-auto h-full">
+              {/* Table Preview Tab */}
+              <TabsContent value="table-preview">
+                <div className="border rounded-lg p-4 h-[400px] overflow-auto">
+                  {previewData.length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -591,7 +565,7 @@ export default function WidgetEditor({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {previewData.slice(0, 50).map((row, idx) => (
+                        {previewData.map((row, idx) => (
                           <TableRow key={idx}>
                             {dataColumns.map((column) => (
                               <TableCell key={`${idx}-${column}`}>
@@ -604,32 +578,172 @@ export default function WidgetEditor({
                         ))}
                       </TableBody>
                     </Table>
-                    {previewData.length > 50 && (
-                      <div className="text-center text-sm text-muted-foreground mt-2">
-                        Showing 50 of {previewData.length} rows
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Chart
-                    type={chartType}
-                    data={previewData}
-                    config={config}
-                    height="100%"
-                  />
-                )
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  {isLoadingData
-                    ? "Loading data..."
-                    : "No data available for preview"}
+                  ) : isLoadingData ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Spinner className="w-8 h-8 mr-2" />
+                      <span>Loading data...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      No data available. Execute a query first.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+              </TabsContent>
 
+              {/* Chart Preview Tab - Only visible for Chart Widget Type */}
+              {widgetType === "chart" && (
+                <TabsContent value="chart-preview" className="mt-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column - Chart Properties */}
+                    <div className="lg:col-span-1 space-y-6 border rounded-lg p-4">
+                      <h3 className="text-lg font-medium">Chart Properties</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Data Mapping</Label>
+                          {dataColumns.length > 0 ? (
+                            <AxisMapping
+                              chartType={chartType}
+                              columns={dataColumns}
+                              config={config}
+                              onChange={(newConfig) =>
+                                setConfig({ ...config, ...newConfig })
+                              }
+                            />
+                          ) : (
+                            <div className="text-sm text-muted-foreground mt-2">
+                              Execute a query to map data columns
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Label>Visual Options</Label>
+                          <div className="space-y-2 mt-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="show-legend"
+                                checked={config.showLegend !== false}
+                                onChange={(e) =>
+                                  setConfig({
+                                    ...config,
+                                    showLegend: e.target.checked,
+                                  })
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <Label htmlFor="show-legend">Show Legend</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="show-grid"
+                                checked={config.showGrid !== false}
+                                onChange={(e) =>
+                                  setConfig({ ...config, showGrid: e.target.checked })
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <Label htmlFor="show-grid">Show Grid</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="show-tooltip"
+                                checked={config.showTooltip !== false}
+                                onChange={(e) =>
+                                  setConfig({
+                                    ...config,
+                                    showTooltip: e.target.checked,
+                                  })
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <Label htmlFor="show-tooltip">Show Tooltip</Label>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Custom Colors</Label>
+                          <Input
+                            value={config.colors?.join(", ") || ""}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                colors: e.target.value
+                                  ? e.target.value.split(",").map((c) => c.trim())
+                                  : undefined,
+                              })
+                            }
+                            placeholder="E.g., #3B82F6, #10B981, #F59E0B"
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Comma-separated list of colors (hex codes)
+                          </p>
+                        </div>
+                        
+                        <ChartConfig
+                          chartType={chartType}
+                          config={config}
+                          onChange={(newConfig) =>
+                            setConfig({ ...config, ...newConfig })
+                          }
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Right Column - Chart Preview */}
+                    <div className="lg:col-span-2 space-y-6">
+                      <div className="border rounded-lg p-4">
+                        <h3 className="text-lg font-medium mb-4">Chart Preview</h3>
+                        <div className="h-[300px]">
+                          {previewData.length > 0 ? (
+                            <Chart
+                              type={chartType}
+                              data={previewData}
+                              config={config}
+                              height="100%"
+                            />
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-muted-foreground">
+                              No data available for preview
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Chart Type Selector */}
+                      <div className="border rounded-lg p-4">
+                        <h3 className="text-lg font-medium mb-4">Chart Type</h3>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                          {chartTypes.filter((type) => !['text', 'table'].includes(type)).map((type) => (
+                            <Button
+                              key={type}
+                              variant={chartType === type ? "default" : "outline"}
+                              className="flex flex-col items-center justify-center h-16 p-2"
+                              onClick={() => setChartType(type)}
+                            >
+                              {getChartTypeIcon(type)}
+                              <span className="text-xs mt-1">
+                                {getChartTypeDisplayName(type)}
+                              </span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              )}
+            </Tabs>
+          )}
+        </div>
+      ) : null}
+
+      {/* Action Buttons */}
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={onClose}>
           Cancel
@@ -637,9 +751,10 @@ export default function WidgetEditor({
         <Button
           onClick={handleSubmit}
           disabled={
-            (!useCustomQuery && !selectedDatasetId) ||
-            (useCustomQuery && (!selectedConnectionId || !customQuery.trim())) ||
-            !name ||
+            !name.trim() ||
+            (widgetType === "text" && !textContent.trim()) ||
+            ((widgetType === "table" || widgetType === "chart") && 
+              (!selectedConnectionId || !customQuery.trim())) ||
             isPending
           }
         >
@@ -662,15 +777,15 @@ export default function WidgetEditor({
 // Helper function to get display name for chart type
 function getChartTypeDisplayName(type: ChartType): string {
   const displayNames: Record<ChartType, string> = {
-    bar: "Bar Chart",
-    column: "Column Chart",
-    line: "Line Chart",
-    pie: "Pie Chart",
-    scatter: "Scatter Plot",
-    "dual-axes": "Dual Axes Chart",
+    bar: "Bar",
+    column: "Column",
+    line: "Line",
+    pie: "Pie",
+    scatter: "Scatter",
+    "dual-axes": "Dual Axes",
     counter: "Counter",
-    "stat-card": "Stat Card",
-    table: "Data Table",
+    "stat-card": "Stats",
+    table: "Table",
     text: "Text"
   };
   return displayNames[type] || type;
@@ -750,7 +865,7 @@ function getChartTypeIcon(type: ChartType) {
         </svg>
       );
     case "scatter":
-      return (
+   return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -829,6 +944,44 @@ function getChartTypeIcon(type: ChartType) {
           <path d="M12 15h0"></path>
           <path d="M17 15h0"></path>
           <path d="M7 11h10"></path>
+        </svg>
+      );
+    case "table":
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="3" y1="15" x2="21" y2="15"></line>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+          <line x1="15" y1="3" x2="15" y2="21"></line>
+        </svg>
+      );
+    case "text":
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="4 7 4 4 20 4 20 7"></polyline>
+          <line x1="9" y1="20" x2="15" y2="20"></line>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
         </svg>
       );
     default:
