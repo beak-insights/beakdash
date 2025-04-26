@@ -5,14 +5,13 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { widgets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { WidgetForm } from "@/components/widgets/widget-form";
-import { AppLayout } from "@/components/layout/app-layout";
+import { EditWidgetClient } from "./edit-widget-client";
 
 interface PageProps {
-  params: Promise<{
+  params: {
     id: string;
     widgetId: string;
-  }>;
+  };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -57,19 +56,5 @@ export default async function EditWidgetPage({ params }: PageProps) {
     redirect(`/dashboard/${id}`);
   }
 
-  return (
-    <AppLayout>
-      <div className="container py-10">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Edit Widget</h1>
-          <WidgetForm
-            dashboardId={dashboardId}
-            widget={widget}
-            backUrl={`/dashboard/${dashboardId}`}
-            isEditMode={true}
-          />
-        </div>
-      </div>
-    </AppLayout>
-  );
+  return <EditWidgetClient dashboardId={dashboardId} widget={widget} />;
 }

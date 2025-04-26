@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useWebSocket } from "@/lib/websocket-service";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
@@ -8,10 +7,9 @@ interface AIStatusProps {
 }
 
 /**
- * Component to display real-time AI processing status
+ * Component to display AI processing status using polling
  */
 export function AIProcessingStatus({ datasetKey }: AIStatusProps) {
-  const { subscribe } = useWebSocket();
   const [processingStatus, setProcessingStatus] = useState<{
     status: 'idle' | 'processing' | 'sending' | 'completed' | 'error';
     message: string;
@@ -33,37 +31,41 @@ export function AIProcessingStatus({ datasetKey }: AIStatusProps) {
     }
   }, [processingStatus.status]);
 
-  // Subscribe to WebSocket events for AI updates
+  // Poll for status updates
   useEffect(() => {
-    const unsubscribe = subscribe('data-update', (event) => {
-      if (event.type === 'data-update' && event.dataset === datasetKey) {
-        const data = event.data as any;
+    if (processingStatus.status === 'idle') return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/ai/status/${datasetKey}`);
+        if (!response.ok) throw new Error('Failed to fetch status');
+        
+        const data = await response.json();
         setProcessingStatus({
           status: data.status,
           message: data.message,
           requestId: data.requestId,
-          timestamp: event.timestamp
+          timestamp: data.timestamp
         });
-      }
-    });
-    
-    // Also subscribe to error events
-    const unsubscribeErrors = subscribe('error', (event) => {
-      if (event.type === 'error') {
+
+        // Stop polling if processing is complete or there's an error
+        if (data.status === 'completed' || data.status === 'error') {
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('Error polling AI status:', error);
         setProcessingStatus({
           status: 'error',
-          message: event.message,
-          timestamp: event.timestamp
+          message: 'Failed to check processing status',
+          timestamp: new Date().toISOString()
         });
+        clearInterval(pollInterval);
       }
-    });
-    
-    return () => {
-      unsubscribe();
-      unsubscribeErrors();
-    };
-  }, [subscribe, datasetKey]);
-  
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [datasetKey, processingStatus.status]);
+
   if (processingStatus.status === 'idle') {
     return null;
   }

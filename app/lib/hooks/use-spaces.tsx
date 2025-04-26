@@ -5,7 +5,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Toast } from "@/components/ui/toast";
 import { useState, useEffect } from "react";
 import { create } from "zustand";
-import { useWebSocket } from "@/lib/websocket-service";
 import { useAuth } from "@/lib/hooks/use-auth";
 
 // Spaces store to maintain the currently selected space
@@ -25,7 +24,6 @@ export const useSpaceStore = create<SpaceStore>((set) => ({
 export function useSpaces() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { subscribe, switchSpace } = useWebSocket();
   const { currentSpaceId, setCurrentSpaceId } = useSpaceStore();
   const [switchingSpace, setSwitchingSpace] = useState(false);
   const [userSettingsLoaded, setUserSettingsLoaded] = useState(false);
@@ -155,32 +153,25 @@ export function useSpaces() {
       
       // Generate slug from name
       const slug = spaceData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const response = await apiRequest("POST", "/api/spaces", {
-        ...spaceData,
-        slug,
-        userId: user.id // Include user ID so server can automatically add user to space
-      });
       
-      // Check if the response is valid JSON
-      try {
-        return await response.json();
-      } catch (error) {
-        // If JSON parsing fails, log the issue and return a formatted response
-        console.error("Error parsing server response:", error);
-        const text = await response.text();
-        console.log("Raw response:", text);
-        
-        // Return a basic space object to prevent UI errors
-        return {
-          id: Date.now(), // Temporary ID until refresh
-          name: spaceData.name,
-          description: spaceData.description || '',
-          slug: slug,
-          settings: spaceData.settings || {},
-          isPrivate: spaceData.isPrivate || false,
-          logoUrl: spaceData.logoUrl || null
-        };
+      const response = await fetch('/api/spaces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...spaceData,
+          slug,
+          userId: user.id
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to create space');
       }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/spaces'] });
@@ -254,99 +245,33 @@ export function useSpaces() {
     },
   });
 
-  // Set up WebSocket subscriptions for space switching
-  useEffect(() => {
-    // Only set up WebSocket subscriptions if we have all the dependencies
-    if (!subscribe || !toast) return;
-    
-    // Listen for space switch success events
-    const unsubscribeSuccess = subscribe('space_switch_success', (event) => {
-      if (event.space && event.space.id) {
-        // Update state with the new space details - ensure ID is numeric
-        const spaceId = typeof event.space.id === 'string' ? parseInt(event.space.id, 10) : event.space.id;
-        setCurrentSpaceId(spaceId);
-        setSwitchingSpace(false);
-        
-        // Invalidate related queries to refresh data for the new space
-        queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
-        
-        toast({
-          title: "Space changed",
-          description: `You are now in ${event.space.name} space.`,
-        });
-      }
-    });
-    
-    // Listen for space switch error events
-    const unsubscribeError = subscribe('space_switch_error', (event) => {
-      setSwitchingSpace(false);
+  // Switch to a different space
+  const switchToSpace = async (spaceId: number) => {
+    try {
+      setSwitchingSpace(true);
+      setCurrentSpaceId(spaceId);
+      
+      // Update URL with new space ID
+      const url = new URL(window.location.href);
+      url.searchParams.set('spaceId', spaceId.toString());
+      window.history.pushState({}, '', url.toString());
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries();
+      
+      toast({
+        title: "Space switched",
+        description: "You have switched to a different space.",
+      });
+    } catch (error) {
+      console.error('Error switching space:', error);
       toast({
         title: "Failed to switch space",
-        description: event.message || "An error occurred while switching spaces.",
+        description: error instanceof Error ? error.message : "An error occurred while switching spaces.",
         variant: "destructive",
       });
-    });
-    
-    return () => {
-      unsubscribeSuccess();
-      unsubscribeError();
-    };
-  }, [subscribe, setCurrentSpaceId, toast, queryClient]);
-  
-  // Function to deselect the current space and show all content
-  const deselectCurrentSpace = () => {
-    // Set to null to indicate no specific space is selected
-    setCurrentSpaceId(null);
-    
-    // For any routes that need space filtering, update the URL by removing space query params
-    // This handles changes for the current route
-    const currentUrl = new URL(window.location.href);
-    if (currentUrl.searchParams.has('spaceId')) {
-      currentUrl.searchParams.delete('spaceId');
-      window.history.replaceState({}, '', currentUrl.toString());
-    }
-    
-    // Invalidate related queries to show all content
-    queryClient.invalidateQueries({ queryKey: ['/api/dashboards'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
-    
-    toast({
-      title: "All spaces selected",
-      description: "Now showing content from all spaces.",
-    });
-  };
-
-  // Function to switch spaces using WebSocket
-  const switchToSpace = (spaceId: number) => {
-    if (!user || !user.id) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to switch spaces.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setSwitchingSpace(true);
-    // Ensure user ID is numeric for WebSocket
-    const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    switchSpace(userId, spaceId);
-    
-    // Also update local state immediately for better UX
-    setCurrentSpaceId(spaceId);
-    
-    // For any routes that need space filtering, update the URL with the space ID
-    // This handles changes for the current route
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('spaceId', spaceId.toString());
-    window.history.replaceState({}, '', currentUrl.toString());
-    
-    // If we're on a dashboard-related page, refresh to load the filtered dashboards
-    if (window.location.pathname.startsWith('/dashboard')) {
-      window.location.href = currentUrl.toString();
+    } finally {
+      setSwitchingSpace(false);
     }
   };
   
@@ -397,7 +322,6 @@ export function useSpaces() {
     currentSpace,
     setCurrentSpaceId,
     switchToSpace,
-    deselectCurrentSpace,
     switchingSpace
   };
 }

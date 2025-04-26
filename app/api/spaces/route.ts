@@ -32,10 +32,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    const isDefault = formData.get('isDefault') === 'on';
+    let name: string;
+    let description: string | null = null;
+    let isDefault = false;
+    
+    // Check content type to determine how to parse the data
+    const contentType = request.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      // Handle JSON data
+      const jsonData = await request.json();
+      name = jsonData.name;
+      description = jsonData.description || null;
+      isDefault = jsonData.isDefault || false;
+    } else {
+      // Handle form data
+      const formData = await request.formData();
+      name = formData.get('name') as string;
+      description = formData.get('description') as string | null;
+      isDefault = formData.get('isDefault') === 'on';
+    }
     
     if (!name) {
       return NextResponse.json({ error: 'Space name is required' }, { status: 400 });
@@ -80,7 +96,12 @@ export async function POST(request: NextRequest) {
       joinedAt: new Date(),
     });
     
-    return NextResponse.redirect(new URL('/spaces', request.url));
+    // Return JSON response for API calls, redirect for form submissions
+    if (contentType?.includes('application/json')) {
+      return NextResponse.json(newSpace);
+    } else {
+      return NextResponse.redirect(new URL('/spaces', request.url));
+    }
   } catch (error) {
     console.error('Error creating space:', error);
     return NextResponse.json({ error: 'Failed to create space' }, { status: 500 });

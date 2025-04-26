@@ -3,9 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { Loader2 } from 'lucide-react';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { register } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -26,23 +29,19 @@ export default function SignUpPage() {
     }
 
     try {
-      // In a real implementation, this would make an API call to create a user
-      console.log('Registering user with:', {
-        name,
+      // Register the user using the useAuth hook
+      await register({
         username,
         email,
-        password
+        password,
+        displayName: name,
       });
-      
-      // Simulate API call to create a user
-      setTimeout(() => {
-        // After successful registration, redirect to sign in
-        router.push(`/auth?registered=true&username=${encodeURIComponent(username)}`);
-      }, 1000);
-      
+
+      // Redirect to dashboard after successful registration
+      router.push('/dashboard');
     } catch (err) {
-      setError('An error occurred during registration');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'An error occurred during registration');
+      console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +103,7 @@ export default function SignUpPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            placeholder="name@example.com"
+            placeholder="john@example.com"
             required
           />
         </div>
@@ -119,11 +118,10 @@ export default function SignUpPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="••••••••"
             required
+            minLength={6}
           />
-          <p className="text-xs text-muted-foreground">
-            At least 8 characters with letters and numbers
-          </p>
         </div>
 
         <div className="space-y-2">
@@ -136,51 +134,30 @@ export default function SignUpPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="••••••••"
             required
+            minLength={6}
           />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="terms"
-            className="h-4 w-4 rounded border-gray-300 text-primary"
-            required
-          />
-          <label htmlFor="terms" className="text-xs text-muted-foreground">
-            I agree to the{' '}
-            <Link href="/terms" className="text-primary hover:underline">
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link href="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-          </label>
         </div>
 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-10 bg-primary text-primary-foreground rounded-md font-medium flex items-center justify-center"
+          className="w-full flex items-center justify-center h-10 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
         >
-          {isLoading ? 'Creating account...' : 'Create account'}
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            'Create Account'
+          )}
         </button>
       </form>
 
-      <div className="text-center mt-4">
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/auth" className="text-sm font-medium text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
-      
-      <div className="text-center mt-2">
-        <p className="text-xs text-muted-foreground">
-          This is a demo application. Registration does not create a real account.
-        </p>
+      <div className="text-center text-sm">
+        Already have an account?{' '}
+        <Link href="/auth" className="text-primary hover:underline">
+          Sign in
+        </Link>
       </div>
     </div>
   );

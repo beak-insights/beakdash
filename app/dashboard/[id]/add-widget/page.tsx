@@ -1,69 +1,49 @@
-import React from 'react';
-import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/db';
 import { dashboards } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
-import { WidgetForm } from '@/components/widgets/widget-form';
+import { AddWidgetClient } from "./add-widget-client";
 
-type Props = {
-  params: Promise<{ id: string }>;
-};
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const dashboardId = parseInt(id);
-  const dashboard = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, dashboardId),
-  });
-
-  if (!dashboard) {
-    return {
-      title: 'Dashboard Not Found',
-    };
-  }
-
-  return {
-    title: `Add Widget - ${dashboard.name}`,
-    description: `Add a widget to ${dashboard.name} dashboard`,
+interface PageProps {
+  params: {
+    id: string;
   };
 }
 
-export default async function AddWidgetPage({ params }: Props) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  return {
+    title: "Add Widget",
+    description: "Add a widget to your dashboard",
+  };
+}
+
+export default async function AddWidgetPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    redirect("/auth");
+    redirect('/auth/sign-in');
   }
 
   const { id } = await params;
   const dashboardId = parseInt(id);
-  
-  // Fetch the dashboard from the database
+  if (isNaN(dashboardId)) {
+    redirect('/dashboard');
+  }
+
+  // Verify dashboard exists and belongs to user
   const dashboard = await db.query.dashboards.findFirst({
     where: eq(dashboards.id, dashboardId),
   });
 
-  // If dashboard doesn't exist, show 404
   if (!dashboard) {
-    notFound();
+    redirect('/dashboard');
   }
 
-  return (
-    <AppLayout>
-      <div className="container py-10">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Add Widget to {dashboard.name}</h1>
-          <WidgetForm
-            dashboardId={dashboardId}
-            backUrl={`/dashboard/${dashboardId}`}
-            isEditMode={false}
-          />
-        </div>
-      </div>
-    </AppLayout>
-  );
+  return <AddWidgetClient dashboardId={dashboardId} />;
 }

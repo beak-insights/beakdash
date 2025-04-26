@@ -21,14 +21,18 @@ export const authOptions: NextAuthOptions = {
         const usernameOrEmail = credentials?.username;
         const password = credentials?.password;
         
+        console.log("Auth attempt with credentials:", { usernameOrEmail });
+        
         // Check if credentials are provided
         if (!credentials || !usernameOrEmail || !password) {
+          console.log("Missing credentials");
           return null;
         }
         
         try {
           // Check if the input looks like an email
           const isEmail = usernameOrEmail.includes('@');
+          console.log("Input type:", isEmail ? "email" : "username");
           
           let userResults;
           
@@ -37,11 +41,13 @@ export const authOptions: NextAuthOptions = {
             userResults = await db.select()
               .from(users)
               .where(eq(users.email, usernameOrEmail));
+            console.log("Email search results:", userResults);
           } else {
             // Try to find by exact username match
             userResults = await db.select()
               .from(users)
               .where(eq(users.username, usernameOrEmail));
+            console.log("Username search results:", userResults);
           }
           
           // If no results, try the opposite way
@@ -86,11 +92,12 @@ export const authOptions: NextAuthOptions = {
           }
           
           const user = userResults[0];
+          console.log("Found user:", { id: user.id, username: user.username, email: user.email });
           
           let passwordMatch = false;
           
           // Console log for debugging
-          console.log("Authenticating user:", usernameOrEmail);
+          console.log("Password format:", user.password.startsWith('$2') ? "bcrypt" : "plain");
           
           // Check if the password is a bcrypt hash (starts with $2a$, $2b$, etc.)
           const isBcryptHash = user.password.startsWith('$2');

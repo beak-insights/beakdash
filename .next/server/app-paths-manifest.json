@@ -1,7 +1,16 @@
 {
-  "/api/widgets/[id]/route": "app/api/widgets/[id]/route.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
+  "/api/spaces/route": "app/api/spaces/route.js",
+  "/api/spaces/user/route": "app/api/spaces/user/route.js",
+  "/api/widgets/route": "app/api/widgets/route.js",
+  "/api/user/settings/[id]/route": "app/api/user/settings/[id]/route.js",
+  "/api/dashboards/route": "app/api/dashboards/route.js",
+  "/api/datasets/route": "app/api/datasets/route.js",
+  "/api/connections/route": "app/api/connections/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
   "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/page": "app/page.js"
+  "/dashboard/[id]/edit-widget/[widgetId]/page": "app/dashboard/[id]/edit-widget/[widgetId]/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/db-qa/alerts/page": "app/db-qa/alerts/page.js",
+  "/db-qa/alerts/new/page": "app/db-qa/alerts/new/page.js"
 }

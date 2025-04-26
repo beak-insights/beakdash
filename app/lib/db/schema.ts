@@ -277,6 +277,48 @@ export const chartConfigSchema = z.object({
   ).optional(),
 });
 
+// User Settings Schema
+export const userSettingsSchema = z.object({
+  // Privacy & Security
+  dataSharing: z.boolean().default(false),
+  analytics: z.boolean().default(false),
+  emailNotifications: z.boolean().default(true),
+  twoFactorAuth: z.boolean().default(false),
+  sessionTimeout: z.number().min(5).max(1440).default(30), // in minutes
+  lastPasswordChange: z.string().nullable().default(null),
+
+  // Appearance
+  theme: z.enum(['light', 'dark', 'system']).default('light'),
+  language: z.string().default('en'),
+  timeZone: z.string().default('UTC'),
+
+  // Dashboard Settings
+  autoRefresh: z.boolean().default(true),
+  refreshInterval: z.number().min(1).max(60).default(5), // in minutes
+  defaultDashboardId: z.number().nullable().default(null),
+
+  // API Keys
+  apiKeys: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    key: z.string(),
+    createdAt: z.string(),
+    lastUsed: z.string().nullable(),
+    permissions: z.array(z.string())
+  })).default([]),
+
+  // Integrations
+  integrations: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    status: z.enum(['active', 'inactive', 'error']),
+    config: z.record(z.any()),
+    lastSync: z.string().nullable(),
+    error: z.string().nullable()
+  })).default([])
+});
+
 // Define relationships between tables
 import { relations } from "drizzle-orm";
 

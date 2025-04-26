@@ -13,12 +13,16 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Registration request received');
+    
     // Parse request body
     const body = await request.json();
+    console.log('Request body:', { ...body, password: '[REDACTED]' });
     
     // Validate registration data
     const validation = registerSchema.safeParse(body);
     if (!validation.success) {
+      console.log('Validation failed:', validation.error.format());
       return NextResponse.json(
         { message: 'Invalid registration data', errors: validation.error.format() },
         { status: 400 }
@@ -33,6 +37,7 @@ export async function POST(request: NextRequest) {
     });
     
     if (existingUserByUsername) {
+      console.log('Username already exists:', username);
       return NextResponse.json(
         { message: 'Username already exists' },
         { status: 409 }
@@ -46,6 +51,7 @@ export async function POST(request: NextRequest) {
       });
       
       if (existingUserByEmail) {
+        console.log('Email already exists:', email);
         return NextResponse.json(
           { message: 'Email already in use' },
           { status: 409 }
@@ -55,8 +61,10 @@ export async function POST(request: NextRequest) {
     
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
     
     // Create new user
+    console.log('Attempting to create user in database');
     const insertResult = await db.insert(users).values({
       username,
       email,
@@ -64,6 +72,8 @@ export async function POST(request: NextRequest) {
       role: 'user',
       displayName: username,
     }).returning();
+    
+    console.log('User created successfully:', { id: insertResult[0].id, username: insertResult[0].username });
     
     const newUser = insertResult[0];
     
