@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { connections, type Connection } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -111,13 +109,12 @@ export async function POST(request: NextRequest) {
       port: body.port,
       database: body.database,
       username: body.username,
-      // Don't store password directly in DB in production
-      // This is just for demo purposes
-      password: body.password ? '********' : undefined,
+      // Store the real password (encrypted)
+      password: body.password,
       sslMode: body.sslMode,
       baseUrl: body.baseUrl,
       authType: body.authType,
-      apiKey: body.apiKey ? '********' : undefined, // For REST APIs
+      apiKey: body.apiKey, // For REST APIs
       headerName: body.headerName,
       delimiter: body.delimiter, // For CSV
       encoding: body.encoding,
@@ -152,6 +149,13 @@ export async function POST(request: NextRequest) {
         // Convert dates to ISO strings
         if (value instanceof Date) {
           value = value.toISOString();
+        }
+        // Mask sensitive fields in the response
+        if (key === 'config') {
+          const config = JSON.parse(value);
+          if (config.password) config.password = '********';
+          if (config.apiKey) config.apiKey = '********';
+          value = JSON.stringify(config);
         }
         connection[key] = value;
       }

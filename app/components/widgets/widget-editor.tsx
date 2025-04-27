@@ -35,6 +35,9 @@ import {
   chartTypes,
   Dashboard,
   positionSchema,
+  DbSchema,
+  DbTable,
+  Connection,
 } from "@/lib/db/schema";
 import { extractColumns, truncateString } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
@@ -48,6 +51,20 @@ interface WidgetEditorProps {
   onCreate?: () => void;
   isCreating?: boolean;
   isTemplate?: boolean;
+}
+
+interface TableColumn {
+  name: string;
+  type: string;
+}
+
+interface SchemaInfo {
+  [schemaName: string]: {
+    [tableName: string]: {
+      column: string;
+      type: string;
+    }[];
+  };
 }
 
 export default function WidgetEditor({
@@ -91,9 +108,12 @@ export default function WidgetEditor({
         ? "table" 
         : "chart"
   );
+  const [selectedSchema, setSelectedSchema] = useState<string>("");
+  const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>({});
+  const [schemas, setSchemas] = useState<DbSchema[]>([]);
 
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const { dashboards } = useDashboard();
 
   // Use our custom hook for widget operations
@@ -106,38 +126,12 @@ export default function WidgetEditor({
   });
 
   // Fetch available connections
-  const { data: connections = [] } = useQuery({
+  const { data: connections = [] } = useQuery<Connection[]>({
     queryKey: ["/api/connections"],
   });
 
   // Fetch dashboards for this widget if editing
   const { data: widgetDashboards = [] } = useWidgetDashboards(widget?.id);
-
-  // Fetch SQL tables for selected SQL connection
-  const { data: sqlTablesData } = useQuery({
-    queryKey: ["/api/connections", selectedConnectionId, "tables"],
-    queryFn: async ({ queryKey }) => {
-      if (!selectedConnectionId) return [];
-
-      try {
-        const response = await fetch(`${queryKey[0]}/${queryKey[1]}/tables`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch SQL tables");
-        }
-        return response.json();
-      } catch (error: any) {
-        toast({
-          title: "Error loading SQL tables",
-          description:
-            error.message || "Failed to load tables from SQL connection",
-          variant: "destructive",
-        });
-        return [];
-      }
-    },
-    enabled: !!selectedConnectionId,
-  });
 
   // Fetch dataset data when selected
   const { data: datasetData, isLoading: isLoadingData } = useQuery({
@@ -153,10 +147,10 @@ export default function WidgetEditor({
         }
         return response.json();
       } catch (error: any) {
-        toast({
-          title: "Error loading data",
-          description: error.message || "Failed to load dataset data",
-          variant: "destructive",
+        addToast({
+          title: "Error",
+          message: "Failed to load dataset data",
+          type: "error",
         });
         return [];
       }
@@ -164,24 +158,96 @@ export default function WidgetEditor({
     enabled: !!selectedDatasetId,
   });
 
+  // Fetch schema info when connection changes
+  useEffect(() => {
+    const fetchSchemaInfo = async () => {
+      if (!selectedConnectionId) {
+        setSchemaInfo({});
+        setSelectedSchema("");
+        setSelectedTable("");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/connections/${selectedConnectionId}/schema-info`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch schema info');
+        }
+        const data = await response.json();
+        setSchemaInfo(data);
+        
+        // Set the first schema as selected if none is selected
+        if (!selectedSchema && Object.keys(data).length > 0) {
+          setSelectedSchema(Object.keys(data)[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching schema info:', error);
+        addToast({
+          title: "Error",
+          message: "Failed to fetch schema information",
+          type: "error",
+        });
+      }
+    };
+
+    fetchSchemaInfo();
+  }, [selectedConnectionId]);
+
+  // Update available tables when schema changes
+  useEffect(() => {
+    if (!selectedSchema || !schemaInfo[selectedSchema]) {
+      setSelectedTable("");
+      return;
+    }
+
+    // Get available tables for the selected schema
+    const tables = Object.keys(schemaInfo[selectedSchema]);
+    
+    // Set the first table as selected if none is selected
+    if (!selectedTable && tables.length > 0) {
+      setSelectedTable(tables[0]);
+    }
+  }, [selectedSchema, schemaInfo]);
+
+  // Handle changes to dataset or chart type
+  useEffect(() => {
+    if (datasetData && datasetData.length > 0) {
+      setPreviewData(datasetData);
+      const columns = extractColumns(datasetData);
+      setDataColumns(columns);
+
+      // Initialize default config if not already set
+      if (!config.xAxis && columns.length > 0) {
+        setConfig((prevConfig) => ({
+          ...prevConfig,
+          xAxis: columns[0],
+          yAxis: columns[1] || columns[0],
+        }));
+      }
+    }
+  }, [datasetData, chartType]);
+
   // Execute SQL query
   const handleExecuteQuery = async () => {
     if (!selectedConnectionId || !customQuery.trim()) {
-      toast({
+      addToast({
         title: "Error",
-        description: "Please select a connection and enter a valid SQL query.",
-        variant: "destructive",
+        message: "Please select a connection and enter a valid SQL query.",
+        type: "error",
       });
       return;
     }
 
     try {
-      const response = await fetch(`/api/connections/${selectedConnectionId}/execute`, {
+      const response = await fetch(`/api/connections/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: customQuery }),
+        body: JSON.stringify({ 
+          query: customQuery,
+          connectionId: selectedConnectionId
+        }),
       });
 
       if (!response.ok) {
@@ -209,47 +275,22 @@ export default function WidgetEditor({
       // Auto switch to table preview tab after query execution
       setCurrentTab("table-preview");
     } catch (error: any) {
-      toast({
+      addToast({
         title: "Query execution failed",
-        description: error.message || "Failed to execute SQL query",
-        variant: "destructive",
+        message: error.message || "Failed to execute SQL query",
+        type: "error",
       });
     }
   };
-
-  // Handle changes to dataset or chart type
-  useEffect(() => {
-    if (datasetData && datasetData.length > 0) {
-      setPreviewData(datasetData);
-      const columns = extractColumns(datasetData);
-      setDataColumns(columns);
-
-      // Initialize default config if not already set
-      if (!config.xAxis && columns.length > 0) {
-        setConfig((prevConfig) => ({
-          ...prevConfig,
-          xAxis: columns[0],
-          yAxis: columns[1] || columns[0],
-        }));
-      }
-    }
-  }, [datasetData, chartType]);
-
-  // Update SQL tables when connection changes
-  useEffect(() => {
-    if (sqlTablesData) {
-      setSqlTables(sqlTablesData);
-    }
-  }, [sqlTablesData]);
 
   // Handle form submission
   const handleSubmit = () => {
     // Check for required fields
     if (!name.trim()) {
-      toast({
+      addToast({
         title: "Error",
-        description: "Please enter a widget name.",
-        variant: "destructive",
+        message: "Please enter a widget name.",
+        type: "error",
       });
       return;
     }
@@ -257,28 +298,28 @@ export default function WidgetEditor({
     // Validate based on widget type
     if (widgetType === "text") {
       if (!textContent.trim()) {
-        toast({
+        addToast({
           title: "Error",
-          description: "Please enter some text content.",
-          variant: "destructive",
+          message: "Please enter some text content.",
+          type: "error",
         });
         return;
       }
     } else {
       if (!selectedConnectionId) {
-        toast({
+        addToast({
           title: "Error",
-          description: "Please select a data connection.",
-          variant: "destructive",
+          message: "Please select a data connection.",
+          type: "error",
         });
         return;
       }
       
       if (!customQuery.trim()) {
-        toast({
+        addToast({
           title: "Error",
-          description: "Please enter a SQL query.",
-          variant: "destructive",
+          message: "Please enter a SQL query.",
+          type: "error",
         });
         return;
       }
@@ -343,10 +384,10 @@ export default function WidgetEditor({
     if (widget) {
       const widgetId = widget.id;
       if (!widgetId) {
-        toast({
+        addToast({
           title: "Error",
-          description: "Widget ID is missing.",
-          variant: "destructive",
+          message: "Widget ID is missing.",
+          type: "error",
         });
         return;
       }
@@ -474,7 +515,7 @@ export default function WidgetEditor({
       ) : widgetType === "table" || widgetType === "chart" ? (
         <div className="mt-4">
           {/* Data Connection Sections */}
-          <div className="grid grid-cols-4 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="mb-4">
               <Label>Data Connection</Label>
               <Select
@@ -517,16 +558,19 @@ export default function WidgetEditor({
             <div className="mb-4">
               <Label>Schema</Label>
               <Select
-                value={selectedSchemaId?.toString() || ""}
-                onValueChange={(value) => setSelectedSchemaId(Number(value))}
+                value={selectedSchema}
+                onValueChange={(value) => {
+                  setSelectedSchema(value);
+                  setSelectedTable("");
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a schema" />
                 </SelectTrigger>
                 <SelectContent>
-                  {schemas.map((schema) => (
-                    <SelectItem key={schema.id} value={schema.id.toString()}>
-                      {schema.name}
+                  {Object.keys(schemaInfo).map((schema) => (
+                    <SelectItem key={schema} value={schema}>
+                      {schema}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -535,14 +579,14 @@ export default function WidgetEditor({
             <div className="mb-4">
               <Label>Table</Label>
               <Select
-                value={selectedTable || ""}
+                value={selectedTable}
                 onValueChange={(value) => setSelectedTable(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a table" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sqlTables.map((table) => (
+                  {Object.keys(schemaInfo[selectedSchema] || {}).map((table) => (
                     <SelectItem key={table} value={table}>
                       {table}
                     </SelectItem>
@@ -551,6 +595,7 @@ export default function WidgetEditor({
               </Select>
             </div>
           </div>
+
 
           {selectedConnectionId && (
             <Tabs value={currentTab} onValueChange={setCurrentTab}>
@@ -564,37 +609,33 @@ export default function WidgetEditor({
 
               {/* Query View Tab */}
               <TabsContent value="query-view" className="space-y-4">
-                {sqlTables.length > 0 && (
-                  <div>
-                    <Label>Available Tables</Label>
-                    <Select
-                      value={selectedTable || ""}
-                      onValueChange={(value) => {
-                        setSelectedTable(value);
-                        setCustomQuery(`SELECT * FROM ${value} LIMIT 10`);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a table" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sqlTables.map((table) => (
-                          <SelectItem key={table} value={table}>
-                            {table}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
                 <div>
                   <Label>SQL Query</Label>
-                  <div className="mt-2">
+                  <div className="mt-2 grid grid-cols-2 gap-4">
+
                     <MonacoSQLEditor
                       value={customQuery}
                       onChange={setCustomQuery}
                       height="300px"
                     />
+
+                    {/* Add table columns display */}
+                    {selectedTable && selectedSchema && schemaInfo[selectedSchema]?.[selectedTable] && (
+                      <div style={{height: "300px", overflowY: "auto", maxHeight: "300px"}}>
+                        <div className="p-4 border rounded-lg">
+                          <div>
+                            <div className="grid grid-cols-2 gap-x-4">
+                              {schemaInfo[selectedSchema][selectedTable].map((column, index) => (
+                                <div key={index} className="-mt-1 flex justify-between">
+                                  <span className="font-bold">{column.column}</span>
+                                  <span className="text-muted-foreground text-right italic" >{column.type}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4">
                     <Button

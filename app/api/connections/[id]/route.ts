@@ -19,6 +19,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
+    params = await params
     const connectionId = parseInt(params.id);
     
     // Get connection
@@ -169,12 +170,12 @@ export async function PUT(
       database: body.database || existingConfig.database,
       username: body.username || existingConfig.username,
       // Don't overwrite password if not provided
-      password: body.password ? '********' : existingConfig.password,
+      password: body.password ?? existingConfig.password,
       sslMode: body.sslMode || existingConfig.sslMode,
       baseUrl: body.baseUrl || existingConfig.baseUrl,
       authType: body.authType || existingConfig.authType,
       // Don't overwrite API key if not provided
-      apiKey: body.apiKey ? '********' : existingConfig.apiKey,
+      apiKey: body.apiKey ?? existingConfig.apiKey,
       headerName: body.headerName || existingConfig.headerName,
       delimiter: body.delimiter || existingConfig.delimiter,
       encoding: body.encoding || existingConfig.encoding,

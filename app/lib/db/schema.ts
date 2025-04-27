@@ -148,6 +148,25 @@ export const datasets = pgTable("datasets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Database Schemas schema
+export const dbSchemas = pgTable("db_schemas", {
+  id: serial("id").primaryKey(),
+  connectionId: integer("connection_id").references(() => connections.id),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Database Tables schema
+export const dbTables = pgTable("db_tables", {
+  id: serial("id").primaryKey(),
+  schemaId: integer("schema_id").references(() => dbSchemas.id),
+  name: text("name").notNull(),
+  columns: jsonb("columns").notNull(), // Array of {name: string, type: string}
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertDatasetSchema = createInsertSchema(datasets).pick({
   userId: true,
   connectionId: true,
@@ -155,6 +174,17 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
   query: true,
   refreshInterval: true,
   config: true,
+});
+
+export const insertDbSchemaSchema = createInsertSchema(dbSchemas).pick({
+  connectionId: true,
+  name: true,
+});
+
+export const insertDbTableSchema = createInsertSchema(dbTables).pick({
+  schemaId: true,
+  name: true,
+  columns: true,
 });
 
 // Widget types
@@ -169,14 +199,17 @@ export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
   datasetId: integer("dataset_id").references(() => datasets.id),
   connectionId: integer("connection_id").references(() => connections.id),
-  spaceId: integer("space_id").references(() => spaces.id), // Nullable to allow global widgets
+  spaceId: integer("space_id").references(() => spaces.id),
   name: text("name").notNull(),
+  description: text("description"),
   type: text("type").notNull(),
   config: jsonb("config").default({}),
   customQuery: text("custom_query"),
+  textContent: text("text_content"),
+  position: jsonb("position").default({ x: 0, y: 0, w: 3, h: 2 }),
   isTemplate: boolean("is_template").default(false),
   sourceWidgetId: integer("source_widget_id").references((): any => widgets.id),
-  isGlobal: boolean("is_global").default(false), // Flag to explicitly mark widgets as global
+  isGlobal: boolean("is_global").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -741,3 +774,8 @@ export const connectionsRelationsUpdated = relations(connections, ({ one, many }
   widgets: many(widgets),
   dbQaQueries: many(dbQaQueries),
 }));
+
+export type DbSchema = typeof dbSchemas.$inferSelect;
+export type InsertDbSchema = z.infer<typeof insertDbSchemaSchema>;
+export type DbTable = typeof dbTables.$inferSelect;
+export type InsertDbTable = z.infer<typeof insertDbTableSchema>;

@@ -117,9 +117,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
           h: parseInt(layoutItem.h.toString())
         };
         
-        // Log what we're saving for debugging
-        console.log(`Saving widget ${widget.id} (${widget.name}) position:`, JSON.stringify(position));
-        
         // Make the API request to update the widget
         const response = await fetch(`/api/widgets/${widget.id}`, {
           method: 'PUT',
@@ -309,7 +306,7 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     const fetchWidgets = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/dashboards/${dashboard.id}/widgets`);
+        const response = await fetch(`/api/widgets?dashboardId=${dashboard.id}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch widgets');

@@ -262,7 +262,7 @@ export function ConnectionsClient() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between bg-gray-50 dark:bg-gray-800/50 pt-2">
-                  <Link href={`/connections/edit/${connection.id}`}>
+                  <Link href={`/connections/${connection.id}/edit`}>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
