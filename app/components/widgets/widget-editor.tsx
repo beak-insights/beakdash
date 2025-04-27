@@ -368,7 +368,7 @@ export default function WidgetEditor({
       </div>
 
       {/* Title and Description Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="widget-name">Widget Title</Label>
           <Input
@@ -378,7 +378,7 @@ export default function WidgetEditor({
             placeholder="Enter widget title"
           />
         </div>
-        <div>
+        <div className="col-span-2">
           <Label htmlFor="widget-description">Description</Label>
           <Input
             id="widget-description"
@@ -473,27 +473,83 @@ export default function WidgetEditor({
         </div>
       ) : widgetType === "table" || widgetType === "chart" ? (
         <div className="mt-4">
-          {/* Data Connection Section */}
-          <div className="mb-4">
-            <Label>Data Connection</Label>
-            <Select
-              value={selectedConnectionId?.toString() || ""}
-              onValueChange={(value) => setSelectedConnectionId(Number(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a connection" />
-              </SelectTrigger>
-              <SelectContent>
-                {connections.map((connection) => (
-                  <SelectItem
-                    key={connection.id}
-                    value={connection.id.toString()}
-                  >
-                    {connection.name} ({connection.type.toUpperCase()})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Data Connection Sections */}
+          <div className="grid grid-cols-4 md:grid-cols-3 gap-4">
+            <div className="mb-4">
+              <Label>Data Connection</Label>
+              <Select
+                value={selectedConnectionId?.toString() || ""}
+                onValueChange={(value) => setSelectedConnectionId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a connection" />
+                </SelectTrigger>
+                <SelectContent>
+                  {connections.map((connection) => (
+                    <SelectItem
+                      key={connection.id}
+                      value={connection.id.toString()}
+                    >
+                      {connection.name} ({connection.type.toUpperCase()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mb-4">
+              <Label>Dataset</Label>
+              <Select
+                value={selectedDatasetId?.toString() || ""}
+                onValueChange={(value) => setSelectedDatasetId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a dataset" />
+                  </SelectTrigger>
+                <SelectContent>
+                  {datasets.map((dataset) => (
+                    <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                      {dataset.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mb-4">
+              <Label>Schema</Label>
+              <Select
+                value={selectedSchemaId?.toString() || ""}
+                onValueChange={(value) => setSelectedSchemaId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a schema" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schemas.map((schema) => (
+                    <SelectItem key={schema.id} value={schema.id.toString()}>
+                      {schema.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mb-4">
+              <Label>Table</Label>
+              <Select
+                value={selectedTable || ""}
+                onValueChange={(value) => setSelectedTable(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a table" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sqlTables.map((table) => (
+                    <SelectItem key={table} value={table}>
+                      {table}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {selectedConnectionId && (
