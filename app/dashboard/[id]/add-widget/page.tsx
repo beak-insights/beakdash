@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from '@/lib/db';
 import { dashboards } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { AddWidgetClient } from "./add-widget-client";
+import { AddWidgetClient } from "./client-page";
 
 interface PageProps {
   params: {

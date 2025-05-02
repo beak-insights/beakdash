@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlayIcon } from "lucide-react";
-import { useDashboard } from "@/lib/hooks/use-dashboard";
 import { useWidgets } from "@/lib/hooks/use-widgets";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,19 +26,17 @@ import {
 import ChartConfig from "./chart-config";
 import AxisMapping from "./axis-mapping";
 import { useToast } from "@/lib/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import {
   ChartType,
   Widget,
   Dataset,
   chartTypes,
-  Dashboard,
-  positionSchema,
-  DbSchema,
-  DbTable,
   Connection,
+  WidgetType,
+  WidgetConfig,
+  InsertWidget,
 } from "@/lib/db/schema";
-import { extractColumns, truncateString } from "@/lib/utils";
+import { extractColumns } from "@/lib/utils";
 import Chart from "@/components/ui/chart";
 import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
 
@@ -51,11 +48,6 @@ interface WidgetEditorProps {
   onCreate?: () => void;
   isCreating?: boolean;
   isTemplate?: boolean;
-}
-
-interface TableColumn {
-  name: string;
-  type: string;
 }
 
 interface SchemaInfo {
@@ -71,10 +63,6 @@ export default function WidgetEditor({
   dashboardId,
   widget,
   onClose,
-  onSave,
-  onCreate,
-  isCreating = false,
-  isTemplate = false,
 }: WidgetEditorProps) {
   const [name, setName] = useState(widget?.name || "New Widget");
   const [description, setDescription] = useState(widget?.description || "");
@@ -85,23 +73,24 @@ export default function WidgetEditor({
     widget?.connectionId || null,
   );
   const [chartType, setChartType] = useState<ChartType>(
-    (widget?.type as ChartType) || "bar",
+    widget?.config?.chartType || "bar",
   );
   const [dataColumns, setDataColumns] = useState<string[]>([]);
-  const [config, setConfig] = useState<Record<string, any>>(
+  const [config, setConfig] = useState<WidgetConfig>(
     widget?.config || {},
   );
-  const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
+  const [previewData, setPreviewData] = useState<Record<string, any>[]>(
+    widget?.data || []
+  );
   const [currentTab, setCurrentTab] = useState("query-view");
   const [customQuery, setCustomQuery] = useState<string>(
     widget?.customQuery || "SELECT * FROM table_name LIMIT 10",
   );
   const [textContent, setTextContent] = useState<string>(
-    widget?.textContent || "",
+    widget?.config?.textContent || "",
   );
-  const [sqlTables, setSqlTables] = useState<string[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>("");
-  const [widgetType, setWidgetType] = useState<"text" | "table" | "chart">(
+  const [widgetType, setWidgetType] = useState<WidgetType>(
     widget?.type === "text" 
       ? "text" 
       : widget?.type === "table" 
@@ -110,15 +99,11 @@ export default function WidgetEditor({
   );
   const [selectedSchema, setSelectedSchema] = useState<string>("");
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>({});
-  const [schemas, setSchemas] = useState<DbSchema[]>([]);
 
-  const queryClient = useQueryClient();
   const { addToast } = useToast();
-  const { dashboards } = useDashboard();
 
   // Use our custom hook for widget operations
-  const { createWidget, updateWidget, isPending, useWidgetDashboards } =
-    useWidgets();
+  const { createWidget, updateWidget, isPending } = useWidgets();
 
   // Fetch available datasets
   const { data: datasets = [] } = useQuery<Dataset[]>({
@@ -130,8 +115,6 @@ export default function WidgetEditor({
     queryKey: ["/api/connections"],
   });
 
-  // Fetch dashboards for this widget if editing
-  const { data: widgetDashboards = [] } = useWidgetDashboards(widget?.id);
 
   // Fetch dataset data when selected
   const { data: datasetData, isLoading: isLoadingData } = useQuery({
@@ -326,61 +309,49 @@ export default function WidgetEditor({
     }
 
     // Prepare widget data based on type
-    const widgetData: any = {
+    const widgetData = {
       name,
       description,
-      dashboardId: dashboardId || null,
-      position: widget?.position || { x: 0, y: 0, w: 3, h: 2 },
-      isTemplate: isTemplate,
-      sourceWidgetId: widget?.sourceWidgetId || null,
-    };
+      position: widget?.position || { x: 0, y: 0, w: 3, h: 2 }, // TODO: Add position to widget based on dashboard
+    } as InsertWidget;
 
     // Set type-specific fields
     if (widgetType === "text") {
       Object.assign(widgetData, {
         type: "text",
-        textContent: textContent,
+        config: {
+          chartType: "text",
+          textContent: textContent,
+        },
         connectionId: null,
         datasetId: null,
         customQuery: null,
-        config: {}
+        data: [],
       });
     } else if (widgetType === "table") {
       Object.assign(widgetData, {
         type: "table",
-        textContent: null,
+        data: previewData,
         connectionId: selectedConnectionId,
         datasetId: null,
         customQuery: customQuery,
-        config: {}
+        config: { chartType: "table" }
       });
     } else {
       Object.assign(widgetData, {
-        type: chartType,
-        textContent: null,
+        type: widgetType,
+        data: previewData,
         connectionId: selectedConnectionId,
         datasetId: null,
         customQuery: customQuery,
-        config: config
+        config: {
+          ...config,
+          chartType: chartType,
+        }
       });
     }
 
-    // Handle save callbacks if provided
-    if (onSave && widget) {
-      onSave({
-        ...widget,
-        ...widgetData,
-      });
-      return;
-    }
-
-    if (onCreate && !widget) {
-      onCreate();
-      createWidget(widgetData);
-      return;
-    }
-
-    // Default save behavior
+    // save / edit widget
     if (widget) {
       const widgetId = widget.id;
       if (!widgetId) {
@@ -391,10 +362,18 @@ export default function WidgetEditor({
         });
         return;
       }
-      updateWidget({ id: widgetId, widget: widgetData });
+      updateWidget({ 
+        id: widgetId, 
+        widget: widgetData,
+        dashboardId: dashboardId
+      });
     } else {
-      createWidget(widgetData);
+      createWidget({
+        widget: widgetData, 
+        dashboardId: dashboardId
+      });
     }
+    onClose();
   };
 
   return (
@@ -882,8 +861,8 @@ function getChartTypeDisplayName(type: ChartType): string {
     "dual-axes": "Dual Axes",
     counter: "Counter",
     "stat-card": "Stats",
-    table: "Table",
-    text: "Text"
+    // table: "Table",
+    // text: "Text"
   };
   return displayNames[type] || type;
 }
@@ -1043,44 +1022,44 @@ function getChartTypeIcon(type: ChartType) {
           <path d="M7 11h10"></path>
         </svg>
       );
-    case "table":
-      return (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="3" y1="15" x2="21" y2="15"></line>
-          <line x1="9" y1="3" x2="9" y2="21"></line>
-          <line x1="15" y1="3" x2="15" y2="21"></line>
-        </svg>
-      );
-    case "text":
-      return (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="4 7 4 4 20 4 20 7"></polyline>
-          <line x1="9" y1="20" x2="15" y2="20"></line>
-          <line x1="12" y1="4" x2="12" y2="20"></line>
-        </svg>
-      );
+    // case "table":
+    //   return (
+    //     <svg
+    //       xmlns="http://www.w3.org/2000/svg"
+    //       width="16"
+    //       height="16"
+    //       viewBox="0 0 24 24"
+    //       fill="none"
+    //       stroke="currentColor"
+    //       strokeWidth="2"
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //     >
+    //       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    //       <line x1="3" y1="9" x2="21" y2="9"></line>
+    //       <line x1="3" y1="15" x2="21" y2="15"></line>
+    //       <line x1="9" y1="3" x2="9" y2="21"></line>
+    //       <line x1="15" y1="3" x2="15" y2="21"></line>
+    //     </svg>
+    //   );
+    // case "text":
+    //   return (
+    //     <svg
+    //       xmlns="http://www.w3.org/2000/svg"
+    //       width="16"
+    //       height="16"
+    //       viewBox="0 0 24 24"
+    //       fill="none"
+    //       stroke="currentColor"
+    //       strokeWidth="2"
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //     >
+    //       <polyline points="4 7 4 4 20 4 20 7"></polyline>
+    //       <line x1="9" y1="20" x2="15" y2="20"></line>
+    //       <line x1="12" y1="4" x2="12" y2="20"></line>
+    //     </svg>
+    //   );
     default:
       return null;
   }

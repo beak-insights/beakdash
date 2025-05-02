@@ -77,31 +77,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/widgets/route.js"
     ],
-    "/connections/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/connections/page.js"
-    ],
-    "/api/connections/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/connections/route.js"
-    ],
-    "/connections/create/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/connections/create/page.js"
-    ],
-    "/api/connections/test/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/connections/test/route.js"
-    ],
-    "/api/connections/[id]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/connections/[id]/route.js"
-    ],
     "/dashboard/[id]/add-widget/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -112,25 +87,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/datasets/route.js"
     ],
-    "/api/connections/[id]/schema-info/route": [
+    "/api/connections/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/connections/[id]/schema-info/route.js"
-    ],
-    "/api/connections/execute/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/connections/execute/route.js"
-    ],
-    "/widgets/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/widgets/page.js"
-    ],
-    "/api/widgets/[id]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/widgets/[id]/route.js"
+      "static/chunks/app/api/connections/route.js"
     ]
   }
 }

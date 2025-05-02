@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/lib/hooks/use-toast";
+import { toast, useToast } from "@/lib/hooks/use-toast";
 import { Widget, InsertWidget, Dashboard } from "@/lib/db/schema";
 
 /**
@@ -8,7 +8,7 @@ import { Widget, InsertWidget, Dashboard } from "@/lib/db/schema";
  */
 export function useWidgets(dashboardId?: number) {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   // Fetch all widgets for a dashboard using the new API endpoint
   const widgetsQuery = useQuery({
@@ -49,21 +49,21 @@ export function useWidgets(dashboardId?: number) {
 
   // Create a new widget
   const createWidget = useMutation({
-    mutationFn: async (widget: InsertWidget & { position?: any, dashboardId?: number }) => {
+    mutationFn: async ({ widget, dashboardId }: { widget: Partial<Widget>, dashboardId?: number }) => {
       // Extract dashboardId from widget data to handle it separately if provided
-      const { dashboardId: targetDashboardId, position, ...widgetData } = widget as any;
+      const { position, ...widgetData } = widget as any;
       
       // Create the widget first
       const response = await apiRequest('POST', '/api/widgets', widgetData);
       const createdWidget = await response.json();
       
       // If dashboardId is provided, add the widget to that dashboard
-      if (targetDashboardId && createdWidget && typeof createdWidget.id === 'number') {
+      if (dashboardId && createdWidget) {
         try {
           const defaultPosition = { x: 0, y: 0, w: 3, h: 2 };
           await apiRequest(
-            'POST', 
-            `/api/dashboards/${targetDashboardId}/widgets/${createdWidget.id}`, 
+            'POST',
+            `/api/dashboards/${dashboardId}/widgets/${createdWidget.id}`, 
             { position: position || defaultPosition }
           );
         } catch (err) {
@@ -81,34 +81,34 @@ export function useWidgets(dashboardId?: number) {
       }
       queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
       
-      toast({
+      addToast({
         title: "Widget created",
-        description: "Your widget has been successfully created.",
+        message: "Your widget has been successfully created.",
       });
     },
     onError: (error) => {
-      toast({
+      addToast({
         title: "Error",
-        description: `Failed to create widget: ${error.message}`,
-        variant: "destructive",
+        message: `Failed to create widget: ${error.message}`,
+        type: "error",
       });
     },
   });
 
   // Update a widget
   const updateWidget = useMutation({
-    mutationFn: async ({ id, widget }: { id: number; widget: Partial<Widget> & { position?: any, dashboardId?: number } }) => {
+    mutationFn: async ({ id, widget, dashboardId }: { id: number; widget: Partial<Widget>, dashboardId?: number }) => {
       // Extract position and dashboardId if present to handle them separately
-      const { position, dashboardId: targetDashboardId, ...widgetData } = widget as any;
+      const { position, ...widgetData } = widget as any;
       
       // Update the widget properties
       const response = await apiRequest('PUT', `/api/widgets/${id}`, widgetData);
       const updatedWidget = await response.json();
       
       // If position and dashboardId are provided, update the widget position in that dashboard
-      if (position && targetDashboardId) {
+      if (position && dashboardId) {
         try {
-          await apiRequest('PATCH', `/api/dashboards/${targetDashboardId}/widgets/${id}/position`, {
+          await apiRequest('PATCH', `/api/dashboards/${dashboardId}/widgets/${id}/position`, {
             position
           });
         } catch (err) {
@@ -128,16 +128,16 @@ export function useWidgets(dashboardId?: number) {
       queryClient.invalidateQueries({ queryKey: ['/api/widgets', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/widgets', variables.id, 'dashboards'] });
       
-      toast({
+      addToast({
         title: "Widget updated",
-        description: "Your widget has been successfully updated.",
+        message: "Your widget has been successfully updated.",
       });
     },
     onError: (error) => {
-      toast({
+      addToast({
         title: "Error",
-        description: `Failed to update widget: ${error.message}`,
-        variant: "destructive",
+        message: `Failed to update widget: ${error.message}`,
+        type: "error",
       });
     },
   });
@@ -154,16 +154,16 @@ export function useWidgets(dashboardId?: number) {
       }
       queryClient.invalidateQueries({ queryKey: ['/api/widgets'] });
       
-      toast({
+      addToast({
         title: "Widget deleted",
-        description: "Your widget has been successfully deleted.",
+        message: "Your widget has been successfully deleted.",
       });
     },
     onError: (error) => {
-      toast({
+      addToast({
         title: "Error",
-        description: `Failed to delete widget: ${error.message}`,
-        variant: "destructive",
+        message: `Failed to delete widget: ${error.message}`,
+        type: "error",
       });
     },
   });
@@ -187,16 +187,16 @@ export function useWidgets(dashboardId?: number) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboards', variables.dashboardId, 'widgets'] });
       queryClient.invalidateQueries({ queryKey: ['/api/widgets', variables.widgetId, 'dashboards'] });
       
-      toast({
+      addToast({
         title: "Widget added",
-        description: "Widget has been added to the dashboard.",
+        message: "Widget has been added to the dashboard.",
       });
     },
     onError: (error) => {
-      toast({
+      addToast({
         title: "Error",
-        description: `Failed to add widget to dashboard: ${error.message}`,
-        variant: "destructive",
+        message: `Failed to add widget to dashboard: ${error.message}`,
+        type: "error",
       });
     },
   });
@@ -217,16 +217,16 @@ export function useWidgets(dashboardId?: number) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboards', variables.dashboardId, 'widgets'] });
       queryClient.invalidateQueries({ queryKey: ['/api/widgets', variables.widgetId, 'dashboards'] });
       
-      toast({
+      addToast({
         title: "Widget removed",
-        description: "Widget has been removed from the dashboard.",
+        message: "Widget has been removed from the dashboard.",
       });
     },
     onError: (error) => {
-      toast({
+      addToast({
         title: "Error",
-        description: `Failed to remove widget from dashboard: ${error.message}`,
-        variant: "destructive",
+        message: `Failed to remove widget from dashboard: ${error.message}`,
+        type: "error",
       });
     },
   });

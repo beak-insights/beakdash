@@ -167,6 +167,37 @@ export const chartSchemas = z.enum(chartTypes);
 // Define a forward reference for widgets table
 const widgetsRef: any = {};
 
+// Schema for widget configuration
+export const WidgetConfigSchema = z.object({
+  chartType: chartSchemas.optional(),
+  xAxis: z.string().optional(),
+  yAxis: z.string().optional(),
+  y2Axis: z.string().optional(),
+  groupBy: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc", "none"]).optional(),
+  limit: z.number().optional(),
+  colors: z.array(z.string()).optional(),
+  showLegend: z.boolean().optional(),
+  labelFormat: z.string().optional(),
+  // Text widget specific properties
+  textContent: z.string().optional(),
+  textAlign: z.enum(["left", "center", "right", "justify"]).optional(),
+  fontSize: z.string().optional(),
+  fontWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
+  textColor: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  filters: z.array(
+    z.object({
+      field: z.string(),
+      operator: z.enum(["equals", "not_equals", "greater_than", "less_than", "contains"]),
+      value: z.union([z.string(), z.number(), z.boolean()]),
+    })
+  ).optional(),
+});
+
+export type WidgetConfig = z.infer<typeof WidgetConfigSchema>;
+
 export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),
   datasetId: integer("dataset_id").references(() => datasets.id),
@@ -175,9 +206,9 @@ export const widgets = pgTable("widgets", {
   name: text("name").notNull(),
   description: text("description"),
   type: text("type").notNull(),
-  config: jsonb("config").default({}),
+  config: jsonb("config").default({}).$type<WidgetConfig>(),
   customQuery: text("custom_query"),
-  data: jsonb("data").default({}),
+  data: jsonb("data").default([]).$type<Record<string, any>[]>(),
   position: jsonb("position").default({ x: 0, y: 0, w: 3, h: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -199,9 +230,11 @@ export const insertWidgetSchema = createInsertSchema(widgets).pick({
   connectionId: true,
   spaceId: true,
   name: true,
+  description: true,
   type: true,
   config: true,
   customQuery: true,
+  position: true,
 });
 
 export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).pick({
@@ -246,35 +279,6 @@ export const positionSchema = z.object({
   y: z.number(),
   w: z.number(),
   h: z.number(),
-});
-
-// Schema for widget configuration
-export const WidgetConfigSchema = z.object({
-  chartType: chartSchemas.optional(),
-  xAxis: z.string().optional(),
-  yAxis: z.string().optional(),
-  y2Axis: z.string().optional(),
-  groupBy: z.string().optional(),
-  sortBy: z.string().optional(),
-  sortOrder: z.enum(["asc", "desc", "none"]).optional(),
-  limit: z.number().optional(),
-  colors: z.array(z.string()).optional(),
-  showLegend: z.boolean().optional(),
-  labelFormat: z.string().optional(),
-  // Text widget specific properties
-  textContent: z.string().optional(),
-  textAlign: z.enum(["left", "center", "right", "justify"]).optional(),
-  fontSize: z.string().optional(),
-  fontWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
-  textColor: z.string().optional(),
-  backgroundColor: z.string().optional(),
-  filters: z.array(
-    z.object({
-      field: z.string(),
-      operator: z.enum(["equals", "not_equals", "greater_than", "less_than", "contains"]),
-      value: z.union([z.string(), z.number(), z.boolean()]),
-    })
-  ).optional(),
 });
 
 // User Settings Schema

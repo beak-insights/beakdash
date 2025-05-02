@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { widgets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { EditWidgetClient } from "./edit-widget-client";
+import { EditWidgetClient } from "./client-page";
 
 interface PageProps {
   params: {
@@ -16,7 +16,6 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id, widgetId } = await params;
-  const dashboardId = parseInt(id);
   const widgetIdNum = parseInt(widgetId);
   
   const widget = await db.query.widgets.findFirst({

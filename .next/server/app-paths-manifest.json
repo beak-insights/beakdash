@@ -1,7 +1,10 @@
 {
+  "/api/widgets/route": "app/api/widgets/route.js",
+  "/api/datasets/route": "app/api/datasets/route.js",
+  "/api/connections/route": "app/api/connections/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/create/page": "app/dashboard/create/page.js",
   "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/connections/create/page": "app/connections/create/page.js",
-  "/connections/page": "app/connections/page.js",
   "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js",
-  "/auth/page": "app/auth/page.js"
+  "/auth/sign-up/page": "app/auth/sign-up/page.js"
 }
