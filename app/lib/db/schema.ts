@@ -148,25 +148,6 @@ export const datasets = pgTable("datasets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Database Schemas schema
-export const dbSchemas = pgTable("db_schemas", {
-  id: serial("id").primaryKey(),
-  connectionId: integer("connection_id").references(() => connections.id),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Database Tables schema
-export const dbTables = pgTable("db_tables", {
-  id: serial("id").primaryKey(),
-  schemaId: integer("schema_id").references(() => dbSchemas.id),
-  name: text("name").notNull(),
-  columns: jsonb("columns").notNull(), // Array of {name: string, type: string}
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const insertDatasetSchema = createInsertSchema(datasets).pick({
   userId: true,
   connectionId: true,
@@ -176,20 +157,11 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
   config: true,
 });
 
-export const insertDbSchemaSchema = createInsertSchema(dbSchemas).pick({
-  connectionId: true,
-  name: true,
-});
-
-export const insertDbTableSchema = createInsertSchema(dbTables).pick({
-  schemaId: true,
-  name: true,
-  columns: true,
-});
-
 // Widget types
-export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card", "table", "text"] as const;
-export const chartTypeSchema = z.enum(chartTypes);
+export const widgetTypes = ["chart", "text", "table"] as const;
+export const widgetSchemas = z.enum(widgetTypes);
+export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card"] as const;
+export const chartSchemas = z.enum(chartTypes);
 
 // Widgets schema
 // Define a forward reference for widgets table
@@ -205,11 +177,8 @@ export const widgets = pgTable("widgets", {
   type: text("type").notNull(),
   config: jsonb("config").default({}),
   customQuery: text("custom_query"),
-  textContent: text("text_content"),
+  data: jsonb("data").default({}),
   position: jsonb("position").default({ x: 0, y: 0, w: 3, h: 2 }),
-  isTemplate: boolean("is_template").default(false),
-  sourceWidgetId: integer("source_widget_id").references((): any => widgets.id),
-  isGlobal: boolean("is_global").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -233,9 +202,6 @@ export const insertWidgetSchema = createInsertSchema(widgets).pick({
   type: true,
   config: true,
   customQuery: true,
-  isTemplate: true,
-  sourceWidgetId: true,
-  isGlobal: true,
 });
 
 export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).pick({
@@ -267,8 +233,9 @@ export type Dataset = typeof datasets.$inferSelect;
 export type InsertDataset = z.infer<typeof insertDatasetSchema>;
 
 export type Widget = typeof widgets.$inferSelect;
+export type WidgetType = z.infer<typeof widgetSchemas>;
 export type InsertWidget = z.infer<typeof insertWidgetSchema>;
-export type ChartType = z.infer<typeof chartTypeSchema>;
+export type ChartType = z.infer<typeof chartSchemas>;
 
 export type DashboardWidget = typeof dashboardWidgets.$inferSelect;
 export type InsertDashboardWidget = z.infer<typeof insertDashboardWidgetSchema>;
@@ -281,9 +248,9 @@ export const positionSchema = z.object({
   h: z.number(),
 });
 
-// Schema for chart configuration
-export const chartConfigSchema = z.object({
-  chartType: chartTypeSchema,
+// Schema for widget configuration
+export const WidgetConfigSchema = z.object({
+  chartType: chartSchemas.optional(),
   xAxis: z.string().optional(),
   yAxis: z.string().optional(),
   y2Axis: z.string().optional(),
@@ -437,10 +404,6 @@ export const widgetsRelations = relations(widgets, ({ one, many }) => {
     space: one(spaces, {
       fields: [widgets.spaceId],
       references: [spaces.id],
-    }),
-    sourceWidget: one(widgets, {
-      fields: [widgets.sourceWidgetId],
-      references: [widgets.id],
     }),
     dashboardWidgets: many(dashboardWidgets),
   };
@@ -774,8 +737,3 @@ export const connectionsRelationsUpdated = relations(connections, ({ one, many }
   widgets: many(widgets),
   dbQaQueries: many(dbQaQueries),
 }));
-
-export type DbSchema = typeof dbSchemas.$inferSelect;
-export type InsertDbSchema = z.infer<typeof insertDbSchemaSchema>;
-export type DbTable = typeof dbTables.$inferSelect;
-export type InsertDbTable = z.infer<typeof insertDbTableSchema>;

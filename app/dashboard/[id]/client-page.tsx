@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import Link from 'next/link';
 import { 
-  Column, Line, Area, Pie, DualAxes, Scatter, 
-  Rose, Radar, Gauge, Waterfall, WordCloud 
+  Column, Line, Area, Pie
 } from '@ant-design/charts';
 import { EditOutlined, DeleteOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons';
-import GridLayout, { Layout, Responsive, WidthProvider } from 'react-grid-layout';
+import { Layout, Responsive, WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -515,9 +514,11 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     
     // For text widget type
     if (type === 'text') {
+    
       return (
         <div className="h-full p-4 overflow-auto w-full">
           <div className="prose max-w-none w-full h-full">
+            <pre>{JSON.stringify(widget, null, 2)}</pre>
             {config.textContent?.split('\n').map((line: string, i: number) => (
               <p key={i} className="break-words">{line || <br />}</p>
             )) || (

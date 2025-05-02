@@ -1,15 +1,7 @@
 {
-  "/api/spaces/route": "app/api/spaces/route.js",
-  "/api/spaces/user/route": "app/api/spaces/user/route.js",
-  "/api/dashboards/route": "app/api/dashboards/route.js",
-  "/api/widgets/route": "app/api/widgets/route.js",
-  "/api/datasets/route": "app/api/datasets/route.js",
-  "/api/user/settings/[id]/route": "app/api/user/settings/[id]/route.js",
-  "/api/connections/route": "app/api/connections/route.js",
-  "/connections/[id]/edit/page": "app/connections/[id]/edit/page.js",
   "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/dashboard/[id]/edit-widget/[widgetId]/page": "app/dashboard/[id]/edit-widget/[widgetId]/page.js",
+  "/connections/create/page": "app/connections/create/page.js",
   "/connections/page": "app/connections/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js"
+  "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js",
+  "/auth/page": "app/auth/page.js"
 }
