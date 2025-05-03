@@ -50,29 +50,8 @@ export function useWidgets(dashboardId?: number) {
   // Create a new widget
   const createWidget = useMutation({
     mutationFn: async ({ widget, dashboardId }: { widget: Partial<Widget>, dashboardId?: number }) => {
-      // Extract dashboardId from widget data to handle it separately if provided
-      const { position, ...widgetData } = widget as any;
-      
-      // Create the widget first
-      const response = await apiRequest('POST', '/api/widgets', widgetData);
-      const createdWidget = await response.json();
-      
-      // If dashboardId is provided, add the widget to that dashboard
-      if (dashboardId && createdWidget) {
-        try {
-          const defaultPosition = { x: 0, y: 0, w: 3, h: 2 };
-          await apiRequest(
-            'POST',
-            `/api/dashboards/${dashboardId}/widgets/${createdWidget.id}`, 
-            { position: position || defaultPosition }
-          );
-        } catch (err) {
-          console.error("Error adding widget to dashboard:", err);
-          // We'll still return the created widget even if adding it to dashboard fails
-        }
-      }
-      
-      return createdWidget;
+      const response = await apiRequest('POST', '/api/widgets', { widget, dashboardId });
+      return await response.json();
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -98,26 +77,8 @@ export function useWidgets(dashboardId?: number) {
   // Update a widget
   const updateWidget = useMutation({
     mutationFn: async ({ id, widget, dashboardId }: { id: number; widget: Partial<Widget>, dashboardId?: number }) => {
-      // Extract position and dashboardId if present to handle them separately
-      const { position, ...widgetData } = widget as any;
-      
-      // Update the widget properties
-      const response = await apiRequest('PUT', `/api/widgets/${id}`, widgetData);
-      const updatedWidget = await response.json();
-      
-      // If position and dashboardId are provided, update the widget position in that dashboard
-      if (position && dashboardId) {
-        try {
-          await apiRequest('PATCH', `/api/dashboards/${dashboardId}/widgets/${id}/position`, {
-            position
-          });
-        } catch (err) {
-          console.error("Error updating widget position:", err);
-          // We'll still return the updated widget even if position update fails
-        }
-      }
-      
-      return updatedWidget;
+      const response = await apiRequest('PUT', `/api/widgets/${id}`, { widget, dashboardId });
+      return await response.json();
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries

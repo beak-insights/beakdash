@@ -23,8 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import ChartConfig from "./chart-config";
-import AxisMapping from "./axis-mapping";
+import ChartConfig from "./chart/config";
+import AxisMapping from "./chart/axis-mapping";
 import { useToast } from "@/lib/hooks/use-toast";
 import {
   ChartType,
@@ -37,7 +37,7 @@ import {
   InsertWidget,
 } from "@/lib/db/schema";
 import { extractColumns } from "@/lib/utils";
-import Chart from "@/components/ui/chart";
+import Chart from "@/components/widgets/chart/chart";
 import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
 
 interface WidgetEditorProps {
@@ -72,17 +72,16 @@ export default function WidgetEditor({
   const [selectedConnectionId, setSelectedConnectionId] = useState<number | null>(
     widget?.connectionId || null,
   );
-  const [chartType, setChartType] = useState<ChartType>(
-    widget?.config?.chartType || "bar",
-  );
-  const [dataColumns, setDataColumns] = useState<string[]>([]);
   const [config, setConfig] = useState<WidgetConfig>(
     widget?.config || {},
   );
   const [previewData, setPreviewData] = useState<Record<string, any>[]>(
     widget?.data || []
   );
+  const [dataColumns, setDataColumns] = useState<{ string: string[], numeric: string[], all: string[] }>({ string: [], numeric: [], all: [] });
+
   const [currentTab, setCurrentTab] = useState("query-view");
+  const [previewTab, setPreviewTab] = useState("data-mapping");
   const [customQuery, setCustomQuery] = useState<string>(
     widget?.customQuery || "SELECT * FROM table_name LIMIT 10",
   );
@@ -141,6 +140,11 @@ export default function WidgetEditor({
     enabled: !!selectedDatasetId,
   });
 
+  useEffect(() => {
+    const columns = extractColumns(previewData);
+    setDataColumns(columns);
+  }, [previewData]);
+
   // Fetch schema info when connection changes
   useEffect(() => {
     const fetchSchemaInfo = async () => {
@@ -195,20 +199,25 @@ export default function WidgetEditor({
   // Handle changes to dataset or chart type
   useEffect(() => {
     if (datasetData && datasetData.length > 0) {
-      setPreviewData(datasetData);
       const columns = extractColumns(datasetData);
       setDataColumns(columns);
+      setPreviewData(datasetData.map((row: any) => {
+        for(const col in columns.numeric) {
+          row[col] = Number(row[col]);
+        }
+        return row;
+      }));
 
       // Initialize default config if not already set
-      if (!config.xAxis && columns.length > 0) {
+      if (!config.xField && columns.string.length > 0) {
         setConfig((prevConfig) => ({
           ...prevConfig,
-          xAxis: columns[0],
-          yAxis: columns[1] || columns[0],
+          xField: columns.string[0],
+          yField: columns.numeric[0] || columns.string[0],
         }));
       }
     }
-  }, [datasetData, chartType]);
+  }, [datasetData, config?.chartType]);
 
   // Execute SQL query
   const handleExecuteQuery = async () => {
@@ -246,11 +255,11 @@ export default function WidgetEditor({
         setDataColumns(columns);
         
         // Initialize default config if not already set
-        if (!config.xAxis && columns.length > 0) {
+        if (!config.xField && columns.string.length > 0) {
           setConfig((prevConfig) => ({
             ...prevConfig,
-            xAxis: columns[0],
-            yAxis: columns[1] || columns[0],
+            xField: columns.string[0],
+            yField: columns.numeric[0] || columns.string[0],
           }));
         }
       }
@@ -267,7 +276,7 @@ export default function WidgetEditor({
   };
 
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Check for required fields
     if (!name.trim()) {
       addToast({
@@ -311,8 +320,7 @@ export default function WidgetEditor({
     // Prepare widget data based on type
     const widgetData = {
       name,
-      description,
-      position: widget?.position || { x: 0, y: 0, w: 3, h: 2 }, // TODO: Add position to widget based on dashboard
+      description,// TODO: Add position to widget based on dashboard
     } as InsertWidget;
 
     // Set type-specific fields
@@ -344,36 +352,43 @@ export default function WidgetEditor({
         connectionId: selectedConnectionId,
         datasetId: null,
         customQuery: customQuery,
-        config: {
-          ...config,
-          chartType: chartType,
-        }
+        config
       });
     }
 
-    // save / edit widget
-    if (widget) {
-      const widgetId = widget.id;
-      if (!widgetId) {
-        addToast({
-          title: "Error",
-          message: "Widget ID is missing.",
-          type: "error",
+    try {
+      // save / edit widget
+      if (widget) {
+        const widgetId = widget.id;
+        if (!widgetId) {
+          addToast({
+            title: "Error",
+            message: "Widget ID is missing.",
+            type: "error",
+          });
+          return;
+        }
+        await updateWidget({ 
+          id: widgetId, 
+          widget: widgetData,
+          dashboardId: dashboardId
         });
-        return;
+      } else {
+        await createWidget({
+          widget: widgetData, 
+          dashboardId: dashboardId
+        });
       }
-      updateWidget({ 
-        id: widgetId, 
-        widget: widgetData,
-        dashboardId: dashboardId
-      });
-    } else {
-      createWidget({
-        widget: widgetData, 
-        dashboardId: dashboardId
+      
+      // Only close on success
+      onClose();
+    } catch (error) {
+      addToast({
+        title: "Error",
+        message: error instanceof Error ? error.message : "Failed to save widget",
+        type: "error",
       });
     }
-    onClose();
   };
 
   return (
@@ -635,7 +650,7 @@ export default function WidgetEditor({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          {dataColumns.map((column) => (
+                          {dataColumns.all.map((column) => (
                             <TableHead key={column}>{column}</TableHead>
                           ))}
                         </TableRow>
@@ -643,7 +658,7 @@ export default function WidgetEditor({
                       <TableBody>
                         {previewData.map((row, idx) => (
                           <TableRow key={idx}>
-                            {dataColumns.map((column) => (
+                            {dataColumns.all.map((column) => (
                               <TableCell key={`${idx}-${column}`}>
                                 {typeof row[column] === "object"
                                   ? JSON.stringify(row[column])
@@ -670,20 +685,23 @@ export default function WidgetEditor({
               {/* Chart Preview Tab - Only visible for Chart Widget Type */}
               {widgetType === "chart" && (
                 <TabsContent value="chart-preview" className="mt-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-4 gap-6">
                     {/* Left Column - Chart Properties */}
-                    <div className="lg:col-span-1 space-y-6 border rounded-lg p-4">
-                      <h3 className="text-lg font-medium">Chart Properties</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Data Mapping</Label>
-                          {dataColumns.length > 0 ? (
+                    <div className="col-span-2 space-y-6 border rounded-lg p-4">
+                      <Tabs value={previewTab} onValueChange={setPreviewTab}>
+                        <TabsList className="grid grid-cols-2 mb-4">
+                          <TabsTrigger value="data-mapping">Data Mapping</TabsTrigger>
+                          <TabsTrigger value="chart-settings">Chart Settings</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="data-mapping" className="space-y-4">
+                          {dataColumns.all.length > 0 ? (
                             <AxisMapping
-                              chartType={chartType}
+                              chartType={config?.chartType || "bar"}
                               columns={dataColumns}
                               config={config}
                               onChange={(newConfig) =>
-                                setConfig({ ...config, ...newConfig })
+                                setConfig(newConfig)
                               }
                             />
                           ) : (
@@ -691,96 +709,33 @@ export default function WidgetEditor({
                               Execute a query to map data columns
                             </div>
                           )}
-                        </div>
-                        
-                        <div className="mt-4">
-                          <Label>Visual Options</Label>
-                          <div className="space-y-2 mt-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id="show-legend"
-                                checked={config.showLegend !== false}
-                                onChange={(e) =>
-                                  setConfig({
-                                    ...config,
-                                    showLegend: e.target.checked,
-                                  })
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <Label htmlFor="show-legend">Show Legend</Label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id="show-grid"
-                                checked={config.showGrid !== false}
-                                onChange={(e) =>
-                                  setConfig({ ...config, showGrid: e.target.checked })
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <Label htmlFor="show-grid">Show Grid</Label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id="show-tooltip"
-                                checked={config.showTooltip !== false}
-                                onChange={(e) =>
-                                  setConfig({
-                                    ...config,
-                                    showTooltip: e.target.checked,
-                                  })
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <Label htmlFor="show-tooltip">Show Tooltip</Label>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label>Custom Colors</Label>
-                          <Input
-                            value={config.colors?.join(", ") || ""}
-                            onChange={(e) =>
-                              setConfig({
-                                ...config,
-                                colors: e.target.value
-                                  ? e.target.value.split(",").map((c) => c.trim())
-                                  : undefined,
-                              })
+                        </TabsContent>
+
+                        <TabsContent value="chart-settings" className="space-y-4">
+                          <ChartConfig
+                            chartType={config?.chartType || "bar"}
+                            config={config}
+                            onChange={(newConfig) =>
+                              setConfig({ ...config, ...newConfig })
                             }
-                            placeholder="E.g., #3B82F6, #10B981, #F59E0B"
-                            className="mt-2"
                           />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Comma-separated list of colors (hex codes)
-                          </p>
-                        </div>
-                        
-                        <ChartConfig
-                          chartType={chartType}
-                          config={config}
-                          onChange={(newConfig) =>
-                            setConfig({ ...config, ...newConfig })
-                          }
-                        />
-                      </div>
+                        </TabsContent>
+                      </Tabs>   
                     </div>
                     
                     {/* Right Column - Chart Preview */}
-                    <div className="lg:col-span-2 space-y-6">
-                      <div className="border rounded-lg p-4">
-                        <h3 className="text-lg font-medium mb-4">Chart Preview</h3>
+                    <div className="col-span-2 space-y-6">
+                      <div className="border rounded-lg">
                         <div className="h-[300px]">
                           {previewData.length > 0 ? (
                             <Chart
-                              type={chartType}
-                              data={previewData}
-                              config={config}
+                              widget={{
+                                ...widget,
+                                // override the type, data and config
+                                type: widgetType,
+                                data:previewData,
+                                config
+                              } as Widget}
                               height="100%"
                             />
                           ) : (
@@ -792,15 +747,14 @@ export default function WidgetEditor({
                       </div>
                       
                       {/* Chart Type Selector */}
-                      <div className="border rounded-lg p-4">
-                        <h3 className="text-lg font-medium mb-4">Chart Type</h3>
-                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                          {chartTypes.filter((type) => !['text', 'table'].includes(type)).map((type) => (
+                      <div className="">
+                        <div className="grid grid-cols-8 gap-2">
+                          {chartTypes.map((type) => (
                             <Button
                               key={type}
-                              variant={chartType === type ? "default" : "outline"}
+                              variant={config?.chartType === type ? "default" : "outline"}
                               className="flex flex-col items-center justify-center h-16 p-2"
-                              onClick={() => setChartType(type)}
+                              onClick={() => setConfig({ ...config, chartType: type })}
                             >
                               {getChartTypeIcon(type)}
                               <span className="text-xs mt-1">
@@ -857,12 +811,14 @@ function getChartTypeDisplayName(type: ChartType): string {
     column: "Column",
     line: "Line",
     pie: "Pie",
+    area: "Area",
     scatter: "Scatter",
     "dual-axes": "Dual Axes",
     counter: "Counter",
     "stat-card": "Stats",
-    // table: "Table",
-    // text: "Text"
+    "box-plot": "Box Plot",
+    histogram: "Histogram",
+    "word-cloud": "Word Cloud"
   };
   return displayNames[type] || type;
 }

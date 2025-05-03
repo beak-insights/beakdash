@@ -3,27 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import Link from 'next/link';
-import { 
-  Column, Line, Area, Pie
-} from '@ant-design/charts';
-import { EditOutlined, DeleteOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons';
+
+import { EditOutlined, DeleteOutlined, AppstoreOutlined, SaveOutlined, MoreOutlined } from '@ant-design/icons';
 import { Layout, Responsive, WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-
-// Define widget type
-interface Widget {
-  id: number;
-  name: string;
-  type: string;
-  config: any;
-  position?: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-  };
-}
+import { Widget } from '@/lib/db/schema';
+import { extractColumns } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Chart from '@/components/widgets/chart/chart';
 
 interface Dashboard {
   id: number;
@@ -56,13 +44,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
   
   // Convert widgets to layout items
   const [layouts, setLayouts] = useState(() => {
-    // Debug log for widget positions
-    console.log("Initial widget positions:", widgets.map(w => ({ 
-      id: w.id, 
-      name: w.name,
-      position: w.position 
-    })));
-    
     const layoutItems = widgets.map(widget => {
       // Ensure position exists
       const position = widget.position || {};
@@ -78,7 +59,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         minH: 2,
       };
       
-      console.log(`Widget ${widget.id} (${widget.name}) layout:`, item);
       return item;
     });
     
@@ -104,7 +84,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         const layoutItem = layouts.lg.find(item => item.i === widget.id.toString());
         
         if (!layoutItem) {
-          console.warn(`No layout found for widget ${widget.id}`);
           return Promise.resolve();
         }
         
@@ -122,7 +101,10 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             dashboardId,
-            position
+            widget: {
+              ...widget,
+              position
+            }
           })
         });
         
@@ -146,7 +128,6 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         setIsEditMode(false);
       }
     } catch (error) {
-      console.error('Error saving layout:', error);
       setSaveMessage('Failed to save layout. Please try again.');
     } finally {
       setIsSaving(false);
@@ -231,7 +212,7 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
               <path d="M12 17h.01" />
               <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" />
             </svg>
-            Edit mode is active. Drag widgets by their headers or resize from the corners and edges.
+            Edit mode is active. Drag widgets or resize from the corners and edges.
           </div>
         </div>
       )}
@@ -242,8 +223,8 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={60}
-        containerPadding={[15, 15]}
-        margin={[15, 15]}
+        containerPadding={[5,5]}
+        margin={[5,5]}
         onLayoutChange={onLayoutChange}
         isDraggable={isEditMode}
         isResizable={isEditMode}
@@ -251,39 +232,49 @@ function GridLayoutComponent({ widgets, dashboardId, onRenderWidget }: GridLayou
         isBounded={false}
         draggableHandle=".drag-handle"
       >
+
         {widgets.map(widget => (
           <div
             key={widget.id.toString()}
-            className={`border rounded-lg overflow-hidden bg-card shadow-sm transition-all ${
+            className={`relative group border rounded-xs overflow-hidden bg-card shadow-xs transition-all ${
               isEditMode ? 'border-amber-500 border-dashed shadow-md' : ''
             }`}
           >
-            <div className={`p-4 border-b flex items-center justify-between ${isEditMode ? 'drag-handle cursor-move bg-amber-50' : ''}`}>
-              <div>
-                <h3 className="font-medium">{widget.name}</h3>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Link
-                  href={`/dashboard/${dashboardId}/edit-widget/${widget.id}`}
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
-                  aria-label="Edit widget"
-                >
-                  <EditOutlined />
-                </Link>
-                <button 
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive"
-                  aria-label="Delete widget"
-                >
-                  <DeleteOutlined />
-                </button>
-              </div>
+            {/* Buttons shown on hover */}
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <Link
+                href={`/dashboard/${dashboardId}/edit-widget/${widget.id}`}
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                aria-label="Edit widget"
+              >
+                <EditOutlined />
+              </Link>
+              <button
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                aria-label="More options"
+              >
+                <MoreOutlined />
+              </button>
+              <button
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                aria-label="AI Copilot"
+              >
+                🤖
+              </button>
+              <button 
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive flex items-center justify-center"
+                aria-label="Delete widget"
+              >
+                <DeleteOutlined />
+              </button>
             </div>
-            
-            <div className="overflow-auto" style={{ height: 'calc(100% - 57px)' }}>
+
+            <div className={`overflow-auto min-h-full ${isEditMode ? 'drag-handle cursor-move bg-amber-50' : ''}`}>
               {onRenderWidget(widget)}
             </div>
           </div>
         ))}
+
       </ResponsiveGridLayout>
     </div>
   );
@@ -315,7 +306,6 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
         setWidgets(data.widgets || []);
         setError(null);
       } catch (err) {
-        console.error('Error fetching widgets:', err);
         setError('Failed to load widgets. Please try again later.');
       } finally {
         setLoading(false);
@@ -325,201 +315,17 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
     fetchWidgets();
   }, [dashboard.id]);
   
-  // Render a bar chart
-  const renderBarChart = (widget: Widget, data: any[]) => {
-    const { config } = widget;
-    
-    const barConfig = {
-      data,
-      xField: config.xAxis || 'name',
-      yField: config.yAxis || 'value',
-      seriesField: config.groupBy,
-      isStack: config.isStacked,
-      label: config.showLabel ? {} : undefined,
-      color: config.colors || chartColors,
-      // Make the chart fully responsive
-      autoFit: true,
-      appendPadding: [8, 8, 8, 8],
-      columnStyle: {
-        radius: [4, 4, 0, 0],
-      },
-      legend: {
-        visible: config.showLegend !== false,
-        position: 'top-right',
-      },
-      xAxis: {
-        title: { text: config.xAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      yAxis: {
-        title: { text: config.yAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      tooltip: {
-        showContent: config.showTooltip !== false,
-      },
-    };
-    
-    return <Column {...barConfig} />;
-  };
-  
-  // Render a line chart
-  const renderLineChart = (widget: Widget, data: any[]) => {
-    const { config } = widget;
-    
-    const lineConfig = {
-      data,
-      xField: config.xAxis || 'date',
-      yField: config.yAxis || 'value',
-      seriesField: config.groupBy,
-      smooth: true,
-      // Make the chart fully responsive
-      autoFit: true,
-      appendPadding: [8, 8, 8, 8],
-      color: config.colors || chartColors,
-      lineStyle: { lineWidth: 2 },
-      point: {
-        size: 5,
-        shape: 'circle',
-        style: { fillOpacity: 0.8 },
-      },
-      legend: {
-        visible: config.showLegend !== false,
-        position: 'top-right',
-      },
-      xAxis: {
-        title: { text: config.xAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      yAxis: {
-        title: { text: config.yAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      tooltip: {
-        showContent: config.showTooltip !== false,
-      },
-    };
-    
-    return <Line {...lineConfig} />;
-  };
-  
-  // Render an area chart
-  const renderAreaChart = (widget: Widget, data: any[]) => {
-    const { config } = widget;
-    
-    const areaConfig = {
-      data,
-      xField: config.xAxis || 'date',
-      yField: config.yAxis || 'value',
-      seriesField: config.groupBy,
-      isStack: config.isStacked,
-      smooth: true,
-      // Make the chart fully responsive
-      autoFit: true,
-      appendPadding: [8, 8, 8, 8],
-      color: config.colors || chartColors,
-      areaStyle: { fillOpacity: 0.6 },
-      legend: {
-        visible: config.showLegend !== false,
-        position: 'top-right',
-      },
-      xAxis: {
-        title: { text: config.xAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      yAxis: {
-        title: { text: config.yAxisLabel || '' },
-        grid: { line: { style: { stroke: config.showGrid ? '#d9d9d9' : 'transparent' } } },
-      },
-      tooltip: {
-        showContent: config.showTooltip !== false,
-      },
-    };
-    
-    return <Area {...areaConfig} />;
-  };
-  
-  // Render a pie chart
-  const renderPieChart = (widget: Widget, data: any[]) => {
-    const { config } = widget;
-    
-    const pieConfig = {
-      data,
-      angleField: config.yAxis || 'value',
-      colorField: config.xAxis || 'name',
-      color: config.colors || chartColors,
-      // Make the chart fully responsive
-      autoFit: true,
-      appendPadding: [8, 8, 8, 8],
-      radius: 0.8,
-      innerRadius: config.innerRadius || 0,
-      label: {
-        type: 'outer',
-        content: config.showLabel !== false ? '{name}: {percentage}' : '',
-      },
-      legend: {
-        visible: config.showLegend !== false,
-        position: 'top-right',
-      },
-      tooltip: {
-        showContent: config.showTooltip !== false,
-      },
-      interactions: [{ type: 'element-active' }],
-    };
-    
-    return <Pie {...pieConfig} />;
-  };
-  
-  // Sample data for testing - replace with real data loading
-  const getSampleData = (widget: Widget) => {
-    const sampleDataMap = {
-      bar: [
-        { name: 'Jan', value: 400 },
-        { name: 'Feb', value: 300 },
-        { name: 'Mar', value: 600 },
-        { name: 'Apr', value: 800 },
-        { name: 'May', value: 500 }
-      ],
-      line: [
-        { date: 'Jan', value: 400 },
-        { date: 'Feb', value: 300 },
-        { date: 'Mar', value: 600 },
-        { date: 'Apr', value: 800 },
-        { date: 'May', value: 500 }
-      ],
-      pie: [
-        { name: 'Group A', value: 400 },
-        { name: 'Group B', value: 300 },
-        { name: 'Group C', value: 300 },
-        { name: 'Group D', value: 200 }
-      ],
-      area: [
-        { date: 'Jan', value: 400 },
-        { date: 'Feb', value: 300 },
-        { date: 'Mar', value: 600 },
-        { date: 'Apr', value: 800 },
-        { date: 'May', value: 500 }
-      ],
-      text: []
-    };
-    
-    const config = widget.config || {};
-    const chartType = config.chartType || 'bar';
-    return sampleDataMap[chartType] || [];
-  };
-  
+
   // Render widget based on type
   const renderWidget = (widget: Widget) => {
-    const { type, config = {} } = widget;
+    const { type, data, config = {} } = widget;
     
     // For text widget type
     if (type === 'text') {
-    
       return (
         <div className="h-full p-4 overflow-auto w-full">
           <div className="prose max-w-none w-full h-full">
-            <pre>{JSON.stringify(widget, null, 2)}</pre>
-            {config.textContent?.split('\n').map((line: string, i: number) => (
+            {config?.textContent?.split('\n').map((line: string, i: number) => (
               <p key={i} className="break-words">{line || <br />}</p>
             )) || (
               <p className="text-muted-foreground">No content available</p>
@@ -528,13 +334,44 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
         </div>
       );
     }
+
+    // For text widget type
+    if (type === 'table') {
+      const columns = extractColumns(data || []);
+      return (
+        <div className="h-full p-4 overflow-auto w-full">
+          <div className="prose max-w-none w-full h-full">
+            <label className="text-md font-semibold text-muted-foreground">{widget.name}</label>
+            <p className="mt-0 text-xs text-muted-foreground">{widget.description}</p>
+            <Table className="-mt-2">
+              <TableHeader>
+                <TableRow>
+                  {columns.all.map((column) => (
+                    <TableHead className="p-2 font-semibold" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(data ?? []).map((row, idx) => (
+                  <TableRow key={idx} className="p-0">
+                    {columns.all.map((column) => (
+                      <TableCell className="p-2" key={`${idx}-${column}`}>
+                        {typeof row[column] === "object"
+                          ? JSON.stringify(row[column])
+                          : String(row[column] ?? "")}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      );
+    }
     
     // For chart widget type
     if (type === 'chart') {
-      const chartType = config.chartType || 'bar';
-      const sampleData = getSampleData(widget);
-      
-      // Set chart to fill container completely and be responsive
       const chartContainerStyle = { 
         height: '100%', 
         width: '100%',
@@ -543,31 +380,9 @@ export function DashboardViewClient({ dashboard }: DashboardPageProps) {
         padding: '0px',
         overflow: 'hidden'
       };
-      
-      // Render different chart types
       return (
         <div style={chartContainerStyle}>
-          {(() => {
-            switch (chartType) {
-              case 'bar':
-                return renderBarChart(widget, sampleData);
-              case 'line':
-                return renderLineChart(widget, sampleData);
-              case 'area':
-                return renderAreaChart(widget, sampleData);
-              case 'pie':
-                return renderPieChart(widget, sampleData);
-              default:
-                return (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <div className="text-center">
-                      <AppstoreOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
-                      <p>Unsupported chart type: {chartType}</p>
-                    </div>
-                  </div>
-                );
-            }
-          })()}
+          <Chart widget={widget} />
         </div>
       );
     }

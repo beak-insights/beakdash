@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
   try {
     const { id } = await params;
     const widgetId = parseInt(id);
-    const json = await request.json();
+    const { dashboardId, widget } = await request.json();
     
     // Check if widget exists
     const existingWidget = await db.query.widgets.findFirst({
@@ -64,17 +64,24 @@ export async function PUT(request: NextRequest, { params }: Props) {
     if (!existingWidget) {
       return NextResponse.json({ error: "Widget not found" }, { status: 404 });
     }
-    
+
     // Extract dashboard-related properties
-    const { dashboardId, position, ...widgetData } = json;
+    const { position, ...widgetData } = widget;
     
     let updatedWidget = existingWidget;
     
     // Only update widget data if there are properties to update
     if (Object.keys(widgetData).length > 0) {
+      // Ensure date fields are properly formatted
+      const processedWidgetData = {
+        ...widgetData,
+        updatedAt: new Date(), // Always update the updatedAt timestamp
+        createdAt: widgetData.createdAt ? new Date(widgetData.createdAt) : existingWidget.createdAt,
+      };
+      
       [updatedWidget] = await db
         .update(widgets)
-        .set(widgetData)
+        .set(processedWidgetData)
         .where(eq(widgets.id, widgetId))
         .returning();
     }
@@ -90,8 +97,6 @@ export async function PUT(request: NextRequest, { params }: Props) {
       if (existingDashboardWidget) {
         // Update position if provided
         if (position) {
-          console.log(`Updating position for widget ${widgetId} in dashboard ${dashboardId}:`, position);
-          
           // Ensure position has all required fields
           const validPosition = {
             x: position.x !== undefined ? position.x : 0,
@@ -119,7 +124,6 @@ export async function PUT(request: NextRequest, { params }: Props) {
             )
           });
           
-          console.log(`Updated widget ${widgetId} position in dashboard ${dashboardId}:`, updatedDashboardWidget?.position);
         }
       } else {
         // Create new dashboard-widget relationship

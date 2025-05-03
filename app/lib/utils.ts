@@ -148,8 +148,42 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
 
 /**
  * Extracts column names from data array
+ * Ensures numeric columns (including numeric strings) come last
  */
-export function extractColumns(data: Record<string, any>[]): string[] {
-  if (!data.length) return []
-  return Object.keys(data[0])
+export function extractColumns(data: Record<string, any>[]): { string: string[], numeric: string[], all: string[] } {
+  if (!data.length) return { string: [], numeric: [], all: [] }
+
+  const keys = Object.keys(data[0])
+  const isNumericLike = (value: any) => !isNaN(Number(value))
+
+  const nonNumericKeys: string[] = []
+  const numericKeys: string[] = []
+
+  for (const key of keys) {
+    const value = data[0][key]
+    if (isNumericLike(value)) {
+      numericKeys.push(key)
+    } else {
+      nonNumericKeys.push(key)
+    }
+  }
+
+  return {
+    "string": nonNumericKeys,
+    "numeric": numericKeys,
+    "all": [...nonNumericKeys, ...numericKeys]
+  }
+}
+
+/**
+ * Converts numeric strings to numbers
+ */
+export function makesureNumeric(data: Record<string, any>[]): Record<string, any>[] {
+  const columns = extractColumns(data);
+  return data.map((row) => {
+    columns.numeric?.forEach((key) => {
+      row[key] = Number(row[key]);
+    });
+    return row;
+  });
 }

@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const json = await request.json();
-    const { dashboardId, position, ...widgetData } = createWidgetSchema.parse(json);
+    const { dashboardId, widget } = await request.json();
+    const { position, ...widgetData } = createWidgetSchema.parse(widget);
     
     // Create the widget
     const [newWidget] = await db.insert(widgets).values(widgetData).returning();

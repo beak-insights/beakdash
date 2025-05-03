@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Widget } from "@/lib/db/schema";
-import WidgetCard from "@/components/widgets/widget-card";
+import WidgetCard from "@/components/widgets/chart/widget-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, AlertCircle } from "lucide-react";
 

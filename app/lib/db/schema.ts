@@ -160,43 +160,196 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
 // Widget types
 export const widgetTypes = ["chart", "text", "table"] as const;
 export const widgetSchemas = z.enum(widgetTypes);
-export const chartTypes = ["bar", "column", "line", "pie", "scatter", "dual-axes", "counter", "stat-card"] as const;
+export const chartTypes = [
+  "bar", "column", "line", "pie", "area", "scatter", "dual-axes", "counter", "stat-card",
+  "box-plot", "histogram", "word-cloud"
+] as const;
 export const chartSchemas = z.enum(chartTypes);
 
 // Widgets schema
 // Define a forward reference for widgets table
 const widgetsRef: any = {};
 
-// Schema for widget configuration
-export const WidgetConfigSchema = z.object({
-  chartType: chartSchemas.optional(),
-  xAxis: z.string().optional(),
-  yAxis: z.string().optional(),
-  y2Axis: z.string().optional(),
-  groupBy: z.string().optional(),
-  sortBy: z.string().optional(),
-  sortOrder: z.enum(["asc", "desc", "none"]).optional(),
-  limit: z.number().optional(),
-  colors: z.array(z.string()).optional(),
-  showLegend: z.boolean().optional(),
-  labelFormat: z.string().optional(),
-  // Text widget specific properties
-  textContent: z.string().optional(),
-  textAlign: z.enum(["left", "center", "right", "justify"]).optional(),
-  fontSize: z.string().optional(),
-  fontWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
-  textColor: z.string().optional(),
-  backgroundColor: z.string().optional(),
-  filters: z.array(
-    z.object({
-      field: z.string(),
-      operator: z.enum(["equals", "not_equals", "greater_than", "less_than", "contains"]),
-      value: z.union([z.string(), z.number(), z.boolean()]),
-    })
-  ).optional(),
-});
+// Define base widget config type
+type BaseWidgetConfig = {
+  chartType?: z.infer<typeof chartSchemas>;
+  textContent?: string;
+  xField?: string;
+  yField?: string;
+  colorField?: string;
+  shapeField?: string;
+  sizeField?: string;
+  seriesField?: string;
+  stack?: boolean | {
+    groupBy?: string[];
+    orderBy?: string;
+    series?: boolean;
+  };
+  normalize?: boolean;
+  binField?: string;
+  channel?: string;
+  binWidth?: number;
+  innerRadius?: number;
+  sort?: boolean | {
+    reverse?: boolean;
+    by?: string;
+  };
+  group?: boolean | {
+    reverse?: boolean;
+    by?: string;
+  };
+  point?: {
+    shapeField?: string;
+    sizeField?: number;
+  };
+  boxType?: string;
+  interaction?: {
+    tooltip?: {
+      marker?: boolean;
+    };
+  };
+  style?: {
+    inset?: number;
+    lineWidth?: number;
+    lineDash?: number[];
+    fillOpacity?: number;
+    stroke?: string;
+  };
+  scale?: {
+    x?: {
+      paddingInner?: number;
+      paddingOuter?: number;
+      domainMin?: number;
+      tickCount?: number;
+    };
+    y?: {
+      zero?: boolean;
+      domainMin?: number;
+      tickCount?: number;
+    };
+  };
+  percent?: boolean;
+  label?: {
+    text?: string;
+    style?: {
+      fontWeight?: string;
+    };
+  };
+  legend?: {
+    color?: {
+      title?: boolean;
+      position?: string;
+      rowPadding?: number;
+    };
+  };
+  layout?: {
+    spiral?: string;
+  };
+  children?: WidgetConfig[];
+  type?: string;
+  axis?: {
+    y?: {
+      position?: string;
+      title?: string;
+    };
+  };
+};
 
-export type WidgetConfig = z.infer<typeof WidgetConfigSchema>;
+export type WidgetConfig = BaseWidgetConfig;
+
+export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
+  chartType: chartSchemas.optional(),
+  textContent: z.string().optional(),
+  xField: z.string().optional(),
+  yField: z.string().optional(),
+  colorField: z.string().optional(),
+  shapeField: z.string().optional(),
+  sizeField: z.string().optional(),
+  seriesField: z.string().optional(),
+  stack: z.union([
+    z.boolean().optional(), 
+    z.object({
+    groupBy: z.array(z.string()).optional(),
+    orderBy: z.string().optional(),
+    series: z.boolean().optional(),
+  })]).optional(),
+  normalize: z.boolean().optional(),
+  binField: z.string().optional(),
+  channel: z.string().optional(),
+  binWidth: z.number().optional(),
+  innerRadius: z.number().optional(),
+  sort: z.union([
+    z.boolean().optional(), 
+    z.object({
+    reverse: z.boolean().optional(),
+    by: z.string().optional(),
+  })]).optional(),
+  group: z.union([
+    z.boolean().optional(), 
+    z.object({
+    reverse: z.boolean().optional(),
+    by: z.string().optional(),
+  })]).optional(),
+  point: z.object({
+    shapeField: z.string().optional(),
+    sizeField: z.number().optional(),
+  }).optional(),
+  boxType: z.string().optional(),
+  interaction: z.object({
+    tooltip: z.object({
+      marker: z.boolean().optional(),
+    }).optional(),
+  }).optional(),
+  style: z.object({
+    inset: z.number().optional(),
+    lineWidth: z.number().optional(),
+    lineDash: z.array(z.number()).optional(),
+    fillOpacity: z.number().optional(),
+    stroke: z.string().optional(),
+  }).optional(),
+  scale: z.object({
+    x: z.object({
+      paddingInner: z.number().optional(),
+      paddingOuter: z.number().optional(),
+      domainMin: z.number().optional(),
+      tickCount: z.number().optional(),
+    }).optional(),
+    y: z.object({
+      zero: z.boolean().optional(),
+      domainMin: z.number().optional(),
+      tickCount: z.number().optional(),
+    }).optional(),
+  }).optional(),
+  percent: z.boolean().optional(),
+  label: z.object({
+    text: z.string().optional(),
+    style: z.object({
+      fontWeight: z.string().optional(),
+    }).optional(),
+  }).optional(),
+  legend: z.object({
+    color: z.object({
+      title: z.boolean().optional(),
+      position: z.string().optional(),
+      rowPadding: z.number().optional(),
+    }).optional(),
+  }).optional(),
+  layout: z.object({
+    spiral: z.string().optional(),
+  }).optional(),
+  children: z.array(z.lazy(() => WidgetConfigSchema)).optional(),
+  // children schema in dual axes
+  type: z.string().optional(),
+  axis: z.object({
+    y: z.object({
+      position: z.string().optional(),
+      title: z.string().optional(),
+      style: z.object({
+        titleFill: z.string().optional(),
+      }).optional(),
+    }).optional(),
+  }).optional(),
+});
 
 export const widgets = pgTable("widgets", {
   id: serial("id").primaryKey(),

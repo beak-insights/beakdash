@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Widget } from "@/lib/db/schema";
-import WidgetCard from "@/components/widgets/widget-card";
+import WidgetCard from "@/components/widgets/chart/widget-card";
 
 interface WidgetsListProps {
   widgets: Widget[];
