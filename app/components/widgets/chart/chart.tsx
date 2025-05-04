@@ -37,9 +37,9 @@ const renderBarChart = (widget: Widget) => {
     },
     xField: config?.xField,
     yField: config?.yField,
-    // colorField: 'age',
-    // stack: true,
-    // normalize: true,
+    colorField: config?.colorField,
+    stack: config?.stack,
+    normalize: config?.normalize,
   };
   return <Bar {...barConfig} />;
 };

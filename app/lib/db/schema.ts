@@ -160,9 +160,12 @@ export const insertDatasetSchema = createInsertSchema(datasets).pick({
 // Widget types
 export const widgetTypes = ["chart", "text", "table"] as const;
 export const widgetSchemas = z.enum(widgetTypes);
-export const chartTypes = [
+export const xxx = [
   "bar", "column", "line", "pie", "area", "scatter", "dual-axes", "counter", "stat-card",
   "box-plot", "histogram", "word-cloud"
+] as const;
+export const chartTypes = [
+  "bar"
 ] as const;
 export const chartSchemas = z.enum(chartTypes);
 

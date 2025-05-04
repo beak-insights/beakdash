@@ -37,73 +37,59 @@ export default function ChartConfig({
   
   return (
     <div className="space-y-4">
-      {/* Bar Chart Options */}
-      {chartType === "bar" && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Bar Chart Options</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="stack"
-                checked={config.stack === true}
-                onCheckedChange={(checked) => updateConfig("stack", checked)}
-              />
-              <Label htmlFor="stack">Stacked</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="normalize"
-                checked={config.normalize === true}
-                onCheckedChange={(checked) => updateConfig("normalize", checked)}
-              />
-              <Label htmlFor="normalize">Normalize (100% Stacked)</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="group"
-                checked={config.group === true || (typeof config.group === 'object')}
-                onCheckedChange={(checked) => updateConfig("group", checked)}
-              />
-              <Label htmlFor="group">Grouped</Label>
-            </div>
-            {(config.group === true || typeof config.group === 'object') && (
-              <div className="ml-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="groupReverse"
-                    checked={typeof config.group === 'object' ? config.group?.reverse === true : false}
-                    onCheckedChange={(checked) => updateNestedConfig("group", "reverse", checked)}
-                  />
-                  <Label htmlFor="groupReverse">Reverse Order</Label>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="sort"
-                checked={config.sort === true || (typeof config.sort === 'object')}
-                onCheckedChange={(checked) => updateConfig("sort", checked)}
-              />
-              <Label htmlFor="sort">Sort Values</Label>
-            </div>
-            {(config.sort === true || typeof config.sort === 'object') && (
-              <div className="ml-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="sortReverse"
-                    checked={typeof config.sort === 'object' ? config.sort?.reverse === true : false}
-                    onCheckedChange={(checked) => updateNestedConfig("sort", "reverse", checked)}
-                  />
-                  <Label htmlFor="sortReverse">Reverse Sort</Label>
-                </div>
-              </div>
-            )}
-          </div>
+      
+      {/* stack Mapping */}
+      {['bar'].includes(chartType) && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="stack"
+            checked={config.stack === true}
+            onCheckedChange={(checked) => updateConfig("stack", checked)}
+          />
+          <Label htmlFor="stack">Stacked</Label>
         </div>
       )}
       
+      {/* normalize Mapping */}
+      {['bar'].includes(chartType) && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="normalize"
+            checked={config.normalize === true}
+            onCheckedChange={(checked) => updateConfig("normalize", checked)}
+          />
+          <Label htmlFor="normalize">Normalize (100% Stacked)</Label>
+        </div>
+      )}
+      
+      {/* group Mapping */}
+      {['bar'].includes(chartType) && (
+        <>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="group"
+            checked={config.group === true || (typeof config.group === 'object')}
+            onCheckedChange={(checked) => updateConfig("group", checked)}
+          />
+          <Label htmlFor="group">Grouped</Label>
+        </div>
+        {(config.group === true || typeof config.group === 'object') && (
+          <div className="ml-6 space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="groupReverse"
+                checked={typeof config.group === 'object' ? config.group?.reverse === true : false}
+                onCheckedChange={(checked) => updateNestedConfig("group", "reverse", checked)}
+              />
+              <Label htmlFor="groupReverse">Reverse Order</Label>
+            </div>
+          </div>
+        )}
+        </>
+      )}
+
       {/* Column Chart Options */}
-      {chartType === "column" && (
+      {/* {chartType === "column" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Column Chart Options</h3>
           <div className="space-y-2">
@@ -174,9 +160,9 @@ export default function ChartConfig({
           </div>
         </div>
       )}
-      
+       */}
       {/* Line Chart Options */}
-      {chartType === "line" && (
+      {/* {chartType === "line" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Line Chart Options</h3>
           <div className="space-y-2">
@@ -275,10 +261,10 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Area Chart Options */}
-      {chartType === "area" && (
+      {/* {chartType === "area" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Area Chart Options</h3>
           <div className="space-y-2">
@@ -316,10 +302,10 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Pie Chart Options */}
-      {chartType === "pie" && (
+      {/* {chartType === "pie" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Pie Chart Options</h3>
           <div className="space-y-2">
@@ -376,10 +362,10 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Scatter Plot Options */}
-      {chartType === "scatter" && (
+      {/* {chartType === "scatter" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Scatter Plot Options</h3>
           <div className="space-y-2">
@@ -405,15 +391,15 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Dual Axes Options */}
       {chartType === "dual-axes" && (
         <div>
-          <h3 className="text-sm font-medium mb-2">Dual Axes Configuration</h3>
+          {/* <h3 className="text-sm font-medium mb-2">Dual Axes Configuration</h3> */}
           
           {/* Common X-Field for all axes */}
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <Label htmlFor="xField" className="text-xs">X-Field (Common)</Label>
             <Input
               id="xField"
@@ -422,13 +408,13 @@ export default function ChartConfig({
               placeholder="Common X field (e.g. Month, Date)"
               className="w-full mt-1"
             />
-          </div>
+          </div> */}
           
           {/* Child configurations */}
           <div className="space-y-4">
             {(config.children || []).map((child, index) => (
               <div key={index} className="border p-3 rounded-md">
-                <div className="flex justify-between items-center mb-2">
+                {/* <div className="flex justify-between items-center mb-2">
                   <h4 className="text-xs font-medium">Series {index + 1}</h4>
                   <button
                     type="button"
@@ -441,11 +427,11 @@ export default function ChartConfig({
                   >
                     Remove
                   </button>
-                </div>
+                </div> */}
                 
                 <div className="space-y-2">
                   {/* Chart Type */}
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`type-${index}`} className="text-xs">Chart Type</Label>
                     <Select
                       value={child.type || "line"}
@@ -464,10 +450,10 @@ export default function ChartConfig({
                         <SelectItem value="area">Area</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
                   
                   {/* Y Field */}
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`yField-${index}`} className="text-xs">Y Field</Label>
                     <Input
                       id={`yField-${index}`}
@@ -480,10 +466,10 @@ export default function ChartConfig({
                       placeholder="Y field name (e.g. Temperature)"
                       className="w-full mt-1"
                     />
-                  </div>
+                  </div> */}
                   
                   {/* Color */}
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`color-${index}`} className="text-xs">Color</Label>
                     <div className="flex gap-2">
                       <Input
@@ -508,10 +494,10 @@ export default function ChartConfig({
                         className="w-12 mt-1 p-1"
                       />
                     </div>
-                  </div>
+                  </div> */}
                   
                   {/* Axis Position and Title */}
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`axisPosition-${index}`} className="text-xs">Axis Position</Label>
                     <Select
                       value={child.axis?.y?.position || (index === 0 ? "left" : "right")}
@@ -538,9 +524,9 @@ export default function ChartConfig({
                         <SelectItem value="right">Right</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
                   
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`axisTitle-${index}`} className="text-xs">Axis Title</Label>
                     <Input
                       id={`axisTitle-${index}`}
@@ -562,12 +548,12 @@ export default function ChartConfig({
                       placeholder="Y axis title"
                       className="w-full mt-1"
                     />
-                  </div>
+                  </div> */}
                   
                   {/* Line specific options */}
                   {child.type === "line" && (
                     <>
-                      <div>
+                      {/* <div>
                         <Label htmlFor={`shape-${index}`} className="text-xs">Line Shape</Label>
                         <Select
                           value={child.shapeField || "smooth"}
@@ -586,9 +572,9 @@ export default function ChartConfig({
                             <SelectItem value="step">Step</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                      </div> */}
                       
-                      <div>
+                      {/* <div>
                         <Label htmlFor={`lineWidth-${index}`} className="text-xs">Line Width</Label>
                         <Select
                           value={String(child.style?.lineWidth || "2")}
@@ -612,9 +598,9 @@ export default function ChartConfig({
                             <SelectItem value="4">Very Thick (4px)</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                      </div> */}
                       
-                      <div>
+                      {/* <div>
                         <Label htmlFor={`lineDash-${index}`} className="text-xs">Line Style</Label>
                         <Select
                           value={child.style?.lineDash ? "dashed" : "solid"}
@@ -639,12 +625,12 @@ export default function ChartConfig({
                             <SelectItem value="dashed">Dashed</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                      </div> */}
                     </>
                   )}
                   
                   {/* Bar specific options */}
-                  {child.type === "interval" && (
+                  {/* {child.type === "interval" && (
                     <div>
                       <Label htmlFor={`opacity-${index}`} className="text-xs">Opacity</Label>
                       <div className="flex items-center gap-2">
@@ -668,13 +654,13 @@ export default function ChartConfig({
                         <span className="text-xs w-10">{Math.round((child.style?.fillOpacity || 0.8) * 100)}%</span>
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             ))}
             
             {/* Add new series button */}
-            <button
+            {/* <button
               type="button"
               onClick={() => {
                 const children = [...(config.children || [])];
@@ -702,13 +688,13 @@ export default function ChartConfig({
               className="w-full py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
             >
               + Add Series
-            </button>
+            </button> */}
           </div>
         </div>
       )}
       
       {/* Histogram Options */}
-      {chartType === "histogram" && (
+      {/* {chartType === "histogram" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Histogram Options</h3>
           <div className="space-y-2">
@@ -760,10 +746,10 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Box Plot Options */}
-      {chartType === "box-plot" && (
+      {/* {chartType === "box-plot" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Box Plot Options</h3>
           <div className="space-y-2">
@@ -799,10 +785,10 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Word Cloud Options */}
-      {chartType === "word-cloud" && (
+      {/* {chartType === "word-cloud" && (
         <div>
           <h3 className="text-sm font-medium mb-2">Word Cloud Options</h3>
           <div className="space-y-2">
@@ -833,13 +819,13 @@ export default function ChartConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       
       {/* Common chart options for all types */}
       <div>
-        <h3 className="text-sm font-medium mb-2">General Chart Options</h3>
+        {/* <h3 className="text-sm font-medium mb-2">General Chart Options</h3> */}
         <div className="space-y-2">
-          <div>
+          {/* <div>
             <Label htmlFor="xField" className="text-xs">X-Axis Label</Label>
             <Input
               id="xField"
@@ -858,10 +844,10 @@ export default function ChartConfig({
               placeholder="Optional Y-axis label"
               className="w-full mt-1"
             />
-          </div>
+          </div> */}
           
           {/* X-Axis Scale Options */}
-          <div>
+          {/* <div>
             <details className="mt-2">
               <summary className="text-xs font-medium cursor-pointer">X-Axis Scale Options</summary>
               <div className="mt-2 space-y-2 ml-4">
@@ -918,10 +904,10 @@ export default function ChartConfig({
                 </div>
               </div>
             </details>
-          </div>
+          </div> */}
           
           {/* Y-Axis Scale Options */}
-          <div>
+          {/* <div>
             <details className="mt-2">
               <summary className="text-xs font-medium cursor-pointer">Y-Axis Scale Options</summary>
               <div className="mt-2 space-y-2 ml-4">
@@ -953,7 +939,7 @@ export default function ChartConfig({
                 </div>
               </div>
             </details>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

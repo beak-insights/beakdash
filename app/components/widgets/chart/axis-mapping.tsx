@@ -94,37 +94,39 @@ export default function AxisMapping({
 
   return (
     <div className="space-y-4">
-      {/* Common X-Axis field for all chart types */}
-      <div>
-        <Label htmlFor="xField" className="block mb-1">X Axis</Label>
-        <Select
-          value={config.xField || ""}
-          onValueChange={(value) => handleChange("xField", value === "none" ? undefined : value)}
-        >
-          <SelectTrigger id="xField">
-            <SelectValue placeholder="Select X axis" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {columns.string.map((column) => (
-              <SelectItem key={column} value={column}>
-                {column}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Different mappings based on chart type */}
-      {chartType === "pie" ? (
+      {/* xField Mapping */}
+      {['bar'].includes(chartType) && (
         <div>
-          <Label htmlFor="yField" className="block mb-1">Value Field</Label>
+          <Label htmlFor="xField" className="block mb-1">X Axis</Label>
+          <Select
+            value={config.xField || ""}
+            onValueChange={(value) => handleChange("xField", value === "none" ? undefined : value)}
+          >
+            <SelectTrigger id="xField">
+              <SelectValue placeholder="Select X axis" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {columns.string.map((column) => (
+                <SelectItem key={column} value={column}>
+                  {column}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* yField Mapping */}
+      {['bar'].includes(chartType) && (
+        <div>
+          <Label htmlFor="yField" className="block mb-1">Y Axis</Label>
           <Select
             value={config.yField || ""}
             onValueChange={(value) => handleChange("yField", value === "none" ? undefined : value)}
           >
             <SelectTrigger id="yField">
-              <SelectValue placeholder="Select value field" />
+              <SelectValue placeholder="Select Y axis" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
@@ -136,8 +138,79 @@ export default function AxisMapping({
             </SelectContent>
           </Select>
         </div>
-      ) : chartType === "dual-axes" ? (
-        // Dual Axes - Series Configuration
+      )}
+
+      {/* colorField Mapping */}
+      {['bar'].includes(chartType) && (
+        <div>
+          <Label htmlFor="colorField" className="block mb-1">Color Field (optional)</Label>
+          <Select
+            value={config.colorField || ""}
+            onValueChange={(value) => handleChange("colorField", value === "none" ? undefined : value)}
+          >
+            <SelectTrigger id="colorField">
+              <SelectValue placeholder="Select color field" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {columns.all.map((column) => (
+                <SelectItem key={column} value={column}>
+                  {column}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* seriesField Mapping */}
+      {[''].includes(chartType) && (
+        <div>
+          <Label htmlFor="seriesField" className="block mb-1">Series/Group Field</Label>
+          <Select
+            value={config.seriesField || ""}
+            onValueChange={(value) => handleChange("seriesField", value === "none" ? undefined : value)}
+          >
+            <SelectTrigger id="seriesField">
+              <SelectValue placeholder="Select series field (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {columns.all.map((column) => (  
+                <SelectItem key={column} value={column}>
+                  {column}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* sizeField Mapping */}
+      {[''].includes(chartType) && (
+        <div>
+          <Label htmlFor="sizeField" className="block mb-1">Size Field (optional)</Label>
+          <Select
+            value={config.sizeField || ""}
+            onValueChange={(value) => handleChange("sizeField", value === "none" ? undefined : value)}
+          >
+            <SelectTrigger id="sizeField">
+              <SelectValue placeholder="Select size field" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {columns.all.map((column) => (
+                <SelectItem key={column} value={column}>
+                  {column}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* children Mapping for dual-axes */}
+      {['dual-axes'].includes(chartType) && (
         <div className="space-y-4 border rounded-md p-3">
           <h3 className="text-sm font-medium mb-2">Series Configuration</h3>
           
@@ -249,102 +322,16 @@ export default function AxisMapping({
             </div>
           )}
         </div>
-      ) : (
-        // Standard chart types
-        <>
-          <div>
-            <Label htmlFor="yField" className="block mb-1">Y Axis</Label>
-            <Select
-              value={config.yField || ""}
-              onValueChange={(value) => handleChange("yField", value === "none" ? undefined : value)}
-            >
-              <SelectTrigger id="yField">
-                <SelectValue placeholder="Select Y axis" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {columns.numeric.map((column) => (
-                  <SelectItem key={column} value={column}>
-                    {column}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Series/Group field for appropriate chart types */}
-          {(chartType === "bar" || chartType === "column" || chartType === "line" || chartType === "area" || chartType === "scatter") && (
-            <div>
-              <Label htmlFor="seriesField" className="block mb-1">Series/Group Field</Label>
-              <Select
-                value={config.seriesField || ""}
-                onValueChange={(value) => handleChange("seriesField", value === "none" ? undefined : value)}
-              >
-                <SelectTrigger id="seriesField">
-                  <SelectValue placeholder="Select series field (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {columns.all.map((column) => (  
-                    <SelectItem key={column} value={column}>
-                      {column}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          {/* Size field for scatter plot */}
-          {chartType === "scatter" && (
-            <div>
-              <Label htmlFor="sizeField" className="block mb-1">Size Field (optional)</Label>
-              <Select
-                value={config.sizeField || ""}
-                onValueChange={(value) => handleChange("sizeField", value === "none" ? undefined : value)}
-              >
-                <SelectTrigger id="sizeField">
-                  <SelectValue placeholder="Select size field" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {columns.all.map((column) => (
-                    <SelectItem key={column} value={column}>
-                      {column}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          {/* Color field for charts that support it */}
-          {["bar", "column", "line", "area", "scatter", "box-plot", "histogram", "word-cloud"].includes(chartType) && (
-            <div>
-              <Label htmlFor="colorField" className="block mb-1">Color Field (optional)</Label>
-              <Select
-                value={config.colorField || ""}
-                onValueChange={(value) => handleChange("colorField", value === "none" ? undefined : value)}
-              >
-                <SelectTrigger id="colorField">
-                  <SelectValue placeholder="Select color field" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {columns.all.map((column) => (
-                    <SelectItem key={column} value={column}>
-                      {column}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </>
       )}
 
+      {/* xxxxx Mapping */}
+      {![''].includes(chartType) && (
+        <></>
+      )}
+
+
       {/* Sorting */}
-      <div>
+      {/* <div>
         <Label className="block mb-1">Sorting</Label>
         <div className="grid grid-cols-2 gap-2">
           <Select
@@ -407,7 +394,7 @@ export default function AxisMapping({
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
