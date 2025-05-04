@@ -75,6 +75,9 @@ export default function WidgetEditor({
   const [config, setConfig] = useState<WidgetConfig>(
     widget?.config || {},
   );
+  const [chartSwitch, setChartSwitch] = useState<Record<ChartType, WidgetConfig>>(
+    {} as Record<ChartType, WidgetConfig>
+  );
   const [previewData, setPreviewData] = useState<Record<string, any>[]>(
     widget?.data || []
   );
@@ -218,6 +221,26 @@ export default function WidgetEditor({
       }
     }
   }, [datasetData, config?.chartType]);
+
+  // Switch chart type data preservation
+  const switchChartType = (chartType: ChartType) => {
+    // cache previous config
+    console.log(config.chartType, config)
+    const swCache = {
+      ...chartSwitch,
+      [config.chartType!]: config
+    }
+
+    // reset to previous if in cache else reset
+    if(Object.keys(swCache)?.includes(chartType)){
+      swCache[chartType] = swCache[chartType]
+    } else {
+      swCache[chartType] = { chartType }
+    }
+    // update config and switch cache
+    setConfig(swCache[chartType])
+    setChartSwitch(swCache)
+  }
 
   // Execute SQL query
   const handleExecuteQuery = async () => {
@@ -754,7 +777,7 @@ export default function WidgetEditor({
                               key={type}
                               variant={config?.chartType === type ? "default" : "outline"}
                               className="flex flex-col items-center justify-center h-16 p-2"
-                              onClick={() => setConfig({ ...config, chartType: type })}
+                              onClick={() => switchChartType(type)}
                             >
                               {getChartTypeIcon(type)}
                               <span className="text-xs mt-1">
