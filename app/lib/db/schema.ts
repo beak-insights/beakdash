@@ -162,10 +162,10 @@ export const widgetTypes = ["chart", "text", "table"] as const;
 export const widgetSchemas = z.enum(widgetTypes);
 export const xxx = [
   "bar", "column", "line", "pie", "area", "scatter", "dual-axes", "counter", "stat-card",
-  "box-plot", "histogram", "word-cloud"
+  "histogram", "word-cloud"
 ] as const;
 export const chartTypes = [
-  "bar"
+  "bar", "column", 'line', 'pie', 'area', "scatter", "dual-axes", "word-cloud","histogram"
 ] as const;
 export const chartSchemas = z.enum(chartTypes);
 
@@ -193,6 +193,7 @@ type BaseWidgetConfig = {
   channel?: string;
   binWidth?: number;
   innerRadius?: number;
+  tooltip?: boolean;
   sort?: boolean | {
     reverse?: boolean;
     by?: string;
@@ -277,6 +278,7 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
     series: z.boolean().optional(),
   })]).optional(),
   normalize: z.boolean().optional(),
+  tooltip: z.boolean().optional(),
   binField: z.string().optional(),
   channel: z.string().optional(),
   binWidth: z.number().optional(),

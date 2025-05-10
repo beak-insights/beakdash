@@ -38,8 +38,8 @@ export default function ChartConfig({
   return (
     <div className="space-y-4">
       
-      {/* stack Mapping */}
-      {['bar'].includes(chartType) && (
+      {/* stack */}
+      {['bar', 'column', 'area'].includes(chartType) && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="stack"
@@ -50,647 +50,535 @@ export default function ChartConfig({
         </div>
       )}
       
-      {/* normalize Mapping */}
-      {['bar'].includes(chartType) && (
+      {/* group */}
+      {['bar', 'column'].includes(chartType) && (
+        <>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="group"
+              checked={config.group === true || (typeof config.group === 'object')}
+              onCheckedChange={(checked) => updateConfig("group", checked)}
+            />
+            <Label htmlFor="group">Grouped</Label>
+          </div>
+          {(config.group === true || typeof config.group === 'object') && (
+            <div className="ml-6 space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="groupReverse"
+                  checked={typeof config.group === 'object' ? config.group?.reverse === true : false}
+                  onCheckedChange={(checked) => updateNestedConfig("group", "reverse", checked)}
+                />
+                <Label htmlFor="groupReverse">Reverse Order</Label>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* normalize */}
+      {['bar', 'column', 'area'].includes(chartType) && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="normalize"
             checked={config.normalize === true}
             onCheckedChange={(checked) => updateConfig("normalize", checked)}
           />
-          <Label htmlFor="normalize">Normalize (100% Stacked)</Label>
+          <Label htmlFor="normalize">Normalize (100%)</Label>
         </div>
-      )}
-      
-      {/* group Mapping */}
-      {['bar'].includes(chartType) && (
-        <>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="group"
-            checked={config.group === true || (typeof config.group === 'object')}
-            onCheckedChange={(checked) => updateConfig("group", checked)}
-          />
-          <Label htmlFor="group">Grouped</Label>
-        </div>
-        {(config.group === true || typeof config.group === 'object') && (
-          <div className="ml-6 space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="groupReverse"
-                checked={typeof config.group === 'object' ? config.group?.reverse === true : false}
-                onCheckedChange={(checked) => updateNestedConfig("group", "reverse", checked)}
-              />
-              <Label htmlFor="groupReverse">Reverse Order</Label>
-            </div>
-          </div>
-        )}
-        </>
       )}
 
-      {/* Column Chart Options */}
-      {/* {chartType === "column" && (
+      {/* lineStyle */}
+      {['line'].includes(chartType) && (
         <div>
-          <h3 className="text-sm font-medium mb-2">Column Chart Options</h3>
-          <div className="space-y-2">
+          <Label htmlFor="lineStyle" className="text-xs">Line Style</Label>
+          <Select
+            value={config.style?.lineWidth ? String(config.style.lineWidth) : "2"}
+            onValueChange={(value) => updateNestedConfig("style", "lineWidth", Number(value))}
+          >
+            <SelectTrigger id="lineStyle" className="w-full mt-1">
+              <SelectValue placeholder="Line Width" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Thin (1px)</SelectItem>
+              <SelectItem value="2">Medium (2px)</SelectItem>
+              <SelectItem value="3">Thick (3px)</SelectItem>
+              <SelectItem value="4">Very Thick (4px)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )} 
+
+      {/* point */}
+      {['line'].includes(chartType) && (
+        <div>
+          <Label htmlFor="pointStyle" className="text-xs">Point Style</Label>
+          <div className="flex flex-col space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox
-                id="stack"
-                checked={config.stack === true || (typeof config.stack === 'object')}
-                onCheckedChange={(checked) => updateConfig("stack", checked)}
+                id="showPoint"
+                checked={config.point !== undefined}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    updateConfig("point", { size: 4 });
+                  } else {
+                    updateConfig("point", undefined)
+                  }
+                }}
               />
-              <Label htmlFor="stack">Stacked</Label>
+              <Label htmlFor="showPoint">Show Points</Label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="normalize"
-                checked={config.normalize === true}
-                onCheckedChange={(checked) => updateConfig("normalize", checked)}
-              />
-              <Label htmlFor="normalize">Normalize (100% Stacked)</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="group"
-                checked={config.group === true || (typeof config.group === 'object')}
-                onCheckedChange={(checked) => updateConfig("group", checked)}
-              />
-              <Label htmlFor="group">Grouped</Label>
-            </div>
-            {(config.group === true || typeof config.group === 'object') && (
+            
+            {config.point && (
               <div className="ml-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="groupReverse"
-                    checked={typeof config.group === 'object' ? config.group?.reverse === true : false}
-                    onCheckedChange={(checked) => updateNestedConfig("group", "reverse", checked)}
-                  />
-                  <Label htmlFor="groupReverse">Reverse Order</Label>
+                <div>
+                  <Label htmlFor="pointSize" className="text-xs">Point Size</Label>
+                  <Select
+                    value={config.point?.sizeField ? String(config.point.sizeField) : "4"}
+                    onValueChange={(value) => updateNestedConfig("point", "sizeField", Number(value))}
+                  >
+                    <SelectTrigger id="pointSize" className="w-full mt-1">
+                      <SelectValue placeholder="Point Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">Small (2px)</SelectItem>
+                      <SelectItem value="4">Medium (4px)</SelectItem>
+                      <SelectItem value="6">Large (6px)</SelectItem>
+                      <SelectItem value="8">Extra Large (8px)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="pointShape" className="text-xs">Point Shape</Label>
+                  <Select
+                    value={config.point?.shapeField || "circle"}
+                    onValueChange={(value) => updateNestedConfig("point", "shapeField", value)}
+                  >
+                    <SelectTrigger id="pointShape" className="w-full mt-1">
+                      <SelectValue placeholder="Point Shape" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="circle">Circle</SelectItem>
+                      <SelectItem value="square">Square</SelectItem>
+                      <SelectItem value="diamond">Diamond</SelectItem>
+                      <SelectItem value="triangle">Triangle</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="sort"
-                checked={config.sort === true || (typeof config.sort === 'object')}
-                onCheckedChange={(checked) => updateConfig("sort", checked)}
-              />
-              <Label htmlFor="sort">Sort Values</Label>
-            </div>
-            {(config.sort === true || typeof config.sort === 'object') && (
-              <div className="ml-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="sortReverse"
-                    checked={typeof config.sort === 'object' ? config.sort?.reverse === true : false}
-                    onCheckedChange={(checked) => updateNestedConfig("sort", "reverse", checked)}
-                  />
-                  <Label htmlFor="sortReverse">Reverse Sort</Label>
-                </div>
+          </div>
+        </div>
+      )} 
+
+      {/* tooltip */}
+      {['line'].includes(chartType) && (
+        <>
+        <div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="toolTip"
+              checked={config.tooltip || false}
+              onCheckedChange={(checked) => updateConfig("tooltip", checked)}
+            />
+            <Label htmlFor="toolTip">Enable Tooltip</Label>
+          </div>
+          {config.tooltip && (
+            <div className="ml-6 space-y-2 mt-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="toolTipMarkers"
+                  checked={config.interaction?.tooltip?.marker || false}
+                  onCheckedChange={(checked) => updateConfig("interaction", { tooltip: { marker: checked } })}
+                />
+                <Label htmlFor="toolTipMarkers" className="text-xs">Show Markers</Label>
               </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="percent"
-                checked={config.percent === true}
-                onCheckedChange={(checked) => updateConfig("percent", checked)}
-              />
-              <Label htmlFor="percent">Show as Percentage</Label>
             </div>
+          )}
+        </div>
+        </>
+      )} 
+
+      {/* as percent */}
+      {['bar', 'column'].includes(chartType) && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="percent"
+            checked={config.percent === true}
+            onCheckedChange={(checked) => updateConfig("percent", checked)}
+          />
+          <Label htmlFor="percent">Show as Percentage</Label>
+        </div>
+      )} 
+
+      {/* Inner Radius */}
+      {['pie'].includes(chartType) && (
+        <div>
+          <Label htmlFor="innerRadius" className="text-xs">Inner Radius (Donut)</Label>
+          <div className="flex items-center gap-2">
+            <Slider
+              id="innerRadius"
+              min={0}
+              max={0.9}
+              step={0.1}
+              value={[(config.innerRadius || 0.0)]}
+              onValueChange={([value]) => updateConfig("innerRadius", value)}
+              className="flex-1"
+            />
+            <span className="text-xs w-10">{Math.round((config.innerRadius || 0) * 100)}%</span>
+          </div>
+        </div>
+      )} 
+
+      {/* label */}
+      {['pie'].includes(chartType) && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="showLabel"
+            checked={config.label !== undefined}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                updateConfig("label", { 
+                  text: config?.yField, 
+                  style: { fontWeight: "bold" } 
+                });
+              } else {
+                // Remove label configuration
+                updateConfig("label", undefined);
+              }
+            }}
+          />
+          <Label htmlFor="showLabel">Show Labels</Label>
+        </div>
+      )}
+
+      {/* legend */}
+      {['pie'].includes(chartType) && (
+        <div>
+          <Label htmlFor="legendPosition" className="text-xs">Legend Position</Label>
+          <Select
+            value={config.legend?.color?.position || "right"}
+            onValueChange={(value) => {
+              const legendColor = config.legend?.color || {};
+              updateNestedConfig("legend", "color", { ...legendColor, position: value });
+            }}
+          >
+            <SelectTrigger id="legendPosition" className="w-full mt-1">
+              <SelectValue placeholder="Legend Position" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="top">Top</SelectItem>
+              <SelectItem value="right">Right</SelectItem>
+              <SelectItem value="bottom">Bottom</SelectItem>
+              <SelectItem value="left">Left</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* dual specific options */}
+      {['dual-axes'].includes(chartType) && (
+        <div>
+        {/* <h3 className="text-sm font-medium mb-2">Dual Axes Configuration</h3> */}
+        
+        {/* Common X-Field for all axes */}
+        {/* <div className="mb-4">
+          <Label htmlFor="xField" className="text-xs">X-Field (Common)</Label>
+          <Input
+            id="xField"
+            value={config.xField || ""}
+            onChange={(e) => onChange({ ...config, xField: e.target.value } as Partial<WidgetConfig>)}
+            placeholder="Common X field (e.g. Month, Date)"
+            className="w-full mt-1"
+          />
+        </div> */}
+        
+        {/* Child configurations */}
+        <div className="space-y-4">
+          {(config.children || []).map((child, index) => (
+            <div key={index} className="border p-3 rounded-md">
+              {/* <div className="flex justify-between items-center mb-2">
+                <h4 className="text-xs font-medium">Series {index + 1}</h4>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const children = [...(config.children || [])];
+                    children.splice(index, 1);
+                    onChange({ ...config, children } as Partial<WidgetConfig>);
+                  }}
+                  className="text-xs text-red-500 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div> */}
+              
+              <div className="space-y-2">
+                {/* Chart Type */}
+                {/* <div>
+                  <Label htmlFor={`type-${index}`} className="text-xs">Chart Type</Label>
+                  <Select
+                    value={child.type || "line"}
+                    onValueChange={(value) => {
+                      const children = [...(config.children || [])];
+                      children[index] = { ...children[index], type: value };
+                      onChange({ ...config, children } as Partial<WidgetConfig>);
+                    }}
+                  >
+                    <SelectTrigger id={`type-${index}`} className="w-full mt-1">
+                      <SelectValue placeholder="Chart Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="line">Line</SelectItem>
+                      <SelectItem value="interval">Bar/Column</SelectItem>
+                      <SelectItem value="area">Area</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div> */}
+                
+                {/* Y Field */}
+                {/* <div>
+                  <Label htmlFor={`yField-${index}`} className="text-xs">Y Field</Label>
+                  <Input
+                    id={`yField-${index}`}
+                    value={child.yField || ""}
+                    onChange={(e) => {
+                      const children = [...(config.children || [])];
+                      children[index] = { ...children[index], yField: e.target.value };
+                      onChange({ ...config, children } as Partial<WidgetConfig>);
+                    }}
+                    placeholder="Y field name (e.g. Temperature)"
+                    className="w-full mt-1"
+                  />
+                </div> */}
+                
+                {/* Color */}
+                {/* <div>
+                  <Label htmlFor={`color-${index}`} className="text-xs">Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id={`color-${index}`}
+                      value={child.colorField || ""}
+                      onChange={(e) => {
+                        const children = [...(config.children || [])];
+                        children[index] = { ...children[index], colorField: e.target.value };
+                        onChange({ ...config, children } as Partial<WidgetConfig>);
+                      }}
+                      placeholder="#5470C6"
+                      className="flex-1 mt-1"
+                    />
+                    <Input
+                      type="color"
+                      value={child.colorField || "#5470C6"}
+                      onChange={(e) => {
+                        const children = [...(config.children || [])];
+                        children[index] = { ...children[index], colorField: e.target.value };
+                        onChange({ ...config, children } as Partial<WidgetConfig>);
+                      }}
+                      className="w-12 mt-1 p-1"
+                    />
+                  </div>
+                </div> */}
+                
+                {/* Axis Position and Title */}
+                {/* <div>
+                  <Label htmlFor={`axisPosition-${index}`} className="text-xs">Axis Position</Label>
+                  <Select
+                    value={child.axis?.y?.position || (index === 0 ? "left" : "right")}
+                    onValueChange={(value) => {
+                      const children = [...(config.children || [])];
+                      const axis = children[index].axis || {};
+                      const y = axis.y || {};
+                      
+                      children[index] = { 
+                        ...children[index], 
+                        axis: { 
+                          ...axis, 
+                          y: { ...y, position: value } 
+                        } 
+                      };
+                      onChange({ ...config, children } as Partial<WidgetConfig>);
+                    }}
+                  >
+                    <SelectTrigger id={`axisPosition-${index}`} className="w-full mt-1">
+                      <SelectValue placeholder="Axis Position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div> */}
+                
+                {/* <div>
+                  <Label htmlFor={`axisTitle-${index}`} className="text-xs">Axis Title</Label>
+                  <Input
+                    id={`axisTitle-${index}`}
+                    value={child.axis?.y?.title || ""}
+                    onChange={(e) => {
+                      const children = [...(config.children || [])];
+                      const axis = children[index].axis || {};
+                      const y = axis.y || {};
+                      
+                      children[index] = { 
+                        ...children[index], 
+                        axis: { 
+                          ...axis, 
+                          y: { ...y, title: e.target.value } 
+                        } 
+                      };
+                      onChange({ ...config, children } as Partial<WidgetConfig>);
+                    }}
+                    placeholder="Y axis title"
+                    className="w-full mt-1"
+                  />
+                </div> */}
+                
+                {/* Line specific options */}
+                {child.type === "line" && (
+                  <>
+                    {/* <div>
+                      <Label htmlFor={`shape-${index}`} className="text-xs">Line Shape</Label>
+                      <Select
+                        value={child.shapeField || "smooth"}
+                        onValueChange={(value) => {
+                          const children = [...(config.children || [])];
+                          children[index] = { ...children[index], shapeField: value };
+                          onChange({ ...config, children } as Partial<WidgetConfig>);
+                        }}
+                      >
+                        <SelectTrigger id={`shape-${index}`} className="w-full mt-1">
+                          <SelectValue placeholder="Line Shape" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="smooth">Smooth</SelectItem>
+                          <SelectItem value="linear">Linear</SelectItem>
+                          <SelectItem value="step">Step</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div> */}
+                    
+                    {/* <div>
+                      <Label htmlFor={`lineWidth-${index}`} className="text-xs">Line Width</Label>
+                      <Select
+                        value={String(child.style?.lineWidth || "2")}
+                        onValueChange={(value) => {
+                          const children = [...(config.children || [])];
+                          const style = children[index].style || {};
+                          children[index] = { 
+                            ...children[index], 
+                            style: { ...style, lineWidth: Number(value) } 
+                          };
+                          onChange({ ...config, children } as Partial<WidgetConfig>);
+                        }}
+                      >
+                        <SelectTrigger id={`lineWidth-${index}`} className="w-full mt-1">
+                          <SelectValue placeholder="Line Width" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Thin (1px)</SelectItem>
+                          <SelectItem value="2">Medium (2px)</SelectItem>
+                          <SelectItem value="3">Thick (3px)</SelectItem>
+                          <SelectItem value="4">Very Thick (4px)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div> */}
+                    
+                    {/* <div>
+                      <Label htmlFor={`lineDash-${index}`} className="text-xs">Line Style</Label>
+                      <Select
+                        value={child.style?.lineDash ? "dashed" : "solid"}
+                        onValueChange={(value) => {
+                          const children = [...(config.children || [])];
+                          const style = children[index].style || {};
+                          children[index] = { 
+                            ...children[index], 
+                            style: { 
+                              ...style, 
+                              lineDash: value === "dashed" ? [2, 2] : undefined
+                            } 
+                          };
+                          onChange({ ...config, children } as Partial<WidgetConfig>);
+                        }}
+                      >
+                        <SelectTrigger id={`lineDash-${index}`} className="w-full mt-1">
+                          <SelectValue placeholder="Line Style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="solid">Solid</SelectItem>
+                          <SelectItem value="dashed">Dashed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div> */}
+                  </>
+                )}
+                
+                {/* Bar specific options */}
+                {/* {child.type === "interval" && (
+                  <div>
+                    <Label htmlFor={`opacity-${index}`} className="text-xs">Opacity</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id={`opacity-${index}`}
+                        min={0.1}
+                        max={1}
+                        step={0.1}
+                        value={[(child.style?.fillOpacity || 0.8)]}
+                        onValueChange={([value]) => {
+                          const children = [...(config.children || [])];
+                          const style = children[index].style || {};
+                          children[index] = { 
+                            ...children[index], 
+                            style: { ...style, fillOpacity: value } 
+                          };
+                          onChange({ ...config, children } as Partial<WidgetConfig>);
+                        }}
+                        className="flex-1"
+                      />
+                      <span className="text-xs w-10">{Math.round((child.style?.fillOpacity || 0.8) * 100)}%</span>
+                    </div>
+                  </div>
+                )} */}
+              </div>
+            </div>
+          ))}
+          
+          {/* Add new series button */}
+          {/* <button
+            type="button"
+            onClick={() => {
+              const children = [...(config.children || [])];
+              const newIndex = children.length;
+              
+              // Create new child with smart defaults
+              const newChild = {
+                type: "line",
+                yField: `series${newIndex + 1}`,
+                colorField: [
+                  "#5470C6", "#91CC75", "#EE6666", "#73C0DE", 
+                  "#3BA272", "#FC8452", "#9A60B4", "#EA7CCC"
+                ][newIndex % 8],
+                axis: {
+                  y: {
+                    position: newIndex === 0 ? "left" : "right",
+                    title: `Series ${newIndex + 1}`
+                  }
+                }
+              };
+              
+              children.push(newChild);
+              onChange({ ...config, children } as Partial<WidgetConfig>);
+            }}
+            className="w-full py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+          >
+            + Add Series
+          </button> */}
           </div>
         </div>
       )}
-       */}
-      {/* Line Chart Options */}
-      {/* {chartType === "line" && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Line Chart Options</h3>
-          <div className="space-y-2">
-            <div>
-              <Label htmlFor="lineStyle" className="text-xs">Line Style</Label>
-              <Select
-                value={config.style?.lineWidth ? String(config.style.lineWidth) : "2"}
-                onValueChange={(value) => updateNestedConfig("style", "lineWidth", Number(value))}
-              >
-                <SelectTrigger id="lineStyle" className="w-full mt-1">
-                  <SelectValue placeholder="Line Width" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Thin (1px)</SelectItem>
-                  <SelectItem value="2">Medium (2px)</SelectItem>
-                  <SelectItem value="3">Thick (3px)</SelectItem>
-                  <SelectItem value="4">Very Thick (4px)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="pointStyle" className="text-xs">Point Style</Label>
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="showPoint"
-                    checked={config.point !== undefined}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        updateConfig("point", { size: 4 });
-                      } else {
-                        // Remove the point configuration
-                        const { point, ...rest } = config;
-                        onChange(rest);
-                      }
-                    }}
-                  />
-                  <Label htmlFor="showPoint">Show Points</Label>
-                </div>
-                
-                {config.point && (
-                  <div className="ml-6 space-y-2">
-                    <div>
-                      <Label htmlFor="pointSize" className="text-xs">Point Size</Label>
-                      <Select
-                        value={config.point?.sizeField ? String(config.point.sizeField) : "4"}
-                        onValueChange={(value) => updateNestedConfig("point", "sizeField", Number(value))}
-                      >
-                        <SelectTrigger id="pointSize" className="w-full mt-1">
-                          <SelectValue placeholder="Point Size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="2">Small (2px)</SelectItem>
-                          <SelectItem value="4">Medium (4px)</SelectItem>
-                          <SelectItem value="6">Large (6px)</SelectItem>
-                          <SelectItem value="8">Extra Large (8px)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="pointShape" className="text-xs">Point Shape</Label>
-                      <Select
-                        value={config.point?.shapeField || "circle"}
-                        onValueChange={(value) => updateNestedConfig("point", "shapeField", value)}
-                      >
-                        <SelectTrigger id="pointShape" className="w-full mt-1">
-                          <SelectValue placeholder="Point Shape" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="circle">Circle</SelectItem>
-                          <SelectItem value="square">Square</SelectItem>
-                          <SelectItem value="diamond">Diamond</SelectItem>
-                          <SelectItem value="triangle">Triangle</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="showTooltip"
-                checked={config.interaction?.tooltip !== undefined}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    updateConfig("interaction", { tooltip: { marker: true } });
-                  } else {
-                    // Remove tooltip configuration
-                    const { interaction, ...rest } = config;
-                    onChange(rest);
-                  }
-                }}
-              />
-              <Label htmlFor="showTooltip">Enable Tooltip</Label>
-            </div>
-          </div>
-        </div>
-      )} */}
       
-      {/* Area Chart Options */}
-      {/* {chartType === "area" && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Area Chart Options</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="stack"
-                checked={config.stack === true || (typeof config.stack === 'object')}
-                onCheckedChange={(checked) => updateConfig("stack", checked)}
-              />
-              <Label htmlFor="stack">Stacked</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="normalize"
-                checked={config.normalize === true}
-                onCheckedChange={(checked) => updateConfig("normalize", checked)}
-              />
-              <Label htmlFor="normalize">Normalize (100% Stacked)</Label>
-            </div>
-            <div>
-              <Label htmlFor="areaShape" className="text-xs">Area Shape</Label>
-              <Select
-                value={config.shapeField || "smooth"}
-                onValueChange={(value) => updateConfig("shapeField", value)}
-              >
-                <SelectTrigger id="areaShape" className="w-full mt-1">
-                  <SelectValue placeholder="Area Shape" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="smooth">Smooth</SelectItem>
-                  <SelectItem value="linear">Linear</SelectItem>
-                  <SelectItem value="step">Step</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      )} */}
-      
-      {/* Pie Chart Options */}
-      {/* {chartType === "pie" && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Pie Chart Options</h3>
-          <div className="space-y-2">
-            <div>
-              <Label htmlFor="innerRadius" className="text-xs">Inner Radius (Donut)</Label>
-              <div className="flex items-center gap-2">
-                <Slider
-                  id="innerRadius"
-                  min={0}
-                  max={0.9}
-                  step={0.1}
-                  value={[(config.innerRadius || 0)]}
-                  onValueChange={([value]) => updateConfig("innerRadius", value)}
-                  className="flex-1"
-                />
-                <span className="text-xs w-10">{Math.round((config.innerRadius || 0) * 100)}%</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="showLabel"
-                checked={config.label !== undefined}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    updateConfig("label", { text: config.yField || "value", style: { fontWeight: "bold" } });
-                  } else {
-                    // Remove label configuration
-                    const { label, ...rest } = config;
-                    onChange(rest);
-                  }
-                }}
-              />
-              <Label htmlFor="showLabel">Show Labels</Label>
-            </div>
-            <div>
-              <Label htmlFor="legendPosition" className="text-xs">Legend Position</Label>
-              <Select
-                value={config.legend?.color?.position || "right"}
-                onValueChange={(value) => {
-                  const legendColor = config.legend?.color || {};
-                  updateNestedConfig("legend", "color", { ...legendColor, position: value });
-                }}
-              >
-                <SelectTrigger id="legendPosition" className="w-full mt-1">
-                  <SelectValue placeholder="Legend Position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="top">Top</SelectItem>
-                  <SelectItem value="right">Right</SelectItem>
-                  <SelectItem value="bottom">Bottom</SelectItem>
-                  <SelectItem value="left">Left</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      )} */}
-      
-      {/* Scatter Plot Options */}
-      {/* {chartType === "scatter" && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Scatter Plot Options</h3>
-          <div className="space-y-2">
-            <div>
-              <Label htmlFor="sizeField" className="text-xs">Size Field (for Bubble Chart)</Label>
-              <Input
-                id="sizeField"
-                value={config.sizeField || ""}
-                onChange={(e) => updateConfig("sizeField", e.target.value)}
-                placeholder="Field name for point size"
-                className="w-full mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="shapeField" className="text-xs">Shape Field</Label>
-              <Input
-                id="shapeField"
-                value={config.shapeField || ""}
-                onChange={(e) => updateConfig("shapeField", e.target.value)}
-                placeholder="Field name for point shape"
-                className="w-full mt-1"
-              />
-            </div>
-          </div>
-        </div>
-      )} */}
-      
-      {/* Dual Axes Options */}
-      {chartType === "dual-axes" && (
-        <div>
-          {/* <h3 className="text-sm font-medium mb-2">Dual Axes Configuration</h3> */}
-          
-          {/* Common X-Field for all axes */}
-          {/* <div className="mb-4">
-            <Label htmlFor="xField" className="text-xs">X-Field (Common)</Label>
-            <Input
-              id="xField"
-              value={config.xField || ""}
-              onChange={(e) => onChange({ ...config, xField: e.target.value } as Partial<WidgetConfig>)}
-              placeholder="Common X field (e.g. Month, Date)"
-              className="w-full mt-1"
-            />
-          </div> */}
-          
-          {/* Child configurations */}
-          <div className="space-y-4">
-            {(config.children || []).map((child, index) => (
-              <div key={index} className="border p-3 rounded-md">
-                {/* <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-xs font-medium">Series {index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const children = [...(config.children || [])];
-                      children.splice(index, 1);
-                      onChange({ ...config, children } as Partial<WidgetConfig>);
-                    }}
-                    className="text-xs text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div> */}
-                
-                <div className="space-y-2">
-                  {/* Chart Type */}
-                  {/* <div>
-                    <Label htmlFor={`type-${index}`} className="text-xs">Chart Type</Label>
-                    <Select
-                      value={child.type || "line"}
-                      onValueChange={(value) => {
-                        const children = [...(config.children || [])];
-                        children[index] = { ...children[index], type: value };
-                        onChange({ ...config, children } as Partial<WidgetConfig>);
-                      }}
-                    >
-                      <SelectTrigger id={`type-${index}`} className="w-full mt-1">
-                        <SelectValue placeholder="Chart Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="line">Line</SelectItem>
-                        <SelectItem value="interval">Bar/Column</SelectItem>
-                        <SelectItem value="area">Area</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div> */}
-                  
-                  {/* Y Field */}
-                  {/* <div>
-                    <Label htmlFor={`yField-${index}`} className="text-xs">Y Field</Label>
-                    <Input
-                      id={`yField-${index}`}
-                      value={child.yField || ""}
-                      onChange={(e) => {
-                        const children = [...(config.children || [])];
-                        children[index] = { ...children[index], yField: e.target.value };
-                        onChange({ ...config, children } as Partial<WidgetConfig>);
-                      }}
-                      placeholder="Y field name (e.g. Temperature)"
-                      className="w-full mt-1"
-                    />
-                  </div> */}
-                  
-                  {/* Color */}
-                  {/* <div>
-                    <Label htmlFor={`color-${index}`} className="text-xs">Color</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id={`color-${index}`}
-                        value={child.colorField || ""}
-                        onChange={(e) => {
-                          const children = [...(config.children || [])];
-                          children[index] = { ...children[index], colorField: e.target.value };
-                          onChange({ ...config, children } as Partial<WidgetConfig>);
-                        }}
-                        placeholder="#5470C6"
-                        className="flex-1 mt-1"
-                      />
-                      <Input
-                        type="color"
-                        value={child.colorField || "#5470C6"}
-                        onChange={(e) => {
-                          const children = [...(config.children || [])];
-                          children[index] = { ...children[index], colorField: e.target.value };
-                          onChange({ ...config, children } as Partial<WidgetConfig>);
-                        }}
-                        className="w-12 mt-1 p-1"
-                      />
-                    </div>
-                  </div> */}
-                  
-                  {/* Axis Position and Title */}
-                  {/* <div>
-                    <Label htmlFor={`axisPosition-${index}`} className="text-xs">Axis Position</Label>
-                    <Select
-                      value={child.axis?.y?.position || (index === 0 ? "left" : "right")}
-                      onValueChange={(value) => {
-                        const children = [...(config.children || [])];
-                        const axis = children[index].axis || {};
-                        const y = axis.y || {};
-                        
-                        children[index] = { 
-                          ...children[index], 
-                          axis: { 
-                            ...axis, 
-                            y: { ...y, position: value } 
-                          } 
-                        };
-                        onChange({ ...config, children } as Partial<WidgetConfig>);
-                      }}
-                    >
-                      <SelectTrigger id={`axisPosition-${index}`} className="w-full mt-1">
-                        <SelectValue placeholder="Axis Position" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="left">Left</SelectItem>
-                        <SelectItem value="right">Right</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div> */}
-                  
-                  {/* <div>
-                    <Label htmlFor={`axisTitle-${index}`} className="text-xs">Axis Title</Label>
-                    <Input
-                      id={`axisTitle-${index}`}
-                      value={child.axis?.y?.title || ""}
-                      onChange={(e) => {
-                        const children = [...(config.children || [])];
-                        const axis = children[index].axis || {};
-                        const y = axis.y || {};
-                        
-                        children[index] = { 
-                          ...children[index], 
-                          axis: { 
-                            ...axis, 
-                            y: { ...y, title: e.target.value } 
-                          } 
-                        };
-                        onChange({ ...config, children } as Partial<WidgetConfig>);
-                      }}
-                      placeholder="Y axis title"
-                      className="w-full mt-1"
-                    />
-                  </div> */}
-                  
-                  {/* Line specific options */}
-                  {child.type === "line" && (
-                    <>
-                      {/* <div>
-                        <Label htmlFor={`shape-${index}`} className="text-xs">Line Shape</Label>
-                        <Select
-                          value={child.shapeField || "smooth"}
-                          onValueChange={(value) => {
-                            const children = [...(config.children || [])];
-                            children[index] = { ...children[index], shapeField: value };
-                            onChange({ ...config, children } as Partial<WidgetConfig>);
-                          }}
-                        >
-                          <SelectTrigger id={`shape-${index}`} className="w-full mt-1">
-                            <SelectValue placeholder="Line Shape" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="smooth">Smooth</SelectItem>
-                            <SelectItem value="linear">Linear</SelectItem>
-                            <SelectItem value="step">Step</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div> */}
-                      
-                      {/* <div>
-                        <Label htmlFor={`lineWidth-${index}`} className="text-xs">Line Width</Label>
-                        <Select
-                          value={String(child.style?.lineWidth || "2")}
-                          onValueChange={(value) => {
-                            const children = [...(config.children || [])];
-                            const style = children[index].style || {};
-                            children[index] = { 
-                              ...children[index], 
-                              style: { ...style, lineWidth: Number(value) } 
-                            };
-                            onChange({ ...config, children } as Partial<WidgetConfig>);
-                          }}
-                        >
-                          <SelectTrigger id={`lineWidth-${index}`} className="w-full mt-1">
-                            <SelectValue placeholder="Line Width" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Thin (1px)</SelectItem>
-                            <SelectItem value="2">Medium (2px)</SelectItem>
-                            <SelectItem value="3">Thick (3px)</SelectItem>
-                            <SelectItem value="4">Very Thick (4px)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div> */}
-                      
-                      {/* <div>
-                        <Label htmlFor={`lineDash-${index}`} className="text-xs">Line Style</Label>
-                        <Select
-                          value={child.style?.lineDash ? "dashed" : "solid"}
-                          onValueChange={(value) => {
-                            const children = [...(config.children || [])];
-                            const style = children[index].style || {};
-                            children[index] = { 
-                              ...children[index], 
-                              style: { 
-                                ...style, 
-                                lineDash: value === "dashed" ? [2, 2] : undefined
-                              } 
-                            };
-                            onChange({ ...config, children } as Partial<WidgetConfig>);
-                          }}
-                        >
-                          <SelectTrigger id={`lineDash-${index}`} className="w-full mt-1">
-                            <SelectValue placeholder="Line Style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="solid">Solid</SelectItem>
-                            <SelectItem value="dashed">Dashed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div> */}
-                    </>
-                  )}
-                  
-                  {/* Bar specific options */}
-                  {/* {child.type === "interval" && (
-                    <div>
-                      <Label htmlFor={`opacity-${index}`} className="text-xs">Opacity</Label>
-                      <div className="flex items-center gap-2">
-                        <Slider
-                          id={`opacity-${index}`}
-                          min={0.1}
-                          max={1}
-                          step={0.1}
-                          value={[(child.style?.fillOpacity || 0.8)]}
-                          onValueChange={([value]) => {
-                            const children = [...(config.children || [])];
-                            const style = children[index].style || {};
-                            children[index] = { 
-                              ...children[index], 
-                              style: { ...style, fillOpacity: value } 
-                            };
-                            onChange({ ...config, children } as Partial<WidgetConfig>);
-                          }}
-                          className="flex-1"
-                        />
-                        <span className="text-xs w-10">{Math.round((child.style?.fillOpacity || 0.8) * 100)}%</span>
-                      </div>
-                    </div>
-                  )} */}
-                </div>
-              </div>
-            ))}
-            
-            {/* Add new series button */}
-            {/* <button
-              type="button"
-              onClick={() => {
-                const children = [...(config.children || [])];
-                const newIndex = children.length;
-                
-                // Create new child with smart defaults
-                const newChild = {
-                  type: "line",
-                  yField: `series${newIndex + 1}`,
-                  colorField: [
-                    "#5470C6", "#91CC75", "#EE6666", "#73C0DE", 
-                    "#3BA272", "#FC8452", "#9A60B4", "#EA7CCC"
-                  ][newIndex % 8],
-                  axis: {
-                    y: {
-                      position: newIndex === 0 ? "left" : "right",
-                      title: `Series ${newIndex + 1}`
-                    }
-                  }
-                };
-                
-                children.push(newChild);
-                onChange({ ...config, children } as Partial<WidgetConfig>);
-              }}
-              className="w-full py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
-            >
-              + Add Series
-            </button> */}
-          </div>
-        </div>
+      {/* normalize */}
+      {['pie'].includes(chartType) && (
+        <></>
       )}
       
       {/* Histogram Options */}

@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ChartType, WidgetConfig } from "@/lib/db/schema";
+import { CompactFieldSelector } from "../fields/field-value-selector";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AxisMappingProps {
   chartType: ChartType;
@@ -31,6 +33,21 @@ export default function AxisMapping({
       </div>
     );
   }
+
+  const updateConfig = (key: string, value: any) => {
+    onChange({ ...config, [key]: value } as Partial<WidgetConfig>);
+  };
+
+  const updateNestedConfig = (parent: string, key: string, value: any) => {
+    const parentObj = (config[parent as keyof WidgetConfig] || {}) as Record<string, any>;
+    onChange({ 
+      ...config, 
+      [parent]: { 
+        ...parentObj, 
+        [key]: value 
+      } 
+    } as Partial<WidgetConfig>);
+  };
 
   const handleChange = (key: keyof WidgetConfig, value: any) => {
     const newConfig = { ...config };
@@ -95,7 +112,7 @@ export default function AxisMapping({
   return (
     <div className="space-y-4">
       {/* xField Mapping */}
-      {['bar'].includes(chartType) && (
+      {['bar', 'column', 'line', 'area', 'scatter', 'dual-axes'].includes(chartType) && (
         <div>
           <Label htmlFor="xField" className="block mb-1">X Axis</Label>
           <Select
@@ -107,7 +124,7 @@ export default function AxisMapping({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              {columns.string.map((column) => (
+              {columns.all.map((column) => (
                 <SelectItem key={column} value={column}>
                   {column}
                 </SelectItem>
@@ -118,15 +135,15 @@ export default function AxisMapping({
       )}
 
       {/* yField Mapping */}
-      {['bar'].includes(chartType) && (
+      {['bar', 'column', 'line', 'pie', 'area', 'scatter'].includes(chartType) && (
         <div>
-          <Label htmlFor="yField" className="block mb-1">Y Axis</Label>
+          <Label htmlFor="yField" className="block mb-1">{chartType === 'pie' ? 'Angle Field' : 'Y Axis'}</Label>
           <Select
             value={config.yField || ""}
             onValueChange={(value) => handleChange("yField", value === "none" ? undefined : value)}
           >
             <SelectTrigger id="yField">
-              <SelectValue placeholder="Select Y axis" />
+              <SelectValue placeholder={chartType === 'pie' ? 'Select Value' : 'Select Y axis'} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
@@ -141,7 +158,7 @@ export default function AxisMapping({
       )}
 
       {/* colorField Mapping */}
-      {['bar'].includes(chartType) && (
+      {['bar', 'column', 'line', 'pie', 'area', 'scatter', 'histogram', 'word-cloud'].includes(chartType) && (
         <div>
           <Label htmlFor="colorField" className="block mb-1">Color Field (optional)</Label>
           <Select
@@ -164,7 +181,7 @@ export default function AxisMapping({
       )}
 
       {/* seriesField Mapping */}
-      {[''].includes(chartType) && (
+      {['line'].includes(chartType) && (
         <div>
           <Label htmlFor="seriesField" className="block mb-1">Series/Group Field</Label>
           <Select
@@ -186,27 +203,49 @@ export default function AxisMapping({
         </div>
       )}
 
+      {/* shapeField Mapping */}
+      {['scatter'].includes(chartType) && (
+        <CompactFieldSelector
+          label="Shape Field"
+          id="shapeField"
+          value={config.shapeField}
+          onChange={(value) => handleChange("shapeField", value === "none" ? undefined : value)}
+          columns={['smooth', 'linear', 'step', ...columns.all]}
+          allowNumeric={false}
+          allowCustom={false}
+          placeholder="Select shape field"
+          showNone={true}
+        />
+      )}
+
       {/* sizeField Mapping */}
-      {[''].includes(chartType) && (
-        <div>
-          <Label htmlFor="sizeField" className="block mb-1">Size Field (optional)</Label>
-          <Select
-            value={config.sizeField || ""}
-            onValueChange={(value) => handleChange("sizeField", value === "none" ? undefined : value)}
-          >
-            <SelectTrigger id="sizeField">
-              <SelectValue placeholder="Select size field" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {columns.all.map((column) => (
-                <SelectItem key={column} value={column}>
-                  {column}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {['scatter'].includes(chartType) && (
+        <CompactFieldSelector
+          label="Size Field"
+          id="sizeField"
+          value={config.sizeField}
+          onChange={(value: any) => handleChange("sizeField", value)}
+          columns={columns.all}
+          allowNumeric={true}
+          allowCustom={false}
+          placeholder="Select size field"
+          showNone={true}
+        />
+      )}
+
+      {/* binField Mapping */}
+      {['histogram'].includes(chartType) && (
+        <CompactFieldSelector
+          label="Bin Field"
+          id="binField"
+          value={config.binField}
+          onChange={(value: any) => handleChange("binField", value)}
+          columns={columns.all}
+          allowNumeric={false}
+          allowCustom={false}
+          placeholder="Select bin field"
+          showNone={true}
+        />
       )}
 
       {/* children Mapping for dual-axes */}
@@ -247,7 +286,7 @@ export default function AxisMapping({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="line">Line</SelectItem>
-                    <SelectItem value="interval">Bar/Column</SelectItem>
+                    <SelectItem value="interval">Column</SelectItem>
                     <SelectItem value="area">Area</SelectItem>
                   </SelectContent>
                 </Select>
@@ -324,77 +363,67 @@ export default function AxisMapping({
         </div>
       )}
 
-      {/* xxxxx Mapping */}
-      {![''].includes(chartType) && (
-        <></>
-      )}
+      {/* sort values */}
+      {['bar', 'column'].includes(chartType) && (
+        <>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="sort"
+              checked={config.sort === true || (typeof config.sort === 'object')}
+              onCheckedChange={(checked) => updateConfig("sort", checked)}
+            />
+            <Label htmlFor="sort">Sort Values</Label>
+          </div>
+          {(config.sort === true || typeof config.sort === 'object') && (
+            <div className="ml-6 space-y-2">
+              {/* sort reverse */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="sortReverse"
+                  checked={typeof config.sort === 'object' ? config.sort?.reverse === true : false}
+                  onCheckedChange={(checked) => updateNestedConfig("sort", "reverse", checked)}
+                />
+                <Label htmlFor="sortReverse">Reverse Sort</Label>
+              </div>
+              {/* sort by */}
+              <div>
+                <Label className="block mb-1">Sort By</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select
+                    value={typeof config.sort === 'object' ? config.sort.by || "" : ""}
+                    onValueChange={(value) => {
+                      if (value === "none") {
+                        onChange({ ...config, sort: undefined });
+                      } else {
+                        onChange({ 
+                          ...config, 
+                          sort: { 
+                            ...(typeof config.sort === 'object' ? config.sort : {}), 
+                            by: value 
+                          } 
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {columns.all.map((column) => (
+                        <SelectItem key={column} value={column}>
+                          {column}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )} 
 
-
-      {/* Sorting */}
-      {/* <div>
-        <Label className="block mb-1">Sorting</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={typeof config.sort === 'object' ? config.sort.by || "" : ""}
-            onValueChange={(value) => {
-              if (value === "none") {
-                onChange({ ...config, sort: undefined });
-              } else {
-                onChange({ 
-                  ...config, 
-                  sort: { 
-                    ...(typeof config.sort === 'object' ? config.sort : {}), 
-                    by: value 
-                  } 
-                });
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {columns.all.map((column) => (
-                <SelectItem key={column} value={column}>
-                  {column}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select
-            value={typeof config.sort === 'object' && config.sort.reverse ? "desc" : "asc"}
-            onValueChange={(value) => {
-              if (typeof config.sort === 'object') {
-                onChange({ 
-                  ...config, 
-                  sort: { 
-                    ...config.sort, 
-                    reverse: value === "desc" 
-                  } 
-                });
-              } else if (config.sort || typeof config.sort === 'undefined') {
-                onChange({ 
-                  ...config, 
-                  sort: { 
-                    reverse: value === "desc" 
-                  } 
-                });
-              }
-            }}
-            disabled={!config.sort}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Order" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div> */}
     </div>
   );
 }

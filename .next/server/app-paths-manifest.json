@@ -1,7 +1,7 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js",
   "/dashboard/[id]/edit-widget/[widgetId]/page": "app/dashboard/[id]/edit-widget/[widgetId]/page.js",
-  "/auth/page": "app/auth/page.js"
+  "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js",
+  "/dashboard/create/page": "app/dashboard/create/page.js"
 }

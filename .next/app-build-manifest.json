@@ -6,30 +6,15 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
+    "/dashboard/[id]/edit-widget/[widgetId]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/dashboard/[id]/edit-widget/[widgetId]/page.js"
     ],
     "/api/auth/[...nextauth]/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/auth/[...nextauth]/route.js"
-    ],
-    "/auth/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/auth/layout.js"
-    ],
-    "/auth/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/auth/page.js"
-    ],
-    "/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
     ],
     "/api/spaces/route": [
       "static/chunks/webpack.js",
@@ -46,21 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/user/settings/[id]/route.js"
     ],
-    "/dashboard/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/dashboard/[id]/page.css",
-      "static/chunks/app/dashboard/[id]/page.js"
-    ],
     "/api/widgets/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/widgets/route.js"
-    ],
-    "/dashboard/[id]/add-widget/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/[id]/add-widget/page.js"
     ],
     "/api/datasets/route": [
       "static/chunks/webpack.js",
@@ -77,10 +51,41 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/connections/[id]/schema-info/route.js"
     ],
-    "/dashboard/[id]/edit-widget/[widgetId]/page": [
+    "/dashboard/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/[id]/edit-widget/[widgetId]/page.js"
+      "static/css/app/dashboard/[id]/page.css",
+      "static/chunks/app/dashboard/[id]/page.js"
+    ],
+    "/api/widgets/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/widgets/[id]/route.js"
+    ],
+    "/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/page.js"
+    ],
+    "/dashboard/create/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/create/page.js"
+    ],
+    "/api/dashboards/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/dashboards/route.js"
+    ],
+    "/dashboard/[id]/add-widget/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/[id]/add-widget/page.js"
+    ],
+    "/api/connections/execute/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/connections/execute/route.js"
     ]
   }
 }
