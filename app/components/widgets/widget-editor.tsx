@@ -37,7 +37,7 @@ import {
   InsertWidget,
 } from "@/lib/db/schema";
 import { extractColumns } from "@/lib/utils";
-import Chart from "@/components/widgets/chart/chart";
+import Chart from "@/components/widgets/chart/renders";
 import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
 
 interface WidgetEditorProps {

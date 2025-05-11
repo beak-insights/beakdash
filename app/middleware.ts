@@ -13,7 +13,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/profile') ||
     pathname.startsWith('/datasets') ||
     pathname.startsWith('/connections') ||
-    pathname.startsWith('/widgets') ||
     pathname.startsWith('/settings');
   
   // Check if the path is for authentication

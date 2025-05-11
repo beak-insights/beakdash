@@ -180,7 +180,7 @@ export function extractColumns(data: Record<string, any>[]): { string: string[],
  */
 export function makesureNumeric(data: Record<string, any>[]): Record<string, any>[] {
   const columns = extractColumns(data);
-  return data.map((row) => {
+  return data?.map((row) => {
     columns.numeric?.forEach((key) => {
       row[key] = Number(row[key]);
     });

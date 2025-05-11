@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { extractColumns } from '@/lib/utils';
 
 interface FilterConfig {
   field: string;
@@ -40,7 +41,7 @@ function TableWidget({ data, config = {}, className }: TableWidgetProps) {
   }
 
   // Get column headers from the first row if not provided in config
-  const headers = config.headers || Object.keys(data[0]);
+  const columns = extractColumns(data);
 
   // Apply limit if specified
   const limitedData = config.limit ? data.slice(0, config.limit) : data;
@@ -91,19 +92,19 @@ function TableWidget({ data, config = {}, className }: TableWidgetProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              {headers.map((header, index) => (
-                <TableHead key={index} className="whitespace-nowrap">
-                  {header}
-                </TableHead>
-              ))}
+            {columns.all.map((column) => (
+              <TableHead className="p-2 font-semibold" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
+            ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
-                {headers.map((header, cellIndex) => (
-                  <TableCell key={cellIndex} className="whitespace-nowrap">
-                    {row[header] !== undefined ? String(row[header]) : ""}
+            {(data ?? []).map((row, idx) => (
+              <TableRow key={idx} className="p-0">
+                {columns.all.map((column) => (
+                  <TableCell className="p-2" key={`${idx}-${column}`}>
+                    {typeof row[column] === "object"
+                      ? JSON.stringify(row[column])
+                      : String(row[column] ?? "")}
                   </TableCell>
                 ))}
               </TableRow>

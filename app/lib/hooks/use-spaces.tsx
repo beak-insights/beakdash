@@ -2,7 +2,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Space, InsertSpace } from "@/lib/db/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/components/ui/use-toast";
-import { Toast } from "@/components/ui/toast";
 import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { useAuth } from "@/lib/hooks/use-auth";

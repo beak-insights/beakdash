@@ -4,9 +4,10 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/db';
 import { dashboards } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DashboardViewClient } from './client-page';
+import Link from 'next/link';
+import { GearIcon } from '@radix-ui/react-icons';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -51,7 +52,8 @@ export default async function DashboardViewPage({ params }: Props) {
   return (
     <AppLayout>
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-6">
+        {/* Dashboard header */}
+        <div className="px-4 pt-2 pb-3 sticky top-0 z-10 bg-gray-100 border-b flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{dashboard.name}</h1>
             {dashboard.description && (
@@ -59,12 +61,13 @@ export default async function DashboardViewPage({ params }: Props) {
             )}
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2">
+            <div id="beakdash-controls" className="flex items-center gap-2"></div>
             <Link
               href={`/dashboard/${dashboardId}/edit`}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md text-sm font-medium"
             >
-              Edit
+              <GearIcon className="w-4 h-4" />
             </Link>
             <Link
               href={`/dashboard/${dashboardId}/add-widget`}
@@ -76,7 +79,9 @@ export default async function DashboardViewPage({ params }: Props) {
         </div>
 
         {/* Dashboard widgets - Client component */}
-        <DashboardViewClient dashboard={dashboard} />
+        <div className="p-4">
+          <DashboardViewClient dashboard={dashboard} />
+        </div>
 
         {/* Dashboard info */}
         <div className="mt-10 border-t pt-6">

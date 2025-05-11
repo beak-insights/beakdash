@@ -4,16 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
-import Sidebar from '@/components/layout/sidebar-fixed';
-import { useSidebarStore } from '@/store/sidebar-store';
-import Link from 'next/link';
+import Sidebar from '@/components/layout/sidebar';
 import { signOut } from 'next-auth/react';
 
-// Icons
-import { 
-  User, 
-  LogOut
-} from 'lucide-react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,7 +17,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const { collapsed } = useSidebarStore();
   
   // Set mounted state when component mounts
   useEffect(() => {
@@ -57,51 +49,15 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // If authenticated, render the layout with sidebar
   if (status === 'authenticated' && session?.user) {
-    const user = session.user;
-    
     return (
-      <div className="flex min-h-screen w-full bg-background overflow-hidden">
-        {/* Import enhanced sidebar with space switching */}
+      <div className="flex h-screen w-full bg-gray-100 overflow-hidden">
         <Sidebar />
         
-        {/* Main content */}
-        <div className="flex flex-col flex-1 w-full transition-all duration-300">
-          <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-10 w-full">
-            <h2 className="text-lg font-medium">
-              {pathname.includes('/spaces/') ? 'Space Details' : 
-               pathname === '/spaces' ? 'Spaces' :
-               pathname === '/dashboard' ? 'Dashboard' :
-               pathname === '/datasets' ? 'Datasets' :
-               pathname === '/connections' ? 'Connections' :
-               pathname === '/widgets' ? 'Widgets' :
-               pathname === '/profile' ? 'Profile' :
-               pathname === '/settings' ? 'Settings' : 'Dashboard'}
-            </h2>
-            <div className="flex items-center gap-4">
-              <div className="text-sm hidden md:block">
-                {user?.name || user?.email || 'User'}
-              </div>
-              <button 
-                onClick={() => router.push('/profile')}
-                className="p-1 rounded-full bg-muted hover:bg-muted/80"
-              >
-                {user?.image ? (
-                  <img 
-                    src={user.image} 
-                    alt={user?.name || 'User'} 
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                    {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
-                  </div>
-                )}
-              </button>
-            </div>
-          </header>
-          <main className="flex-1 p-4 md:p-6 w-full">
+        <div className="flex flex-col flex-1 w-full overflow-hidden">
+          <main className="flex-1 w-full overflow-y-auto">
             {children}
           </main>
+    
           <footer className="border-t p-4 text-center text-sm text-muted-foreground w-full">
             BeakDash &copy; {new Date().getFullYear()} - AI-Powered Dashboard Creator
           </footer>
