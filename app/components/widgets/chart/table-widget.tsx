@@ -89,11 +89,11 @@ function TableWidget({ data, config = {}, className }: TableWidgetProps) {
   return (
     <div className={cn("w-full h-full overflow-hidden", className)}>
       <ScrollArea className="h-full">
-        <Table>
+        <Table className="border bottom-2">
           <TableHeader>
             <TableRow>
             {columns.all.map((column) => (
-              <TableHead className="p-2 font-semibold" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
+              <TableHead className="p-2 font-semibold border-r" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
             ))}
             </TableRow>
           </TableHeader>
@@ -101,7 +101,7 @@ function TableWidget({ data, config = {}, className }: TableWidgetProps) {
             {(data ?? []).map((row, idx) => (
               <TableRow key={idx} className="p-0">
                 {columns.all.map((column) => (
-                  <TableCell className="p-2" key={`${idx}-${column}`}>
+                  <TableCell className="p-2 border-r" key={`${idx}-${column}`}>
                     {typeof row[column] === "object"
                       ? JSON.stringify(row[column])
                       : String(row[column] ?? "")}

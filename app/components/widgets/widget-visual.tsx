@@ -12,15 +12,15 @@ export const WidgetVisual = ({ widget }: { widget: Widget }) => {
   return (
     <div className="h-full p-4 overflow-auto w-full">
       <WidgetHeader name={widget.name} description={widget.description} />
-      <div className="prose max-w-none w-full h-full">
+      <div className="mt-2 prose max-w-none w-full h-full">
         {type === 'text' ? (
-          <>
+          <div className="text-lg font-medium leading-relaxed">
             {config?.textContent?.split('\n').map((line: string, i: number) => (
               <p key={i} className="break-words">{line || <br />}</p>
             )) || (
               <p className="text-muted-foreground">No content available</p>
             )}
-          </>
+          </div>
         ) : type === 'chart' ? (
           <ChartWidget widget={widget} />
         ) : type === 'table' ? (
