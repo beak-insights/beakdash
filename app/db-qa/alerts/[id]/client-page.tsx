@@ -37,7 +37,7 @@ import {
   Settings, 
   Slash 
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/hooks/use-toast";
 import { get, del } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 

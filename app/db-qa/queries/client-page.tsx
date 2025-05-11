@@ -18,7 +18,7 @@ import {
   type EnabledStatus 
 } from "@/components/db-qa/filter-dropdowns";
 import { useDbQaQueries } from "@/lib/hooks/use-db-qa-queries";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Icons } from "@/components/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api-client";

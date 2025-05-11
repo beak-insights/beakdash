@@ -28,7 +28,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Icons } from "@/components/ui/icons";
 import { dbQaCategoryTypes, dbQaFrequencyTypes } from "@/lib/db/schema";
 import { post, put } from "@/lib/api-client";
