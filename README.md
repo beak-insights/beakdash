@@ -1,4 +1,4 @@
-# BeakDash Business Intellince
+# BeakDash Business Intelligence
 
 BeakDash is an **AI-powered**, modular dashboard platform built with Next.js and TypeScript. It lets authenticated users connect to various data sources, define datasets, design custom dashboards with drag-and-drop widgets, and even set up database-QA alerts—all enriched by AI insights.
 
