@@ -234,10 +234,10 @@ const toAntWordCloudConfig = (config: WidgetConfig): WidgetConfig => {
     layout: { spiral: 'rectangular' },
     textField: config?.colorField,
     colorField: config?.colorField,
-    legend: {
-      ...commonConfig?.legend,
-      ...config?.legend,
-    },
+    // legend: {
+    //   ...commonConfig?.legend,
+    //   ...config?.legend,
+    // },
   };
 };
   

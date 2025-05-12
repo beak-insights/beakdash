@@ -87,7 +87,7 @@ const renderScatterPlot = (config: WidgetConfig, data: Record<string, any>[]) =>
 
 // Render a dual axis chart
 const renderDualAxisChart = (config: WidgetConfig, data: Record<string, any>[]) => {
-  if(!config?.xField || !config?.yField) {
+  if(!config?.xField) {
     return <div className="flex items-center justify-center h-full text-muted-foreground">Configure Chart!!</div>;
   }
   data = makesureNumeric(data || []);

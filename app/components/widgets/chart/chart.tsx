@@ -5,7 +5,7 @@ import { Widget, WidgetConfig } from "@/lib/db/schema";
 
 interface ChartWidgetProps {
   widget: Widget;
-  dimensions: {
+  dimensions?: {
     width: number;
     height: number;
   };
@@ -23,8 +23,8 @@ export function ChartWidget({ widget, dimensions }: ChartWidgetProps) {
   // Common responsive configuration for all charts
   const commonConfig = {
 
-    height: dimensions.height,
-    width: dimensions.width,
+    height: dimensions?.height,
+    width: dimensions?.width,
   };
   config = { ...commonConfig, ...config } as WidgetConfig;
 

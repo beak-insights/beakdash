@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlayIcon } from "lucide-react";
+import { ChartBarIcon, ChartPieIcon, PlayIcon, Table2, TableIcon, TextIcon } from "lucide-react";
 import { useWidgets } from "@/lib/hooks/use-widgets";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +38,10 @@ import {
 } from "@/lib/db/schema";
 import { extractColumns } from "@/lib/utils";
 import Chart from "@/components/widgets/chart/chart";
-import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
+import { MonacoSQLEditor } from "@/components/code/code-editor";
+// import { MonacoSQLEditor } from "@/components/code/monaco-sql-editor";
+import { ISchemaInfo } from "@/types";
+import { Header } from "../layout/header";
 
 interface WidgetEditorProps {
   dashboardId?: number;
@@ -48,15 +51,6 @@ interface WidgetEditorProps {
   onCreate?: () => void;
   isCreating?: boolean;
   isTemplate?: boolean;
-}
-
-interface SchemaInfo {
-  [schemaName: string]: {
-    [tableName: string]: {
-      column: string;
-      type: string;
-    }[];
-  };
 }
 
 export default function WidgetEditor({
@@ -100,9 +94,9 @@ export default function WidgetEditor({
         : "chart"
   );
   const [selectedSchema, setSelectedSchema] = useState<string>("");
-  const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>({});
+  const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo>({});
 
-  const { addToast } = useToast();
+  const { toast } = useToast();
 
   // Use our custom hook for widget operations
   const { createWidget, updateWidget, isPending } = useWidgets();
@@ -132,10 +126,10 @@ export default function WidgetEditor({
         }
         return response.json();
       } catch (error: any) {
-        addToast({
+        toast({
           title: "Error",
-          message: "Failed to load dataset data",
-          type: "error",
+          description: "Failed to load dataset data",
+          variant: "destructive",
         });
         return [];
       }
@@ -172,10 +166,10 @@ export default function WidgetEditor({
         }
       } catch (error) {
         console.error('Error fetching schema info:', error);
-        addToast({
+        toast({
           title: "Error",
-          message: "Failed to fetch schema information",
-          type: "error",
+          description: "Failed to fetch schema information",
+          variant: "destructive",
         });
       }
     };
@@ -245,10 +239,10 @@ export default function WidgetEditor({
   // Execute SQL query
   const handleExecuteQuery = async () => {
     if (!selectedConnectionId || !customQuery.trim()) {
-      addToast({
+      toast({
         title: "Error",
-        message: "Please select a connection and enter a valid SQL query.",
-        type: "error",
+        description: "Please select a connection and enter a valid SQL query.",
+        variant: "destructive",
       });
       return;
     }
@@ -290,10 +284,10 @@ export default function WidgetEditor({
       // Auto switch to table preview tab after query execution
       setCurrentTab("table-preview");
     } catch (error: any) {
-      addToast({
+      toast({
         title: "Query execution failed",
-        message: error.message || "Failed to execute SQL query",
-        type: "error",
+        description: error.message || "Failed to execute SQL query",
+        variant: "destructive",
       });
     }
   };
@@ -302,10 +296,10 @@ export default function WidgetEditor({
   const handleSubmit = async () => {
     // Check for required fields
     if (!name.trim()) {
-      addToast({
+      toast({
         title: "Error",
-        message: "Please enter a widget name.",
-        type: "error",
+        description: "Please enter a widget name.",
+        variant: "destructive",
       });
       return;
     }
@@ -313,28 +307,28 @@ export default function WidgetEditor({
     // Validate based on widget type
     if (widgetType === "text") {
       if (!textContent.trim()) {
-        addToast({
+        toast({
           title: "Error",
-          message: "Please enter some text content.",
-          type: "error",
+          description: "Please enter some text content.",
+          variant: "destructive",
         });
         return;
       }
     } else {
       if (!selectedConnectionId) {
-        addToast({
+        toast({
           title: "Error",
-          message: "Please select a data connection.",
-          type: "error",
+          description: "Please select a data connection.",
+          variant: "destructive",
         });
         return;
       }
       
       if (!customQuery.trim()) {
-        addToast({
+        toast({
           title: "Error",
-          message: "Please enter a SQL query.",
-          type: "error",
+          description: "Please enter a SQL query.",
+          variant: "destructive",
         });
         return;
       }
@@ -384,10 +378,10 @@ export default function WidgetEditor({
       if (widget) {
         const widgetId = widget.id;
         if (!widgetId) {
-          addToast({
+          toast({
             title: "Error",
-            message: "Widget ID is missing.",
-            type: "error",
+            description: "Widget ID is missing.",
+            variant: "destructive",
           });
           return;
         }
@@ -406,422 +400,388 @@ export default function WidgetEditor({
       // Only close on success
       onClose();
     } catch (error) {
-      addToast({
+      toast({
         title: "Error",
-        message: error instanceof Error ? error.message : "Failed to save widget",
-        type: "error",
+        description: error instanceof Error ? error.message : "Failed to save widget",
+        variant: "destructive",
       });
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          {widget ? "Edit Widget" : "Create New Widget"}
-        </h1>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-      </div>
+    <div className="mb-6">
+      {/* Dashboard header */}
+      <Header title={widget ? "Edit Widget" : "Create New Widget"} description=''>
+        <button
+        onClick={onClose}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+        >
+        Cancel
+        </button>
+      </Header>
 
       {/* Title and Description Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="widget-name">Widget Title</Label>
-          <Input
-            id="widget-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter widget title"
-          />
-        </div>
-        <div className="col-span-2">
-          <Label htmlFor="widget-description">Description</Label>
-          <Input
-            id="widget-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter a short description"
-          />
-        </div>
-      </div>
-
-      {/* Widget Type Selection */}
-      <div className="flex justify-between items-center">
-        <Label>Widget Type</Label>
-        <div className="grid grid-cols-3 gap-4 mt-2">
-          <Button
-            variant={widgetType === "text" ? "default" : "outline"}
-            onClick={() => setWidgetType("text")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="4 7 4 4 20 4 20 7"></polyline>
-              <line x1="9" y1="20" x2="15" y2="20"></line>
-              <line x1="12" y1="4" x2="12" y2="20"></line>
-            </svg>
-          </Button>
-          <Button
-            variant={widgetType === "table" ? "default" : "outline"}
-            onClick={() => setWidgetType("table")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="3" y1="9" x2="21" y2="9"></line>
-              <line x1="3" y1="15" x2="21" y2="15"></line>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-              <line x1="15" y1="3" x2="15" y2="21"></line>
-            </svg>
-          </Button>
-          <Button
-            variant={widgetType === "chart" ? "default" : "outline"}
-            onClick={() => setWidgetType("chart")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-              <line x1="2" y1="20" x2="22" y2="20"></line>
-            </svg>
-          </Button>
-        </div>
-      </div>
-
-      {/* Widget Type Specific Content */}
-      {widgetType === "text" ? (
-        <div className="mt-4">
-          <Label htmlFor="text-content">Text Content</Label>
-          <Textarea
-            id="text-content"
-            value={textContent}
-            onChange={(e) => setTextContent(e.target.value)}
-            placeholder="Enter your text content here..."
-            className="min-h-[300px]"
-          />
-        </div>
-      ) : widgetType === "table" || widgetType === "chart" ? (
-        <div className="mt-4">
-          {/* Data Connection Sections */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="mb-4">
-              <Label>Data Connection</Label>
-              <Select
-                value={selectedConnectionId?.toString() || ""}
-                onValueChange={(value) => setSelectedConnectionId(Number(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a connection" />
-                </SelectTrigger>
-                <SelectContent>
-                  {connections.map((connection) => (
-                    <SelectItem
-                      key={connection.id}
-                      value={connection.id.toString()}
-                    >
-                      {connection.name} ({connection.type.toUpperCase()})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <div className="p-4">
+        <div className="p-4 bg-card">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-md font-semibold" htmlFor="widget-name">Widget Title</Label>
+              <Input
+                id="widget-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter widget title"
+              />
             </div>
-            <div className="mb-4">
-              <Label>Dataset</Label>
-              <Select
-                value={selectedDatasetId?.toString() || ""}
-                onValueChange={(value) => setSelectedDatasetId(Number(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a dataset" />
-                  </SelectTrigger>
-                <SelectContent>
-                  {datasets.map((dataset) => (
-                    <SelectItem key={dataset.id} value={dataset.id.toString()}>
-                      {dataset.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mb-4">
-              <Label>Schema</Label>
-              <Select
-                value={selectedSchema}
-                onValueChange={(value) => {
-                  setSelectedSchema(value);
-                  setSelectedTable("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a schema" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(schemaInfo).map((schema) => (
-                    <SelectItem key={schema} value={schema}>
-                      {schema}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mb-4">
-              <Label>Table</Label>
-              <Select
-                value={selectedTable}
-                onValueChange={(value) => setSelectedTable(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a table" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(schemaInfo[selectedSchema] || {}).map((table) => (
-                    <SelectItem key={table} value={table}>
-                      {table}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2">
+              <Label className="text-md font-semibold" htmlFor="widget-description">Description</Label>
+              <Input
+                id="widget-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter a short description"
+              />
             </div>
           </div>
 
+          {/* Widget Type Selection */}
+          <div className="my-4 flex justify-start gap-4 items-center">
+            <Label className="text-md font-semibold">Widget Type</Label>
+            <div className="grid grid-cols-3 gap-4 mt-2">
+              <Button 
+                size="sm"
+                variant={widgetType === "text" ? "default" : "outline"}
+                onClick={() => setWidgetType("text")}
+              >
+                <TextIcon size={18} />
+              </Button>
+              <Button
+                size="sm"
+                variant={widgetType === "table" ? "default" : "outline"}
+                onClick={() => setWidgetType("table")}
+              >
+                <TableIcon size={18} />
+              </Button>
+              <Button
+                size="sm"
+                variant={widgetType === "chart" ? "default" : "outline"}
+                onClick={() => setWidgetType("chart")}
+              >
+                <ChartPieIcon size={18} />
+              </Button>
+            </div>
+          </div>
 
-          {selectedConnectionId && (
-            <Tabs value={currentTab} onValueChange={setCurrentTab}>
-              <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="query-view">Query View</TabsTrigger>
-                <TabsTrigger value="table-preview">Table Preview</TabsTrigger>
-                {widgetType === "chart" && (
-                  <TabsTrigger value="chart-preview">Chart Preview</TabsTrigger>
-                )}
-              </TabsList>
+          {/* Widget Type Specific Content */}
+          {widgetType === "text" ? (
+            <div className="">
+              <Label htmlFor="text-content">Text Content</Label>
+              <Textarea
+                id="text-content"
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                placeholder="Enter your text content here..."
+                rows={5}
+              />
+            </div>
+          ) : widgetType === "table" || widgetType === "chart" ? (
+            <div className="">
+              {/* Data Connection Sections */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="mb-4">
+                  <Label className="text-md font-semibold">Data Connection</Label>
+                  <Select
+                    value={selectedConnectionId?.toString() || ""}
+                    onValueChange={(value) => setSelectedConnectionId(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a connection" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connections.map((connection) => (
+                        <SelectItem
+                          key={connection.id}
+                          value={connection.id.toString()}
+                        >
+                          {connection.name} ({connection.type.toUpperCase()})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mb-4">
+                  <Label className="text-md font-semibold">Dataset</Label>
+                  <Select
+                    value={selectedDatasetId?.toString() || ""}
+                    onValueChange={(value) => setSelectedDatasetId(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a dataset" />
+                      </SelectTrigger>
+                    <SelectContent>
+                      {datasets.map((dataset) => (
+                        <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                          {dataset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mb-4">
+                  <Label className="text-md font-semibold">Schema</Label>
+                  <Select
+                    value={selectedSchema}
+                    onValueChange={(value) => {
+                      setSelectedSchema(value);
+                      setSelectedTable("");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a schema" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(schemaInfo).map((schema) => (
+                        <SelectItem key={schema} value={schema}>
+                          {schema}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mb-4">
+                  <Label className="text-md font-semibold">Table</Label>
+                  <Select
+                    value={selectedTable}
+                    onValueChange={(value) => setSelectedTable(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a table" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(schemaInfo[selectedSchema] || {}).map((table) => (
+                        <SelectItem key={table} value={table}>
+                          {table}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-              {/* Query View Tab */}
-              <TabsContent value="query-view" className="space-y-4">
-                <div>
-                  <Label>SQL Query</Label>
-                  <div className="mt-2 grid grid-cols-2 gap-4">
 
-                    <MonacoSQLEditor
-                      value={customQuery}
-                      onChange={setCustomQuery}
-                      height="300px"
-                    />
+              {selectedConnectionId && (
+                <Tabs value={currentTab} onValueChange={setCurrentTab}>
+                  <TabsList className="grid grid-cols-3 mb-4">
+                    <TabsTrigger value="query-view">Query View</TabsTrigger>
+                    <TabsTrigger value="table-preview">Table Preview</TabsTrigger>
+                    {widgetType === "chart" && (
+                      <TabsTrigger value="chart-preview">Chart Preview</TabsTrigger>
+                    )}
+                  </TabsList>
 
-                    {/* Add table columns display */}
-                    {selectedTable && selectedSchema && schemaInfo[selectedSchema]?.[selectedTable] && (
-                      <div style={{height: "300px", overflowY: "auto", maxHeight: "300px"}}>
-                        <div className="p-4 border rounded-lg">
-                          <div>
-                            <div className="grid grid-cols-2 gap-x-4">
-                              {schemaInfo[selectedSchema][selectedTable].map((column, index) => (
-                                <div key={index} className="-mt-1 flex justify-between">
-                                  <span className="font-bold">{column.column}</span>
-                                  <span className="text-muted-foreground text-right italic" >{column.type}</span>
+                  {/* Query View Tab */}
+                  <TabsContent value="query-view" className="space-y-4">
+                    <div className="mt-2 grid grid-cols-2 gap-4">
+                      <div>
+                      <Label className="text-md font-semibold">SQL Query</Label>
+                        <MonacoSQLEditor
+                          value={customQuery}
+                          onChange={setCustomQuery}
+                          schemaInfo={schemaInfo}
+                          height="300px"
+                        />
+                        <Button
+                          size="sm"
+                          className="mt-2"
+                          onClick={handleExecuteQuery}
+                          disabled={!selectedConnectionId || !customQuery.trim()}
+                        >
+                          <PlayIcon className="w-4 h-4 mr-2" />
+                          Execute Query
+                        </Button>
+                      </div>
+                      {/* Add table columns display */}
+                      {selectedTable && selectedSchema && schemaInfo[selectedSchema]?.[selectedTable] && (
+                        <div>
+                          <Label className="text-md font-semibold">Table Dimensions</Label>
+                          <div style={{height: "300px", overflowY: "auto", maxHeight: "300px"}}>
+                            <div className="p-4 border rounded-lg">
+                              <div>
+                                <div className="grid grid-cols-2 gap-x-4">
+                                  {schemaInfo[selectedSchema][selectedTable].map((column, index) => (
+                                    <div key={index} className="-mt-1 flex justify-between">
+                                      <span className="font-bold">{column.column}</span>
+                                      <span className="text-muted-foreground text-right italic" >{column.type}</span>
+                                    </div>
+                                  ))}
                                 </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4">
+                    </div>
+                  </TabsContent>
+
+                  {/* Table Preview Tab */}
+                  <TabsContent value="table-preview">
+                    <div className="border rounded-lg p-4 h-[400px] overflow-auto">
+                      {previewData.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {dataColumns.all.map((column) => (
+                                <TableHead key={column}>{column}</TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {previewData.map((row, idx) => (
+                              <TableRow key={idx}>
+                                {dataColumns.all.map((column) => (
+                                  <TableCell key={`${idx}-${column}`}>
+                                    {typeof row[column] === "object"
+                                      ? JSON.stringify(row[column])
+                                      : String(row[column] ?? "")}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : isLoadingData ? (
+                        <div className="flex items-center justify-center h-full">
+                          <Spinner className="w-8 h-8 mr-2" />
+                          <span>Loading data...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          No data available. Execute a query first.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Chart Preview Tab - Only visible for Chart Widget Type */}
+                  {widgetType === "chart" && (
+                    <TabsContent value="chart-preview" className="mt-4">
+                      <div className="grid grid-cols-4 gap-6">
+                        {/* Left Column - Chart Properties */}
+                        <div className="col-span-2 space-y-6 border rounded-lg p-4">
+                          <Tabs value={previewTab} onValueChange={setPreviewTab}>
+                            <TabsList className="grid grid-cols-2 mb-4">
+                              <TabsTrigger value="data-mapping">Data Mapping</TabsTrigger>
+                              <TabsTrigger value="chart-settings">Chart Settings</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="data-mapping" className="space-y-4">
+                              {dataColumns.all.length > 0 ? (
+                                <AxisMapping
+                                  chartType={config?.chartType || "bar"}
+                                  columns={dataColumns}
+                                  config={config}
+                                  onChange={(newConfig) =>
+                                    setConfig(newConfig)
+                                  }
+                                />
+                              ) : (
+                                <div className="text-sm text-muted-foreground mt-2">
+                                  Execute a query to map data columns
+                                </div>
+                              )}
+                            </TabsContent>
+
+                            <TabsContent value="chart-settings" className="space-y-4">
+                              <ChartConfig
+                                chartType={config?.chartType || "bar"}
+                                config={config}
+                                onChange={(newConfig) =>
+                                  setConfig({ ...config, ...newConfig })
+                                }
+                              />
+                            </TabsContent>
+                          </Tabs>   
+                        </div>
+                        
+                        {/* Right Column - Chart Preview */}
+                        <div className="col-span-2 space-y-6">
+                          <div className="border rounded-lg">
+                            <div className="h-[300px]">
+                              {previewData.length > 0 ? (
+                                <Chart
+                                  widget={{
+                                    ...widget,
+                                    // override the type, data and config
+                                    type: widgetType,
+                                    data:previewData,
+                                    config
+                                  } as Widget}
+                                />
+                              ) : (
+                                <div className="h-full flex items-center justify-center text-muted-foreground">
+                                  No data available for preview
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Chart Type Selector */}
+                          <div className="">
+                            <div className="grid grid-cols-8 gap-2">
+                              {chartTypes.map((type) => (
+                                <Button
+                                  key={type}
+                                  variant={config?.chartType === type ? "default" : "outline"}
+                                  className="flex flex-col items-center justify-center h-16 p-2"
+                                  onClick={() => switchChartType(type)}
+                                >
+                                  {getChartTypeIcon(type)}
+                                  <span className="text-xs mt-1">
+                                    {getChartTypeDisplayName(type)}
+                                  </span>
+                                </Button>
                               ))}
                             </div>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <Button
-                      onClick={handleExecuteQuery}
-                      disabled={!selectedConnectionId || !customQuery.trim()}
-                    >
-                      <PlayIcon className="w-4 h-4 mr-2" />
-                      Execute Query
-                    </Button>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Table Preview Tab */}
-              <TabsContent value="table-preview">
-                <div className="border rounded-lg p-4 h-[400px] overflow-auto">
-                  {previewData.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {dataColumns.all.map((column) => (
-                            <TableHead key={column}>{column}</TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {previewData.map((row, idx) => (
-                          <TableRow key={idx}>
-                            {dataColumns.all.map((column) => (
-                              <TableCell key={`${idx}-${column}`}>
-                                {typeof row[column] === "object"
-                                  ? JSON.stringify(row[column])
-                                  : String(row[column] ?? "")}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : isLoadingData ? (
-                    <div className="flex items-center justify-center h-full">
-                      <Spinner className="w-8 h-8 mr-2" />
-                      <span>Loading data...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      No data available. Execute a query first.
-                    </div>
+                    </TabsContent>
                   )}
-                </div>
-              </TabsContent>
-
-              {/* Chart Preview Tab - Only visible for Chart Widget Type */}
-              {widgetType === "chart" && (
-                <TabsContent value="chart-preview" className="mt-4">
-                  <div className="grid grid-cols-4 gap-6">
-                    {/* Left Column - Chart Properties */}
-                    <div className="col-span-2 space-y-6 border rounded-lg p-4">
-                      <Tabs value={previewTab} onValueChange={setPreviewTab}>
-                        <TabsList className="grid grid-cols-2 mb-4">
-                          <TabsTrigger value="data-mapping">Data Mapping</TabsTrigger>
-                          <TabsTrigger value="chart-settings">Chart Settings</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="data-mapping" className="space-y-4">
-                          {dataColumns.all.length > 0 ? (
-                            <AxisMapping
-                              chartType={config?.chartType || "bar"}
-                              columns={dataColumns}
-                              config={config}
-                              onChange={(newConfig) =>
-                                setConfig(newConfig)
-                              }
-                            />
-                          ) : (
-                            <div className="text-sm text-muted-foreground mt-2">
-                              Execute a query to map data columns
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="chart-settings" className="space-y-4">
-                          <ChartConfig
-                            chartType={config?.chartType || "bar"}
-                            config={config}
-                            onChange={(newConfig) =>
-                              setConfig({ ...config, ...newConfig })
-                            }
-                          />
-                        </TabsContent>
-                      </Tabs>   
-                    </div>
-                    
-                    {/* Right Column - Chart Preview */}
-                    <div className="col-span-2 space-y-6">
-                      <div className="border rounded-lg">
-                        <div className="h-[300px]">
-                          {previewData.length > 0 ? (
-                            <Chart
-                              widget={{
-                                ...widget,
-                                // override the type, data and config
-                                type: widgetType,
-                                data:previewData,
-                                config
-                              } as Widget}
-                              height="100%"
-                            />
-                          ) : (
-                            <div className="h-full flex items-center justify-center text-muted-foreground">
-                              No data available for preview
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Chart Type Selector */}
-                      <div className="">
-                        <div className="grid grid-cols-8 gap-2">
-                          {chartTypes.map((type) => (
-                            <Button
-                              key={type}
-                              variant={config?.chartType === type ? "default" : "outline"}
-                              className="flex flex-col items-center justify-center h-16 p-2"
-                              onClick={() => switchChartType(type)}
-                            >
-                              {getChartTypeIcon(type)}
-                              <span className="text-xs mt-1">
-                                {getChartTypeDisplayName(type)}
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
+                </Tabs>
               )}
-            </Tabs>
-          )}
-        </div>
-      ) : null}
+            </div>
+          ) : null}
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={
-            !name.trim() ||
-            (widgetType === "text" && !textContent.trim()) ||
-            ((widgetType === "table" || widgetType === "chart") && 
-              (!selectedConnectionId || !customQuery.trim())) ||
-            isPending
-          }
-        >
-          {isPending ? (
-            <>
-              <Spinner className="mr-2 h-4 w-4" />
-              Saving...
-            </>
-          ) : widget ? (
-            "Update Widget"
-          ) : (
-            "Create Widget"
-          )}
-        </Button>
+            {/* Action Buttons */}
+          <div className="mt-4 flex justify-end space-x-4">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                !name.trim() ||
+                (widgetType === "text" && !textContent.trim()) ||
+                ((widgetType === "table" || widgetType === "chart") && 
+                  (!selectedConnectionId || !customQuery.trim())) ||
+                isPending
+              }
+            >
+              {isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Saving...
+                </>
+              ) : widget ? (
+                "Update Widget"
+              ) : (
+                "Create Widget"
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -38,3 +38,17 @@ export interface ITableConfig {
   sortOrder?: "asc" | "desc" | "none";
   filters?: IFilterConfig[];
 }
+
+/**
+ * Schema information structure for SQL autocompletion
+ */
+export interface IColumnInfo {
+  column: string;
+  type: string;
+}
+
+export interface ISchemaInfo {
+  [schemaName: string]: {
+    [tableName: string]: IColumnInfo[];
+  };
+}

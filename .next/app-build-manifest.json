@@ -16,16 +16,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/auth/[...nextauth]/route.js"
     ],
-    "/auth/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/auth/layout.js"
-    ],
-    "/auth/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/auth/page.js"
-    ],
     "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -57,90 +47,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/widgets/route.js"
     ],
-    "/api/widgets/[id]/route": [
+    "/dashboard/[id]/add-widget/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/widgets/[id]/route.js"
-    ],
-    "/connections/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/connections/page.js"
+      "static/chunks/app/dashboard/[id]/add-widget/page.js"
     ],
     "/api/connections/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/connections/route.js"
     ],
-    "/datasets/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/datasets/page.js"
-    ],
     "/api/datasets/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/datasets/route.js"
     ],
-    "/db-qa/layout": [
+    "/api/connections/[id]/schema-info/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/db-qa/layout.js"
-    ],
-    "/db-qa/queries/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/db-qa/queries/page.js"
-    ],
-    "/api/db-qa/queries/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/db-qa/queries/route.js"
-    ],
-    "/db-qa/alerts/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/db-qa/alerts/page.js"
-    ],
-    "/api/db-qa/alerts/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/db-qa/alerts/route.js"
-    ],
-    "/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/profile/page.js"
-    ],
-    "/api/user/profile/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/user/profile/route.js"
-    ],
-    "/settings/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/settings/layout.js"
-    ],
-    "/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/settings/page.js"
-    ],
-    "/api/user/settings/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/user/settings/route.js"
-    ],
-    "/api/user/api-keys/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/user/api-keys/route.js"
-    ],
-    "/api/user/integrations/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/user/integrations/route.js"
+      "static/chunks/app/api/connections/[id]/schema-info/route.js"
     ]
   }
 }
