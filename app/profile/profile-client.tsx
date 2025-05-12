@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Header } from '@/components/layout/header';
 
 interface ProfileData {
   username: string;
@@ -170,13 +171,12 @@ export function ProfileClient() {
   }
 
   return (
-    <div className="container px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+    <div className="mb-6">
+      <Header title="Profile" description="">
         <button
           onClick={handleProfileUpdate}
           disabled={isLoading}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
         >
           {isLoading ? (
             <>
@@ -187,9 +187,9 @@ export function ProfileClient() {
             'Save Changes'
           )}
         </button>
-      </div>
+      </Header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left column - User info */}
         <div className="col-span-2 space-y-6">
           <form onSubmit={handleProfileUpdate} className="border rounded-lg p-6 bg-card space-y-4">

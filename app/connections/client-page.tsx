@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Database, Link as LinkIcon, Edit, Trash2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useToast } from '@/lib/hooks/use-toast';
+import { Header } from '@/components/layout/header';
 
 // Types for the connections
 interface Connection {
@@ -66,34 +67,18 @@ export function ConnectionsClient() {
   };
 
   return (
-    <div className="container px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Data Connections</h1>
-        <Link 
-          href="/connections/create" 
-          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center"
+    <div className="mb-6">
+      <Header title="Data Connections" description="">
+        <Link
+          href="/connections/create"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <path d="M5 12h14" />
-            <path d="M12 5v14" />
-          </svg>
           New Connection
         </Link>
-      </div>
+      </Header>
 
       {/* Connection types */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="border rounded-lg p-6 bg-card">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <svg
@@ -179,7 +164,7 @@ export function ConnectionsClient() {
       </div>
 
       {/* Existing connections */}
-      <div>
+      <div className="p-4">
         <h2 className="text-xl font-semibold mb-4">My Connections</h2>
         
         {isLoading ? (

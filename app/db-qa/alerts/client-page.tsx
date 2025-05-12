@@ -161,14 +161,6 @@ export function AlertsClient() {
             />
           </div>
         </div>
-        <div className="ml-auto">
-          <Button asChild>
-            <Link href="/db-qa/alerts/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Alert
-            </Link>
-          </Button>
-        </div>
       </div>
 
       {/* Alerts list */}

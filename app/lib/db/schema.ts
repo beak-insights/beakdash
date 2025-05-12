@@ -186,6 +186,8 @@ type BaseWidgetConfig = {
   shapeField?: string;
   sizeField?: string;
   seriesField?: string;
+  angleField?: string;
+  textField?: string;
   stack?: boolean | {
     groupBy?: string[];
     orderBy?: string;
@@ -194,9 +196,13 @@ type BaseWidgetConfig = {
   normalize?: boolean;
   binField?: string;
   channel?: string;
+  binNumber?: number;
   binWidth?: number;
   innerRadius?: number;
-  tooltip?: boolean;
+  tooltip?: boolean | {
+     channel: string;
+     valueFormatter: string;
+  };
   sort?: boolean | {
     reverse?: boolean;
     by?: string;
@@ -211,8 +217,10 @@ type BaseWidgetConfig = {
   };
   boxType?: string;
   interaction?: {
+    elementHighlight?: boolean;
     tooltip?: {
       marker?: boolean;
+      shared?: boolean;
     };
   };
   style?: {
@@ -222,6 +230,10 @@ type BaseWidgetConfig = {
     fillOpacity?: number;
     stroke?: string;
   };
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingTop?: number;
   scale?: {
     x?: {
       paddingInner?: number;
@@ -243,11 +255,12 @@ type BaseWidgetConfig = {
     };
   };
   legend?: {
-    position?: 'top' | 'right' | 'bottom' | 'left';
+    size?: boolean;
     color?: {
       title?: boolean;
-      position?: string;
+      position?: 'top' | 'right' | 'bottom' | 'left';
       rowPadding?: number;
+      itemMarker?: (v: any) => string;
     };
   };
   layout?: {
@@ -256,9 +269,25 @@ type BaseWidgetConfig = {
   children?: WidgetConfig[];
   type?: string;
   axis?: {
+    x?: {
+      position?: string;
+      title?: boolean;
+      grid?: boolean;
+      tick?: boolean;
+      label?: boolean;
+      style?: {
+        titleFill?: string;
+      };
+    };
     y?: {
       position?: string;
-      title?: string;
+      title?: boolean;
+      grid?: boolean;
+      tick?: boolean;
+      label?: boolean;
+      style?: {
+        titleFill?: string;
+      };
     };
   };
 };
@@ -277,6 +306,8 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
   shapeField: z.string().optional(),
   sizeField: z.string().optional(),
   seriesField: z.string().optional(),
+  angleField: z.string().optional(),
+  textField: z.string().optional(),
   stack: z.union([
     z.boolean().optional(), 
     z.object({
@@ -285,9 +316,16 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
     series: z.boolean().optional(),
   })]).optional(),
   normalize: z.boolean().optional(),
-  tooltip: z.boolean().optional(),
+  tooltip: z.union([
+    z.boolean().optional(),
+    z.object({
+      channel: z.string(),
+      valueFormatter: z.string(),
+    }).optional(),
+  ]).optional(),
   binField: z.string().optional(),
   channel: z.string().optional(),
+  binNumber: z.number().optional(),
   binWidth: z.number().optional(),
   innerRadius: z.number().optional(),
   sort: z.union([
@@ -308,8 +346,10 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
   }).optional(),
   boxType: z.string().optional(),
   interaction: z.object({
+    elementHighlight: z.boolean().optional(),
     tooltip: z.object({
       marker: z.boolean().optional(),
+      shared: z.boolean().optional(),
     }).optional(),
   }).optional(),
   style: z.object({
@@ -319,6 +359,10 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
     fillOpacity: z.number().optional(),
     stroke: z.string().optional(),
   }).optional(),
+  paddingRight: z.number().optional(),
+  paddingBottom: z.number().optional(),
+  paddingLeft: z.number().optional(),
+  paddingTop: z.number().optional(),
   scale: z.object({
     x: z.object({
       paddingInner: z.number().optional(),
@@ -340,10 +384,10 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
     }).optional(),
   }).optional(),
   legend: z.object({
-    position: z.enum(['top', 'right', 'bottom', 'left']).optional(),
+    size: z.boolean().optional(),
     color: z.object({
       title: z.boolean().optional(),
-      position: z.string().optional(),
+      position: z.enum(['top', 'right', 'bottom', 'left']).optional(),
       rowPadding: z.number().optional(),
     }).optional(),
   }).optional(),
@@ -354,9 +398,22 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
   // children schema in dual axes
   type: z.string().optional(),
   axis: z.object({
+    x: z.object({
+      position: z.string().optional(),
+      title: z.boolean().optional(),
+      grid: z.boolean().optional(),
+      tick: z.boolean().optional(),
+      label: z.boolean().optional(),
+      style: z.object({
+        titleFill: z.string().optional(),
+      }).optional(),
+    }).optional(),
     y: z.object({
       position: z.string().optional(),
-      title: z.string().optional(),
+      title: z.boolean().optional(),
+      grid: z.boolean().optional(),
+      tick: z.boolean().optional(),
+      label: z.boolean().optional(),
       style: z.object({
         titleFill: z.string().optional(),
       }).optional(),

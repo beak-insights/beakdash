@@ -1,16 +1,6 @@
 import React from 'react';
 import { Widget, WidgetConfig } from "@/lib/db/schema";
- import { 
-  renderBarChart, 
-  renderColumnChart, 
-  renderLineChart, 
-  renderAreaChart, 
-  renderPieChart, 
-  renderScatterPlot, 
-  renderDualAxisChart, 
-  renderHistogramChart, 
-  renderWordCloud 
-} from './renders';
+ import * as renders from './renders';
 
 
 interface ChartWidgetProps {
@@ -41,23 +31,23 @@ export function ChartWidget({ widget, dimensions }: ChartWidgetProps) {
   // Render the appropriate chart based on type
   switch (config.chartType) {
     case "bar":
-      return renderBarChart(config, data);
+      return renders.renderBarChart(config, data);
     case "column":
-      return renderColumnChart(config, data);
+      return renders.renderColumnChart(config, data);
     case "line":
-      return renderLineChart(config, data);
+      return renders.renderLineChart(config, data);
     case "area":
-      return renderAreaChart(config, data);
+      return renders.renderAreaChart(config, data);
     case "pie":
-      return renderPieChart(config, data);  
+      return renders.renderPieChart(config, data);  
     case "scatter":
-      return renderScatterPlot(config, data);
+      return renders.renderScatterPlot(config, data);
     case "dual-axes":
-      return renderDualAxisChart(config, data);
+      return renders.renderDualAxisChart(config, data);
     case "histogram":
-      return renderHistogramChart(config, data);
+      return renders.renderHistogramChart(config, data);
     case "word-cloud":
-      return renderWordCloud(config, data);
+      return renders.renderWordCloud(config, data);
     default:
       return <div className="flex items-center justify-center h-full text-muted-foreground">Unsupported chart type</div>;
   }

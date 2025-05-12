@@ -6,6 +6,7 @@ import { GeneralSettings } from './general-settings';
 import { PrivacySecuritySettings } from './privacy-security';
 import { ApiKeysSettings } from './api-keys';
 import { IntegrationsSettings } from './integrations';
+import { Header } from '@/components/layout/header';
 
 type SettingsTab = 'general' | 'appearance' | 'notifications' | 'privacy' | 'api-keys' | 'integrations';
 
@@ -29,12 +30,9 @@ export default function SettingsPage() {
 
   return (
     <AppLayout>
-      <div className="container px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="mb-6">
+        <Header title="Settings" description="" />
+        <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Settings sidebar */}
           <div className="col-span-1 space-y-1">
             <button

@@ -2,9 +2,8 @@ import React from 'react';
 import { Metadata } from 'next';
 import { AppLayout } from '@/components/layout/app-layout';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
 import { DatasetsClient } from './client-page';
+import { Header } from '@/components/layout/header';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Datasets',
@@ -14,22 +13,23 @@ export const metadata: Metadata = {
 export default function DatasetsPage() {
   return (
     <AppLayout>
-      <div className="container px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Datasets</h1>
-          <Button asChild>
-            <Link href="/datasets/create">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create Dataset
-            </Link>
-          </Button>
-        </div>
+      <div className="mb-6">
+        <Header title="Datasets" description="">
+          <Link
+            href="/datasets/create"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+          >
+            New Dataset
+          </Link>
+        </Header>
 
         {/* Dataset list */}
-        <DatasetsClient />
+        <div className="p-4">
+          <DatasetsClient />
+        </div>
 
         {/* Dataset creation steps */}
-        <div className="mt-12">
+        <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">How to create a dataset</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="border rounded-lg p-6 bg-card">

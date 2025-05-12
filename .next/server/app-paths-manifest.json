@@ -1,6 +1,14 @@
 {
-  "/page": "app/page.js",
+  "/api/spaces/route": "app/api/spaces/route.js",
+  "/api/spaces/user/route": "app/api/spaces/user/route.js",
+  "/api/user/settings/[id]/route": "app/api/user/settings/[id]/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/user/settings/route": "app/api/user/settings/route.js",
+  "/api/widgets/route": "app/api/widgets/route.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/profile/page": "app/profile/page.js",
   "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/auth/page": "app/auth/page.js"
+  "/db-qa/alerts/page": "app/db-qa/alerts/page.js",
+  "/db-qa/queries/page": "app/db-qa/queries/page.js",
+  "/settings/page": "app/settings/page.js"
 }

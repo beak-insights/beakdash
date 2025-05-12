@@ -1,14 +1,17 @@
 import { WidgetConfig } from '@/lib/db/schema';
 
-const commonConfig = { 
+const commonConfig: WidgetConfig = { 
   autoFit: true,
   legend: {
-      position: 'top',
+    size: false,
+    color: {
+      position: 'bottom',
+    },
   },
 }
 
 // Ant Design Bar Chart Config
-const getBarConfig = (config: WidgetConfig) => {
+const toAntBarConfig = (config: WidgetConfig): WidgetConfig => {
   return  {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
@@ -44,11 +47,15 @@ const getBarConfig = (config: WidgetConfig) => {
         title: true,
       },
     },
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
 // Ant Design Column Chart Config 
-const getColumnConfig = (config: WidgetConfig) => {
+const toAntColumnConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
@@ -68,12 +75,16 @@ const getColumnConfig = (config: WidgetConfig) => {
         shared: true,
       },
     },
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
 // Ant Design Line Chart Config
-const getLineConfig = (config: WidgetConfig) => {
-  return {
+const toAntLineConfig = (config: WidgetConfig): WidgetConfig => {
+  const lc = {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
     xField: config?.xField,
@@ -83,11 +94,19 @@ const getLineConfig = (config: WidgetConfig) => {
     point: config?.point,
     interaction: config?.interaction,
     style: config?.style,
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
+  } as any
+  if(config?.tooltip == false) {
+    lc['tooltip'] = false;
   }
+  return lc;
 };
   
 // Ant Design Area Chart Config
-const getAreaConfig = (config: WidgetConfig) => {
+const toAntAreaConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
@@ -98,12 +117,16 @@ const getAreaConfig = (config: WidgetConfig) => {
     stack: config?.stack, 
     normalize: config?.normalize,
     tooltip: { channel: 'y0', valueFormatter: '.3%' },
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
   
 // Ant Design Pie Chart Config
-const getPieConfig = (config: WidgetConfig) => {
+const toAntPieConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
@@ -117,8 +140,11 @@ const getPieConfig = (config: WidgetConfig) => {
     //   style: {
     //     fontWeight: 'bold',
     //   },
-    // },
-    legend: config?.legend,
+    // },,
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
     // legend: {
     //   color: {
     //     position: 'right',
@@ -129,7 +155,7 @@ const getPieConfig = (config: WidgetConfig) => {
 };
   
 // Ant Design Scatter Chart Config
-const getScatterConfig = (config: WidgetConfig) => {
+const toAntScatterConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
@@ -142,34 +168,43 @@ const getScatterConfig = (config: WidgetConfig) => {
     // axis: {
     //   x: { title: 'time (hours)', tickCount: 24 },
     //   y: { title: 'time (day)', grid: true },
-    // },
+    // },,
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
 // Ant Design Dual Axis Chart Config
-const getDualAxisConfig = (config: WidgetConfig) => {
+const toAntDualAxisConfig = (config: WidgetConfig): WidgetConfig => {
+  let legend = {
+    ...commonConfig?.legend,
+    ...config?.legend,
+  }
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
     xField: config?.xField,
     children: config?.children,
     legend: {
+      ...legend,
       color: {
+        ...legend.color,
         itemMarker: (v: any) => { return 'rect' }
       },
-      ...config?.legend,
     },
   };
 };
   
 // Ant Design Histogram Chart Config
-const getHistogramConfig = (config: WidgetConfig) => {
+const toAntHistogramConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
     binField: config?.binField,
-    // binWidth: config?.binWidth,
-    binNumber: 10,
+    binWidth: config?.binWidth,
+    binNumber: config?.binNumber,
     colorField: config?.colorField,
     channel: 'count',
     stack: {
@@ -184,29 +219,37 @@ const getHistogramConfig = (config: WidgetConfig) => {
         shared: true,
       },
     },
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
 // Ant Design Word Cloud Chart Config
-const getWordCloudConfig = (config: WidgetConfig) => {
+const toAntWordCloudConfig = (config: WidgetConfig): WidgetConfig => {
   return {
     autoFit: commonConfig?.autoFit,
     height: config?.height,
     layout: { spiral: 'rectangular' },
     textField: config?.colorField,
     colorField: config?.colorField,
+    legend: {
+      ...commonConfig?.legend,
+      ...config?.legend,
+    },
   };
 };
   
   
 export { 
-    getBarConfig,
-    getColumnConfig,
-    getLineConfig,
-    getAreaConfig,
-    getPieConfig,
-    getScatterConfig,
-    getDualAxisConfig,
-    getHistogramConfig,
-    getWordCloudConfig,
+    toAntBarConfig,
+    toAntColumnConfig,
+    toAntLineConfig,
+    toAntAreaConfig,
+    toAntPieConfig,
+    toAntScatterConfig,
+    toAntDualAxisConfig,
+    toAntHistogramConfig,
+    toAntWordCloudConfig,
 };

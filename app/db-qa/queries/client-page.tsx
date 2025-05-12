@@ -22,6 +22,7 @@ import { useToast } from "@/lib/hooks/use-toast";
 import { Icons } from "@/components/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api-client";
+import { Header } from "@/components/layout/header";
 
 export function DbQaQueriesClient() {
   const router = useRouter();
@@ -172,23 +173,17 @@ export function DbQaQueriesClient() {
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Database Quality Checks</h1>
-          <p className="text-muted-foreground">
-            Manage and monitor the quality of your database with custom quality checks.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/db-qa/queries/new">
-            <Icons.add className="mr-2 h-4 w-4" />
-            Create New Query
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-6 mb-6">
+      <Header title="Database Quality Checks" description="">
+        <Link
+          href="/db-qa/queries/new"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
+        >
+          Create New Query
+        </Link>
+      </Header>
       
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="p-4 flex flex-wrap gap-4 items-center">
         <CategoryFilter
           currentCategory={category}
           onCategoryChange={handleCategoryChange}
@@ -221,12 +216,14 @@ export function DbQaQueriesClient() {
         />
       </div>
       
-      <QueryList
-        queries={queries}
-        isLoading={isLoading}
-        onDelete={handleDeleteQuery}
-        onRunQuery={handleRunQuery}
-      />
+      <div className="p-4">
+        <QueryList
+          queries={queries}
+          isLoading={isLoading}
+          onDelete={handleDeleteQuery}
+          onRunQuery={handleRunQuery}
+        />
+      </div>
     </div>
   );
 }

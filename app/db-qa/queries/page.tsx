@@ -10,9 +10,7 @@ export const metadata: Metadata = {
 export default function DbQaQueriesPage() {
   return (
     <AppLayout>
-      <div className="container mx-auto py-10">
-        <DbQaQueriesClient />
-      </div>
+      <DbQaQueriesClient />
     </AppLayout>
   );
 }

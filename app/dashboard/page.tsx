@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { dashboards, spaces, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { Header } from '@/components/layout/header';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Dashboards',
@@ -50,18 +51,18 @@ export default async function DashboardPage({
   return (
     <AppLayout>
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboards</h1>
+
+        <Header title="Dashboards" description="">
           <Link
             href="/dashboard/create"
             className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium"
           >
             Create Dashboard
           </Link>
-        </div>
+        </Header>
 
         {/* Dashboard grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {hasDashboards ? (
             // Show available dashboards
             <>
@@ -159,7 +160,7 @@ export default async function DashboardPage({
         </div>
         
         {hasDashboards && (
-          <>
+          <div className="p-4">
             <h2 className="text-xl font-bold mt-10 mb-4">Quick Access</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link 
@@ -191,7 +192,7 @@ export default async function DashboardPage({
                 <p className="text-muted-foreground text-xs">Organize your work</p>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </AppLayout>
