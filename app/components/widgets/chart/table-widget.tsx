@@ -10,24 +10,11 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { extractColumns } from '@/lib/utils';
-
-interface FilterConfig {
-  field: string;
-  operator: "equals" | "not_equals" | "greater_than" | "less_than" | "contains";
-  value: string | number | boolean;
-}
-
-interface TableConfig {
-  headers?: string[];
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc" | "none";
-  filters?: FilterConfig[];
-}
+import { ITableConfig } from "@/types";
 
 interface TableWidgetProps {
   data: Record<string, any>[];
-  config?: TableConfig;
+  config: ITableConfig;
   className?: string;
 }
 

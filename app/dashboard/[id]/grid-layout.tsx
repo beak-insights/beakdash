@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 
@@ -8,7 +8,6 @@ import { EditOutlined, DeleteOutlined, SaveOutlined, MoreOutlined } from '@ant-d
 import { Layout, Responsive, WidthProvider } from 'react-grid-layout';
 import { Widget } from '@/lib/db/schema';
 import { WidgetVisual } from '@/components/widgets/widget-visual';
-import { GearIcon } from '@radix-ui/react-icons';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -54,8 +53,110 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
       };
     });
     
+    // Track the dimensions of each widget
+    const [widgetDimensions, setWidgetDimensions] = useState<Record<string, { width: number, height: number }>>({});
+    
+    // Track currently resizing widget
+    const [resizingWidgetId, setResizingWidgetId] = useState<string | null>(null);
+    
+    // Store refs to content containers within each widget
+    const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+    
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
+    
+    // Helper function to calculate dimensions from grid units
+    const calculateDimensionsFromGrid = (item: Layout): { width: number, height: number } => {
+      const gridElement = document.querySelector('.react-grid-layout');
+      const totalWidth = gridElement ? gridElement.clientWidth : 0;
+      const cols = window.innerWidth >= 1200 ? 12 : window.innerWidth >= 996 ? 10 : 6; // Match your breakpoints
+      
+      const cellWidth = totalWidth / cols;
+      const cellHeight = 60; // rowHeight from your grid config
+      
+      // Account for margins and borders (adjust the offsets as needed)
+      const widthOffset = 10;
+      const heightOffset = 10;
+      
+      return {
+        width: Math.max(0, (item.w * cellWidth) - widthOffset),
+        height: Math.max(0, (item.h * cellHeight) - heightOffset)
+      };
+    };
+    
+    // Function to update dimensions of a specific widget
+    const updateWidgetDimensions = (widgetId: string) => {
+      const contentEl = contentRefs.current[widgetId];
+      
+      if (contentEl) {
+        // Get dimensions of the content container
+        const { clientWidth, clientHeight } = contentEl;
+        
+        // Only update if dimensions are valid (greater than 0)
+        if (clientWidth > 0 && clientHeight > 0) {
+          setWidgetDimensions(prev => {
+            // Check if dimensions have actually changed
+            const prevDims = prev[widgetId];
+            if (!prevDims || 
+                prevDims.width !== clientWidth || 
+                prevDims.height !== clientHeight) {
+              // Only update if dimensions have changed
+              return {
+                ...prev,
+                [widgetId]: {
+                  width: clientWidth,
+                  height: clientHeight
+                }
+              };
+            }
+            return prev;
+          });
+        }
+      }
+    };
+    
+    // Function to update dimensions for all widgets
+    const updateAllWidgetDimensions = () => {
+      widgets.forEach(widget => {
+        updateWidgetDimensions(widget.id.toString());
+      });
+    };
+    
+    // Initial dimension calculation after component mounts and widgets are rendered
+    useEffect(() => {
+      // Use requestAnimationFrame to ensure the DOM has been painted
+      const rafId = requestAnimationFrame(() => {
+        updateAllWidgetDimensions();
+      });
+      
+      return () => cancelAnimationFrame(rafId);
+    }, []);
+    
+    // Update dimensions when window resizes
+    useEffect(() => {
+      const handleResize = () => {
+        // Use requestAnimationFrame to avoid excessive updates
+        requestAnimationFrame(() => {
+          updateAllWidgetDimensions();
+        });
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }, []);
+    
+    // Update dimensions when layout changes
+    useEffect(() => {
+      // Wait for layout to finish updating
+      const timeoutId = setTimeout(() => {
+        updateAllWidgetDimensions();
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }, [layouts]);
     
     // Save updated layout positions to database
     const saveLayout = async () => {
@@ -127,6 +228,48 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
       }
     };
     
+    // Handle resize start
+    const onResizeStart = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
+      setResizingWidgetId(newItem.i);
+      
+      // Store the initial dimensions when resize starts
+      requestAnimationFrame(() => {
+        // This ensures we start with accurate dimensions
+        updateWidgetDimensions(newItem.i);
+      });
+    };
+    
+    // Handle resize
+    const onResize = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
+      if (resizingWidgetId === newItem.i) {
+        // Use our helper function to calculate accurate dimensions
+        const { width, height } = calculateDimensionsFromGrid(newItem);
+        
+        // Update dimensions with calculated values
+        setWidgetDimensions(prev => ({
+          ...prev,
+          [newItem.i]: { width, height }
+        }));
+      }
+    };
+    
+    // Handle resize stop
+    const onResizeStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
+      // First, set final dimensions based on grid calculation
+      const { width, height } = calculateDimensionsFromGrid(newItem);
+      
+      setWidgetDimensions(prev => ({
+        ...prev,
+        [newItem.i]: { width, height }
+      }));
+      
+      // After grid layouts settle, update dimensions from DOM for accuracy
+      setTimeout(() => {
+        updateWidgetDimensions(newItem.i);
+        setResizingWidgetId(null);
+      }, 150); // Give the DOM time to settle
+    };
+    
     // Toggle edit mode
     const toggleEditMode = () => {
       if (isEditMode) {
@@ -136,9 +279,12 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
         setIsEditMode(true);
       }
     };
-
-
-
+    
+    // Debug logging to track dimensions
+    useEffect(() => {
+      console.log('Widget dimensions:', widgetDimensions);
+    }, [widgetDimensions]);
+    
     const controls = (<>
         {isSaving && (
           <div className="flex items-center">
@@ -200,6 +346,9 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
           containerPadding={[5,5]}
           margin={[5,5]}
           onLayoutChange={onLayoutChange}
+          onResizeStart={onResizeStart}
+          onResize={onResize}
+          onResizeStop={onResizeStop}
           isDraggable={isEditMode}
           isResizable={isEditMode}
           useCSSTransforms={true}
@@ -207,47 +356,70 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
           draggableHandle=".drag-handle"
         >
   
-          {widgets.map(widget => (
-            <div
-              key={widget.id.toString()}
-              className={`relative group border rounded-xs overflow-hidden bg-card shadow-xs transition-all ${
-                isEditMode ? 'border-amber-500 border-dashed shadow-md' : ''
-              }`}
-            >
-              {/* Buttons shown on hover */}
-              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <Link
-                  href={`/dashboard/${dashboardId}/edit-widget/${widget.id}`}
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
-                  aria-label="Edit widget"
+          {widgets.map(widget => {
+            const widgetId = widget.id.toString();
+            const dimensions = widgetDimensions[widgetId] || { width: 0, height: 0 };
+            const isResizing = resizingWidgetId === widgetId;
+            
+            return (
+              <div
+                key={widgetId}
+                className={`relative group border rounded-xs overflow-hidden bg-card shadow-xs transition-all ${
+                  isEditMode ? 'border-amber-500 border-dashed shadow-md' : ''
+                } ${isResizing ? 'resizing' : ''}`}
+              >
+                {/* Buttons shown on hover */}
+                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <Link
+                    href={`/dashboard/${dashboardId}/edit-widget/${widget.id}`}
+                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                    aria-label="Edit widget"
+                  >
+                    <EditOutlined />
+                  </Link>
+                  <button
+                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                    aria-label="More options"
+                  >
+                    <MoreOutlined />
+                  </button>
+                  <button
+                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
+                    aria-label="AI Copilot"
+                  >
+                    🤖
+                  </button>
+                  <button 
+                    className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive flex items-center justify-center"
+                    aria-label="Delete widget"
+                  >
+                    <DeleteOutlined />
+                  </button>
+                </div>
+    
+                <div 
+                  className={`overflow-auto min-h-full ${isEditMode ? 'drag-handle cursor-move bg-amber-50' : ''}`}
+                  ref={el => {
+                    // Store a reference to the content container
+                    contentRefs.current[widgetId] = el;
+                    
+                    // If this is the first time this ref is set, update dimensions
+                    if (el && (!widgetDimensions[widgetId] || widgetDimensions[widgetId].width === 0)) {
+                      requestAnimationFrame(() => {
+                        updateWidgetDimensions(widgetId);
+                      });
+                    }
+                  }}
                 >
-                  <EditOutlined />
-                </Link>
-                <button
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
-                  aria-label="More options"
-                >
-                  <MoreOutlined />
-                </button>
-                <button
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground flex items-center justify-center"
-                  aria-label="AI Copilot"
-                >
-                  🤖
-                </button>
-                <button 
-                  className="h-6 w-6 rounded-full text-muted-foreground hover:text-destructive flex items-center justify-center"
-                  aria-label="Delete widget"
-                >
-                  <DeleteOutlined />
-                </button>
+                  <WidgetVisual 
+                    widget={widget} 
+                    dimensions={{width: dimensions.width - 10, height: dimensions.height - 60}}
+                    isResizing={isResizing}
+                  />
+                </div>
               </div>
-  
-              <div className={`overflow-auto min-h-full ${isEditMode ? 'drag-handle cursor-move bg-amber-50' : ''}`}>
-                <WidgetVisual widget={widget} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
   
         </ResponsiveGridLayout>
       </div>

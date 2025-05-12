@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Header } from '@/components/layout/header';
 
 export const metadata: Metadata = {
   title: 'BeakDash - Home',
@@ -10,7 +9,6 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
       <main className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-background to-muted p-4">
         <div className="max-w-4xl w-full bg-card rounded-lg shadow-xl overflow-hidden">
           <div className="p-8 md:p-12">

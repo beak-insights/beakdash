@@ -176,6 +176,9 @@ const widgetsRef: any = {};
 // Define base widget config type
 type BaseWidgetConfig = {
   chartType?: z.infer<typeof chartSchemas>;
+  autoFit?: boolean;
+  height?: number;
+  width?: number;
   textContent?: string;
   xField?: string;
   yField?: string;
@@ -240,6 +243,7 @@ type BaseWidgetConfig = {
     };
   };
   legend?: {
+    position?: 'top' | 'right' | 'bottom' | 'left';
     color?: {
       title?: boolean;
       position?: string;
@@ -263,6 +267,9 @@ export type WidgetConfig = BaseWidgetConfig;
 
 export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
   chartType: chartSchemas.optional(),
+  autoFit: z.boolean().optional(),
+  height: z.number().optional(),
+  width: z.number().optional(),
   textContent: z.string().optional(),
   xField: z.string().optional(),
   yField: z.string().optional(),
@@ -333,6 +340,7 @@ export const WidgetConfigSchema: z.ZodType<WidgetConfig> = z.object({
     }).optional(),
   }).optional(),
   legend: z.object({
+    position: z.enum(['top', 'right', 'bottom', 'left']).optional(),
     color: z.object({
       title: z.boolean().optional(),
       position: z.string().optional(),

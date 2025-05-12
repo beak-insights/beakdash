@@ -19,3 +19,22 @@ export interface SQLiteColumn {
   notnull: number;
   pk: number;
 } 
+
+export interface IWidgetDimensions {
+  width: number;
+  height: number;
+}
+
+export interface IFilterConfig {
+  field: string;
+  operator: "equals" | "not_equals" | "greater_than" | "less_than" | "contains";
+  value: string | number | boolean;
+}
+
+export interface ITableConfig {
+  headers?: string[];
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc" | "none";
+  filters?: IFilterConfig[];
+}
