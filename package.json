@@ -1,8 +1,10 @@
 {
-  "name": "rest-express",
+  "name": "beakdash",
   "version": "1.0.0",
-  "type": "module",
-  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +13,10 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "check": "tsc"
+    "check": "tsc",
+    "build:shared": "cd packages/shared && pnpm build",
+    "build:sdk": "cd packages/sdk && pnpm build",
+    "build:packages": "pnpm build:shared && pnpm build:sdk"
   },
   "dependencies": {
     "@ant-design/charts": "^2.2.7",
@@ -78,15 +83,14 @@
     "nanoid": "^5.1.5",
     "next": "^15.0.3",
     "next-auth": "^4.24.11",
-    "nextjs]": "link:[@clerk/nextjs]",
     "openai": "^4.90.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.14.1",
     "postgres": "^3.4.5",
     "react": "^19.0",
-    "react-day-picker": "^8.10.1",
     "react-dom": "^19.0",
+    "react-day-picker": "^8.10.1",
     "react-grid-layout": "^1.5.1",
     "react-hook-form": "^7.53.1",
     "react-icons": "^5.4.0",
@@ -130,5 +134,5 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   },
-  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+  "packageManager": "pnpm@7.33.6+sha256.f0c52b41f8128da92160f6826b53a105aad31c6c7cdc00b907fde507c5ca09b5"
 }
