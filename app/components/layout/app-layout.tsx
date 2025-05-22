@@ -50,7 +50,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   // If authenticated, render the layout with sidebar
   if (status === 'authenticated' && session?.user) {
     return (
-      <div className="flex h-screen w-full bg-gray-100 overflow-hidden">
+      <div className="flex h-screen w-full bg-gray-100 overflow-hidden font-fira-sans">
         <Sidebar />
         
         <div className="flex flex-col flex-1 w-full overflow-hidden">
@@ -68,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Show loading indicator while redirecting
   return (
-    <div className="flex h-screen w-full items-center justify-center">
+    <div className="flex h-screen w-full items-center justify-center font-fira-sans">
       <div className="text-center">
         <Spinner size="lg" />
         <p className="mt-4 text-muted-foreground">Redirecting to login...</p>

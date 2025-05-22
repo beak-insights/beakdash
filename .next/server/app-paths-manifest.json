@@ -1,6 +1,8 @@
 {
-  "/page": "app/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
-  "/dashboard/[id]/add-widget/page": "app/dashboard/[id]/add-widget/page.js"
+  "/datasets/create/page": "app/datasets/create/page.js",
+  "/datasets/[id]/page": "app/datasets/[id]/page.js",
+  "/datasets/page": "app/datasets/page.js"
 }

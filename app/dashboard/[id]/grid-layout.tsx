@@ -3,11 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 
 import { EditOutlined, DeleteOutlined, SaveOutlined, MoreOutlined } from '@ant-design/icons';
 import { Layout, Responsive, WidthProvider } from 'react-grid-layout';
 import { Widget } from '@/lib/db/schema';
 import { WidgetVisual } from '@/components/widgets/widget-visual';
+import AICopilot from '@/components/ai/ai-copilot';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -24,7 +27,8 @@ interface GridLayoutProps {
 export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
     // Edit mode state
     const [isEditMode, setIsEditMode] = useState(false);
-
+    const [showCopilot, setShowCopilot] = useState(false);
+    
     // Convert widgets to layout items
     const [layouts, setLayouts] = useState(() => {
       const layoutItems = widgets.map(widget => {
@@ -286,6 +290,16 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
     }, [widgetDimensions]);
     
     const controls = (<>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCopilot(true)}
+          className="flex items-center gap-2"
+        >
+          <Sparkles className="h-4 w-4" />
+          AI Copilot
+        </Button>
+
         {isSaving && (
           <div className="flex items-center">
             <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -422,6 +436,16 @@ export function GridLayoutComponent({ widgets, dashboardId }: GridLayoutProps) {
           })}
   
         </ResponsiveGridLayout>
+
+        {showCopilot && (
+          <AICopilot
+            onClose={() => setShowCopilot(false)}
+            dashboardId={dashboardId}
+            activeDatasetId={undefined}
+            activeChartType={undefined}
+            widgetContext={undefined}
+          />
+        )}
       </div>
     );
 }

@@ -80,7 +80,7 @@ function TableWidget({ data, config = {}, className }: TableWidgetProps) {
           <TableHeader>
             <TableRow>
             {columns.all.map((column) => (
-              <TableHead className="p-2 font-semibold border-r" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
+              <TableHead className="px-2 py-1 bg-slate-100 font-semibold border-r" key={column}>{column?.toString().replaceAll("_", " ").toUpperCase()}</TableHead>
             ))}
             </TableRow>
           </TableHeader>

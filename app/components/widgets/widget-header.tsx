@@ -17,7 +17,7 @@ export function WidgetHeader({ name, description }: WidgetHeaderProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <h2 className="text-2xl font-semibold text-foreground">{name}</h2>
+      <h2 className="text-xl font-semibold text-foreground font-roboto uppercase">{name}</h2>
       {description && (
         <TooltipProvider>
           <Tooltip>

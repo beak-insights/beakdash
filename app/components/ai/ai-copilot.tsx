@@ -31,12 +31,13 @@ interface WidgetContextType {
 
 interface AICopilotProps {
   onClose: () => void;
+  dashboardId?: number;
   activeDatasetId?: number;
   activeChartType?: string;
   widgetContext?: WidgetContextType;
 }
 
-export default function AICopilot({ onClose, activeDatasetId, activeChartType, widgetContext }: AICopilotProps) {
+export default function AICopilot({ onClose, dashboardId, activeDatasetId, activeChartType, widgetContext }: AICopilotProps) {
   const [prompt, setPrompt] = useState("");
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | undefined>(activeDatasetId);
   const [selectedChartType, setSelectedChartType] = useState<string | undefined>(activeChartType);
@@ -366,13 +367,13 @@ export default function AICopilot({ onClose, activeDatasetId, activeChartType, w
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 z-40 w-80 h-[28rem] flex flex-col shadow-lg border border-border overflow-hidden">
+    <Card className="fixed bottom-4 right-10 z-40 w-102 h-[48rem] flex flex-col shadow-lg border border-border overflow-hidden">
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6 bg-primary">
             <AvatarFallback>AI</AvatarFallback>
           </Avatar>
-          <h3 className="font-medium text-sm">AI Copilot</h3>
+          <h3 className="font-medium text-sm">Dasher Assistant</h3>
         </div>
         <div className="flex items-center space-x-1">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleMinimize}>
